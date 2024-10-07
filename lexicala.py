@@ -2,6 +2,8 @@ import os
 
 import requests
 
+from variables import Keys
+
 prefix_url = "https://lexicala1.p.rapidapi.com/"
 # function = "languages"
 # function = "test"
@@ -11,7 +13,7 @@ function = f"search?source=global&language=he&text={text}&analyzed=true"
 url = prefix_url + function
 
 headers = {
-	"x-rapidapi-key": os.environ.get('rapidapi-key'),
+	"x-rapidapi-key": Keys.rapidapi_key,
 	"x-rapidapi-host": "lexicala1.p.rapidapi.com"
 }
 

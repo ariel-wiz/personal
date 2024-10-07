@@ -8,6 +8,7 @@ import requests
 
 from garmin import init_api
 from logger import logger
+from variables import Keys
 
 today = datetime.date.today()
 yesterday = today - datetime.timedelta(days=1)
@@ -17,19 +18,20 @@ day_before_yesterday = today - datetime.timedelta(days=2)
 
 headers = {
     "Content-Type": "application/json",
-    "Authorization": f"Bearer {os.environ.get('notion_api_key')}",
+    "Authorization": f"Bearer {Keys.notion_api_key}",
     "Notion-Version": "2022-06-28"
 }
 
 UID = 'UID'
 url = f"https://api.notion.com/v1/databases/{UID}/query"
 
-tasks_db_id = os.environ.get('tasks_db_id')
-daily_tasks_db_id = os.environ.get('daily_tasks_db_id')
-recurring_db_id = os.environ.get('recurring_db_id')
-zahar_nekeva_db_id = os.environ.get('zahar_nekeva_db_id')
-trading_db_id = os.environ.get('trading_db_id')
-garmin_db_id = os.environ.get('garmin_db_id')
+tasks_db_id = Keys.tasks_db_id
+daily_tasks_db_id = Keys.daily_tasks_db_id
+recurring_db_id = Keys.recurring_db_id
+zahar_nekeva_db_id = Keys.zahar_nekeva_db_id
+trading_db_id = Keys.trading_db_id
+garmin_db_id = Keys.garmin_db_id
+
 
 class FieldMap:
     exercise = '🏃🏼\xa0Exercise'
@@ -715,7 +717,7 @@ if __name__ == '__main__':
     selected_tasks = [task for task in task_map.keys() if getattr(args, task)]
 
     # IMPORTANT !!!! Comment after usage !!!!
-    # selected_tasks.append('get_habits')  # Default task can be modified here
+    # selected_tasks.append('garmin')  # Default task can be modified here
 
     # Call the main logic with the selected tasks
     main(selected_tasks)

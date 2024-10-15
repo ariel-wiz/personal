@@ -26,11 +26,12 @@ UID = 'UID'
 url = f"https://api.notion.com/v1/databases/{UID}/query"
 
 tasks_db_id = Keys.tasks_db_id
-daily_tasks_db_id = Keys.daily_tasks_db_id
+weekly_tasks_page_id = Keys.weekly_tasks_page_id
 recurring_db_id = Keys.recurring_db_id
 zahar_nekeva_db_id = Keys.zahar_nekeva_db_id
 trading_db_id = Keys.trading_db_id
 garmin_db_id = Keys.garmin_db_id
+daily_tasks_db_id = Keys.daily_tasks_db_id
 
 
 class FieldMap:
@@ -57,7 +58,7 @@ tasks_filter = {
     ]
 }
 
-calendar_filter = {
+next_calendar_filter = {
     "and": [
         {"and": [
             {"property": "State",
@@ -78,6 +79,7 @@ calendar_filter = {
          }}
     ]
 }
+
 
 all_calendar_filter = {
     "and": [
@@ -226,7 +228,7 @@ def add_content_to_row(page_id, content):
 
 
 def get_habit_rows():
-    habits_db_id = daily_tasks_db_id
+    habits_db_id = weekly_tasks_page_id
     habits_url = url.replace(UID, habits_db_id)
 
     habits_payload = payload.copy()
@@ -325,13 +327,64 @@ def create_row(name_row, description, large_description, example):
     response = invoke_notion_api(trading_db_url, trading_payload)
 
 
-def get_tasks():
+def copy_calendar():
+    calendar_tasks = get_tasks(all_calendar_filter)
+    success_task_count = 0
+    error_task_count = 0
+
+    for task in calendar_tasks['results']:
+        task_name = task['properties']['Task']['title'][0]['plain_text']
+        task_due_start = task['properties']['Due']['date']['start']
+        task_due_end = task['properties']['Due']['date']['end']
+        task_project = task['properties']['Project']['select']['name']
+        task_gcal_link = task['properties']['gCal Link']['url']
+
+        if task['properties']['Due']['date']['end'] and '00:00:00' not in task['properties']['Due']['date']['end'].split('T')[1].split('+')[0]:
+            task_due = [task_due_start, task_due_end]
+        else:
+            task_due = task_due_start
+
+        daily_task_dict = {
+            "Task": task_name,
+            "Project": task_project,
+            "Due": task_due,
+            "gCal Link": task_gcal_link
+        }
+
+        daily_task_payload = generate_create_page_payload(daily_tasks_db_id, daily_task_dict)
+        response = invoke_notion_api(f"https://api.notion.com/v1/pages", daily_task_payload)
+        if response:
+            page_id = task['id']
+            update_data = {
+                "properties": {
+                    "copied": {
+                        "checkbox": True
+                    }
+                }
+            }
+
+            update_page(page_id, update_data)
+
+            logger.info(f"Successfully created daily task for {task_name} with ID {response['id']}")
+            success_task_count += 1
+        else:
+            logger.info(f"Failed to create daily task for {task_name} and due date {task_due} and project {task_project}- response {response}")
+            error_task_count += 1
+        print(f"Successfully copied {success_task_count} tasks. Errors: {error_task_count}")
+
+
+
+def get_tasks(task_filter=None):
     tasks_url = url.replace(UID, tasks_db_id)
     tasks_payload = payload.copy()
-    tasks_payload['filter'] = tasks_filter
+    if task_filter:
+        tasks_payload['filter'] = task_filter
+    else:
+        tasks_payload['filter'] = tasks_filter
     tasks_payload['sorts'] = tasks_sorts
     response = invoke_notion_api(tasks_url, tasks_payload)
     print_response(response, 'tasks')
+    return response
 
 
 def update_page_property(page_id, property_name, new_value):
@@ -367,7 +420,7 @@ def get_calendar(remove_time=False):
     if remove_time:
         tasks_payload['filter'] = all_calendar_filter
     else:
-        tasks_payload['filter'] = calendar_filter
+        tasks_payload['filter'] = next_calendar_filter
 
     tasks_payload['sorts'] = tasks_sorts
     response = invoke_notion_api(tasks_url, tasks_payload)
@@ -394,7 +447,7 @@ def get_calendar(remove_time=False):
 def get_daily_tasks():
     tasks_url = url.replace(UID, tasks_db_id)
     tasks_payload = payload.copy()
-    tasks_payload['filter'] = calendar_filter
+    tasks_payload['filter'] = next_calendar_filter
     tasks_payload['sorts'] = tasks_sorts
     response = invoke_notion_api(tasks_url, tasks_payload)
     print_response(response, 'tasks')
@@ -523,17 +576,16 @@ def get_page_by_date_offset(database_id, offset: DateOffset):
     results = response.get("results", [])
     # Return the list of page IDs
     if len(results) == 0:
-        logger.info(f"No pages found for date {target_date_str}.")
+        logger.info(f"No pages found for date {target_date_str} in Notion.")
     elif len(results) > 1:
-        logger.info(f"Found multiple pages for date {target_date_str}.")
+        logger.info(f"Found multiple pages for date {target_date_str} in Notion.")
     else:
-        logger.info(f"Successfully found pages for date {target_date_str}!")
+        logger.info(f"Successfully found pages for date {target_date_str} in Notion!")
     return results
 
 
 def uncheck_done_daily_task():
-    page_id = '110afca4f8078019b286d3d64b058fa2'
-    url = f"https://api.notion.com/v1/pages/{page_id}"
+    page_id = weekly_tasks_page_id
     update_data = {
         "properties": {
             "Done": {
@@ -541,6 +593,12 @@ def uncheck_done_daily_task():
             }
         }
     }
+
+    update_page(weekly_tasks_page_id, update_data)
+
+
+def update_page(page_id, update_data):
+    url = f"https://api.notion.com/v1/pages/{page_id}"
 
     # Send PATCH request to update the page properties
     response = requests.patch(url, headers=headers, data=json.dumps(update_data))
@@ -552,19 +610,15 @@ def uncheck_done_daily_task():
         logger.info(f"Response: {response.text}")
 
 
-def convert_to_date(date_str):
-    # Timestamp in milliseconds
-    timestamp_ms = date_str
+def add_hours_to_time(time_str):
+    # Parse the input string into a datetime object
+    input_time = datetime.datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%S.%f')
 
-    # Convert to seconds by dividing by 1000
-    timestamp_sec = timestamp_ms / 1000
+    # Add 3 hours using timedelta
+    adjusted_time = input_time + datetime.timedelta(hours=3)
 
-    # Convert to a UTC datetime object
-    utc_dt = datetime.datetime.utcfromtimestamp(timestamp_sec)
-
-    formatted_time = utc_dt.strftime('%H:%M')
-    # formatted_time = utc_dt.strftime('%Y-%m-%d %H:%M:%S')
-    return formatted_time
+    # Return the adjusted time in hh:mm format
+    return adjusted_time.strftime('%H:%M')
 
 
 def seconds_to_hours_minutes(seconds):
@@ -587,9 +641,12 @@ def seconds_to_hours_minutes(seconds):
 
 def get_garmin_info():
     api = init_api()
-    sleep_data = api.get_sleep_data(day_before_yesterday.isoformat())
-    sleep_start = convert_to_date(sleep_data['dailySleepDTO']['sleepStartTimestampGMT'])
-    sleep_end = convert_to_date(sleep_data['dailySleepDTO']['sleepEndTimestampGMT'])
+    sleep_data = api.get_sleep_data(yesterday.isoformat())
+    if not sleep_data.get('sleepMovement'): # It means the data is empty
+        return {}
+
+    sleep_start = add_hours_to_time(sleep_data['sleepLevels'][0]['startGMT'])
+    sleep_end = add_hours_to_time(sleep_data['sleepLevels'][-1]['endGMT'])
     sleep_duration = seconds_to_hours_minutes(sleep_data['dailySleepDTO']['sleepTimeSeconds'])
     sleep_feedback_overall = sleep_data['dailySleepDTO']['sleepScores']['overall']['qualifierKey']
     sleep_feedback_note = sleep_data['dailySleepDTO']['sleepScores']['overall']['value']
@@ -637,6 +694,76 @@ def get_notion_other_fields(activity_status):
     }
 
 
+def replace_none_with_list_or_string(d, replacements):
+    # If the argument is a string, convert it to a list with a single element
+    if isinstance(replacements, str):
+        replacements = [replacements]
+
+    # Create an iterator from the replacements (works for both single string and list)
+    replacement_iter = iter(replacements)
+
+    # Recursive function to traverse the dictionary or list and replace None values
+    def recursive_replace(item):
+        if isinstance(item, dict):
+            # If it's a dictionary, process its items
+            new_dict = {}
+            for k, v in item.items():
+                new_dict[k] = recursive_replace(v)
+            return new_dict
+        elif isinstance(item, list):
+            # If it's a list, process each element of the list
+            return [recursive_replace(i) for i in item]
+        elif item is None:
+            # Replace None with the next element from the iterator
+            return next(replacement_iter, None)  # Default to None if replacements run out
+        else:
+            # If it's not a dict, list, or None, return the item as is
+            return item
+
+    # Return the newly created structure
+    return recursive_replace(d)
+
+
+def generate_create_page_payload(database_id, daily_task_dict):
+    daily_task_payload = {"parent": {"database_id": database_id}, "properties": {}}  # Initialize the payload
+
+    daily_db_items = {
+        "Title": ["Task"],
+        "Select": ["Project"],
+        "Date": ["Due"],
+        "Link": ["gCal Link"]
+    }
+
+    daily_db_playload = {
+        "Title": {"title": [{"text": {"content": None}}]},
+        "Select": {"select": {"name": None}},
+        "Date": {"date": {"start": None}},
+        "Link": {"url": None}
+    }
+
+    for daily_task_element in daily_task_dict.items():
+        key, value = daily_task_element
+        for db_item_category_key in list(daily_db_items.keys()):
+            if key in daily_db_items[db_item_category_key]:
+                if db_item_category_key == "Date" and isinstance(value, list) and len(value) == 2: # Start date and end date
+                    start_date = value[0]
+                    end_date = value[1]
+                    payload_element = replace_none_with_list_or_string(daily_db_playload[db_item_category_key], start_date)
+                    payload_element["date"]["end"] = end_date
+                else:
+                    payload_element = replace_none_with_list_or_string(daily_db_playload[db_item_category_key], value)
+                daily_task_payload["properties"][key] = payload_element
+                break
+
+    return daily_task_payload
+
+
+
+def create_daily_task_row(payload):
+    url = f"https://api.notion.com/v1/pages"
+    response = invoke_notion_api(url, payload)
+    logger.info(f"Successfully created daily task row with ID {response['id']}")
+
 def update_garmin_info(update_daily_tasks=True):
     yesterday_date = yesterday.strftime('%d-%m-%Y')
     logger.info(f"Updating Garmin info for {yesterday_date}")
@@ -649,9 +776,13 @@ def update_garmin_info(update_daily_tasks=True):
         logger.info(f"Garmin page for {yesterday_date} already exists with page ID {garmin_page_id}")
     else:
         garmin_dict = get_garmin_info()
+        if not garmin_dict:
+            logger.info(f"No Garmin data found for {yesterday_date}")
+            return
+
         logger.debug(garmin_dict)
 
-        database_id = '117afca4f807805d9787fdff0dee81af'
+        database_id = garmin_db_id
         url = f"https://api.notion.com/v1/pages"
         garmin_payload = {
             "parent": {"database_id": database_id},
@@ -677,7 +808,7 @@ def update_garmin_info(update_daily_tasks=True):
         logger.info(f"Successfully created Garmin info for {yesterday_date}")
 
     if update_daily_tasks:
-        daily_tasks = get_page_by_date_offset(daily_tasks_db_id, DateOffset.YESTERDAY)
+        daily_tasks = get_page_by_date_offset(weekly_tasks_page_id, DateOffset.YESTERDAY)
         if daily_tasks:
             daily_task_id = daily_tasks[0]["id"]
             other_fields = get_notion_other_fields({FieldMap.exercise: activity_status})

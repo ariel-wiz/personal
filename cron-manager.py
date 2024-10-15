@@ -49,8 +49,8 @@ def main():
 
     current_hour = datetime.now().hour
 
-    # Check if the hour is between 2 AM (2) and 6 AM (6)
-    if 2 <= current_hour < 6:
+    # Check if the hour is between 2 AM (2) and 8 AM (8)
+    if 2 <= current_hour < 8:
         # After completing the script, put the Mac to sleep
         try:
             subprocess.run(['sudo', 'pmset', 'sleepnow'], check=True)

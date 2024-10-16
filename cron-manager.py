@@ -21,8 +21,18 @@ scripts_to_run = [
         ScriptExecution.path: "/Users/ariel/PycharmProjects/personal/notion.py",
         ScriptExecution.arg: "--uncheck_done",
         ScriptExecution.frequency: "saturday"
-
+    },
+    {
+        ScriptExecution.path: "/Users/ariel/PycharmProjects/personal/notion.py",
+        ScriptExecution.arg: "--create_daily_summary_pages",
+        ScriptExecution.frequency: "saturday"
+    },
+    {
+        ScriptExecution.path: "/Users/ariel/PycharmProjects/personal/notion.py",
+        ScriptExecution.arg: "--copy_birthdays",
+        ScriptExecution.frequency: "16/10"
     }
+
 ]
 
 
@@ -34,18 +44,23 @@ def main():
     logger.info(f"Using Python executable: {sys.executable}")
     logger.info(f"os.environ are: {os.environ}")
 
-    today = datetime.now().strftime("%A").lower()  # %A gives the full weekday name
+    today_date = datetime.now().strftime("%d/%m")  # Format for day/month
+    today_weekday = datetime.now().strftime("%A").lower()  # %A gives the full weekday name
 
     # Your Python script logic here
     logger.info("Running the cron script...")
-    # (Example) Writing to a file
 
     for script in scripts_to_run:
-        if script.get(ScriptExecution.frequency) and (today == script.get(ScriptExecution.frequency) or script.get(ScriptExecution.frequency) == 'daily'):
-            logger.info(f" ++++ Running {script[ScriptExecution.path]} with arguments {script[ScriptExecution.arg]} ++++")
-            subprocess.run(['/usr/local/bin/python3.8', script[ScriptExecution.path], script[ScriptExecution.arg]], check=True)
-        else:
-            logger.info(f" ---- Skipping {script[ScriptExecution.path]} with arguments {script[ScriptExecution.arg]} ----")
+        frequency = script.get('frequency')
+
+        # Check if the frequency is a weekday or a specific date
+        if frequency:
+            if (today_weekday == frequency.lower() or frequency == 'daily' or
+                    today_date == frequency):
+                logger.info(f" ++++ Running {script['path']} with arguments {script['arg']} ++++")
+                subprocess.run(['/usr/local/bin/python3.8', script['path'], script['arg']], check=True)
+            else:
+                logger.info(f" ---- Skipping {script['path']} with arguments {script['arg']} ----")
 
     current_hour = datetime.now().hour
 

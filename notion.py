@@ -36,6 +36,7 @@ daily_tasks_db_id = Keys.daily_tasks_db_id
 weekly_task_page_id = Keys.weekly_task_page_id
 birthday_db_id = Keys.birthday_db_id
 
+
 class FieldMap:
     exercise = '🏃🏼\xa0Exercise'
 
@@ -60,6 +61,21 @@ tasks_filter = {
     ]
 }
 
+daily_birthday_filter = {
+    "and": [
+        {"property": "State",
+         "formula": {
+             "string": {
+                 "does_not_contain": "Done"
+             }}},
+        {"property": "Category",
+         "formula": {
+             "string": {
+                 "contains": "Birthdays"
+             }}}
+    ]
+}
+
 next_month_filter = {
     "and": [
         {
@@ -78,17 +94,17 @@ next_month_filter = {
 }
 
 next_filter = {
-        "and": [
-            {"property": "State",
-             "formula": {
-                 "string": {
-                     "is_not_empty": True
-                 }}},
-            {"property": "State",
-             "formula": {
-                 "string": {
-                     "does_not_contain": "Done"
-                 }}}]}
+    "and": [
+        {"property": "State",
+         "formula": {
+             "string": {
+                 "is_not_empty": True
+             }}},
+        {"property": "State",
+         "formula": {
+             "string": {
+                 "does_not_contain": "Done"
+             }}}]}
 
 all_calendar_filter = {
     "and": [
@@ -381,13 +397,13 @@ def get_day_number_formatted(input_date_str):
 
 
 def create_day_summary_name(date_str):
-    day_formatted = get_day_number_formatted(date_str)
+    # day_formatted = get_day_number_formatted(date_str)
     # Parse the input date string to a datetime object
     input_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
     # Format the date as '17 October'
-    formatted_date = input_date.strftime('%d %B')
-    return f"{day_formatted} - {formatted_date}"
+    formatted_date = input_date.strftime('%A %d %B')
+    return formatted_date
 
 
 def get_template_content(template_id):
@@ -422,7 +438,8 @@ def create_daily_summary_pages():
 
     for day_to_create in days_to_create:
         day_summary_name = create_day_summary_name(day_to_create)
-        day_summary_payload = generate_create_page_payload(day_summary_db_id, {"Date": day_to_create, "Day": day_summary_name})
+        day_summary_payload = generate_create_page_payload(day_summary_db_id,
+                                                           {"Date": day_to_create, "Day": day_summary_name})
 
         response = invoke_notion_api(f"https://api.notion.com/v1/pages", day_summary_payload)
         logger.info(f"Created daily summary for {day_summary_name} with ID {response['id']}")
@@ -431,14 +448,24 @@ def create_daily_summary_pages():
 
 
 def copy_birthdays():
-    # daily_tasks = get_daily_tasks()
+    birthday_daily_tasks = get_daily_tasks(daily_filter=daily_birthday_filter, daily_sorts=[{
+        "property": "Due",
+        "direction": "ascending"
+    }]).get('results', [])
+    daily_tasks_birthday_upcoming_state = [task['properties']['Task']['title'][0]['plain_text'] for task in
+                                           birthday_daily_tasks]
+
     birthday_pages = get_birthdays()
     success_task_count = 0
     error_task_count = 0
 
     for birthday_page in birthday_pages['results']:
         next_birthday = birthday_page['properties']['Next Birthday']['formula']['date']['start']
-        birthday_state = birthday_page['properties']['DailyTaskState']['formula']['string']
+        birthday_state = birthday_page['properties']['FullBirthdayState']['formula']['string']
+
+        if birthday_state in daily_tasks_birthday_upcoming_state:
+            logger.info(f"Birthday task for {birthday_state} already exists")
+            continue
 
         # if task['properties']['Due']['date']['end'] and '00:00:00' not in \
         #         task['properties']['Due']['date']['end'].split('T')[1].split('+')[0]:
@@ -518,11 +545,19 @@ def should_the_date_change(property):
         return False
 
 
-def get_daily_tasks():
+def get_daily_tasks(daily_filter=None, daily_sorts=None):
     tasks_url = url.replace(UID, daily_tasks_db_id)
     tasks_payload = payload.copy()
-    tasks_payload['filter'] = next_filter
-    tasks_payload['sorts'] = tasks_sorts
+    if daily_filter:
+        tasks_payload['filter'] = daily_filter
+    else:
+        tasks_payload['filter'] = next_filter
+
+    if daily_sorts:
+        tasks_payload['sorts'] = daily_sorts
+    else:
+        tasks_payload['sorts'] = tasks_sorts
+
     response = invoke_notion_api(tasks_url, tasks_payload)
     return response
 
@@ -673,7 +708,7 @@ def uncheck_done_daily_task():
             },
             "Due": {
                 "date": {
-                    "start": today.isoformat()
+                    "start": (today + timedelta(days=1)).isoformat()
                 }
             }
         }

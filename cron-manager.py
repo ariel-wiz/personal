@@ -30,7 +30,7 @@ scripts_to_run = [
     {
         ScriptExecution.path: "/Users/ariel/PycharmProjects/personal/notion.py",
         ScriptExecution.arg: "--copy_birthdays",
-        ScriptExecution.frequency: "16/10"
+        ScriptExecution.frequency: "saturday"
     }
 
 ]

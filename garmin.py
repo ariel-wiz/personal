@@ -22,6 +22,7 @@ from garminconnect import (
     GarminConnectTooManyRequestsError,
 )
 
+from helpers import add_hours_to_time, seconds_to_hours_minutes, day_before_yesterday
 from logger import logger
 
 # Load environment variables if defined
@@ -903,6 +904,49 @@ def get_notion_values():
             continue
         total_activity_duration += activity['duration']
         total_activity_calories += activity['calories']
+
+
+def get_garmin_info():
+    api = init_api()
+    sleep_data = api.get_sleep_data(yesterday.isoformat())
+    if not sleep_data.get('sleepMovement'):  # It means the data is empty
+        return {}
+
+    sleep_start = add_hours_to_time(sleep_data['sleepLevels'][0]['startGMT'])
+    sleep_end = add_hours_to_time(sleep_data['sleepLevels'][-1]['endGMT'])
+    sleep_duration = seconds_to_hours_minutes(sleep_data['dailySleepDTO']['sleepTimeSeconds'])
+    sleep_feedback_overall = sleep_data['dailySleepDTO']['sleepScores']['overall']['qualifierKey']
+    sleep_feedback_note = sleep_data['dailySleepDTO']['sleepScores']['overall']['value']
+
+    user_summary_data = api.get_user_summary(yesterday.isoformat())
+    steps = user_summary_data['totalSteps']
+    daily_steps_goal = user_summary_data['dailyStepGoal']
+    total_calories = user_summary_data['totalKilocalories']
+
+    activity_data = api.get_activities_by_date(day_before_yesterday.isoformat(), yesterday.isoformat())
+    total_activity_duration = 0
+    total_activity_calories = 0
+    for activity in activity_data:
+        activity_name = activity['activityName']
+        if activity_name == 'Walking':
+            continue
+        total_activity_duration += activity['duration']
+        total_activity_calories += activity['calories']
+
+    return {
+        "date": yesterday.isoformat(),
+        "sleep_start": sleep_start,
+        "sleep_end": sleep_end,
+        "sleep_duration": sleep_duration,
+        "sleep_feedback_overall": sleep_feedback_overall,
+        "steps": steps,
+        "daily_steps_goal": daily_steps_goal,
+        "total_calories": total_calories,
+        "total_activity_duration": seconds_to_hours_minutes(total_activity_duration),
+        "total_activity_calories": total_activity_calories,
+        "sleep_feedback_note": sleep_feedback_note
+    }
+
 
 # Main program loop
 # Display header and login

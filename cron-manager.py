@@ -13,22 +13,22 @@ class ScriptExecution:
 
 scripts_to_run = [
     {
-        ScriptExecution.path: "/Users/ariel/PycharmProjects/personal/notion.py",
+        ScriptExecution.path: "/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
         ScriptExecution.arg: "--garmin",
         ScriptExecution.frequency: "daily"
     },
     {
-        ScriptExecution.path: "/Users/ariel/PycharmProjects/personal/notion.py",
+        ScriptExecution.path: "/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
         ScriptExecution.arg: "--uncheck_done",
         ScriptExecution.frequency: "saturday"
     },
     {
-        ScriptExecution.path: "/Users/ariel/PycharmProjects/personal/notion.py",
-        ScriptExecution.arg: "--create_daily_summary_pages",
+        ScriptExecution.path: "/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+        ScriptExecution.arg: "--create_daily_pages",
         ScriptExecution.frequency: "saturday"
     },
     {
-        ScriptExecution.path: "/Users/ariel/PycharmProjects/personal/notion.py",
+        ScriptExecution.path: "/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
         ScriptExecution.arg: "--copy_birthdays",
         ScriptExecution.frequency: "saturday"
     }

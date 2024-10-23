@@ -97,6 +97,7 @@ def seconds_to_hours_minutes(seconds):
 
 
 today = date.today()
+tomorrow = today + timedelta(days=1)
 yesterday = today - timedelta(days=1)
 day_before_yesterday = today - timedelta(days=2)
 
@@ -147,3 +148,23 @@ def create_tracked_lambda(func: Callable, *default_args, **default_kwargs):
         combined_kwargs = {**default_kwargs, **kwargs}
         return func(*combined_args, should_track=should_track, **combined_kwargs)
     return wrapped
+
+
+def get_state_prefix(full_str, str_to_split):
+    # Split by 'end of warranty' and take the first part
+    prefix = full_str.split(str_to_split)[0].strip()
+    return prefix
+
+
+# "כיור וברז בלאנקו end of warranty in 6 days"
+def find_state_items(items_list, full_text, str_to_split):
+    # Get the search pattern from the full text
+    search_text = get_state_prefix(full_text, str_to_split)
+
+    # Look for items that match the prefix
+    for item in items_list:
+        item = str(item).strip()
+        if search_text in item:
+            return item
+    return ""
+

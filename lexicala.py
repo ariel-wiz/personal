@@ -7,7 +7,7 @@ from variables import Keys
 prefix_url = "https://lexicala1.p.rapidapi.com/"
 # function = "languages"
 # function = "test"
-text = "יריקה"
+text = "אנטיגוניזם"
 function = f"search?source=global&language=he&text={text}&analyzed=true"
 
 url = prefix_url + function
@@ -29,5 +29,5 @@ response = requests.get(new_url, headers=headers)
 gender = response.json()['headword']['gender']
 plurial = response.json()['headword']['inflections'][0]['text']
 english = response.json()['senses'][0]['translations']['en']['text']
-french = response.json()['senses'][0]['translations']['fr']['text']
+french = response.json()['senses'][0]['translations']['fr'][0]['text']
 # print(response.json())

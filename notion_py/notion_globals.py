@@ -14,6 +14,8 @@ weekly_task_page_id = Keys.weekly_task_page_id
 birthday_db_id = Keys.birthday_db_id
 api_db_id = Keys.api_db_id
 daily_inspiration_project_id = Projects.daily_inspiration
+expense_and_warranty_db_id = Keys.expense_and_warranty_db_id
+
 
 class NotionPropertyType:
     TITLE = "title"
@@ -69,7 +71,7 @@ default_tasks_filter = {
          }}
     ]
 }
-daily_birthday_filter = {
+daily_birthday_category_filter = {
     "and": [
         {"property": "State",
          "formula": {
@@ -80,6 +82,20 @@ daily_birthday_filter = {
          "formula": {
              "string": {
                  "contains": "Birthdays"
+             }}}
+    ]
+}
+daily_notion_category_filter = {
+    "and": [
+        {"property": "State",
+         "formula": {
+             "string": {
+                 "does_not_contain": "Done"
+             }}},
+        {"property": "Category",
+         "formula": {
+             "string": {
+                 "contains": "Notion"
              }}}
     ]
 }
@@ -146,8 +162,14 @@ first_created_sorts = [{
     "property": "Created time",
     "direction": "descending"
 }]
+expense_and_warranty_filter = {
+    "property": "WarrantyState",
+    "formula": {
+        "string": {
+            "is_not_empty": True
+        }}
+}
 recursive_filter = {
-
     "property": "State",
     "formula": {
         "string": {

@@ -1,45 +1,13 @@
 import argparse
-from datetime import timedelta
-
 from epub import read_epub
 from garmin import get_garmin_info
-from helpers import DateOffset, today, yesterday, create_tracked_lambda
-from logger import logger
-from notion_py.notion_globals import tasks_db_id, day_summary_db_id, recurring_db_id, zahar_nekeva_db_id, trading_db_id, \
-    garmin_db_id, daily_tasks_db_id, weekly_task_page_id, birthday_db_id, daily_inspiration_project_id, FieldMap, \
-    default_tasks_filter, daily_birthday_filter, next_filter, default_tasks_sorts, first_created_sorts, \
-    recursive_filter, recursive_sorts, day_summary_sorts, NotionAPIOperation
-from notion_helpers import update_page, create_page, get_db_pages, \
-    generate_payload, generate_create_page_payload, generate_children_block_for_daily_inspirations, \
-    update_page_with_relation, get_pages_by_date_offset, track_operation, \
-    create_daily_summary_pages, create_daily_api_pages
+from helpers import today, find_state_items, create_tracked_lambda
+from notion_py.notion_globals import *
+from notion_helpers import *
 from variables import Paths
 
 
 # https://developers.notion.com/reference/property-object
-
-
-def get_day_summary_rows():
-    habits_db_id = day_summary_db_id
-    habits_url = url.replace(UID, habits_db_id)
-
-    day_summary_payload = payload.copy()
-    day_summary_payload['filter'] = recursive_filter
-    day_summary_payload['sorts'] = day_summary_sorts
-
-    response = invoke_notion_api(habits_url, day_summary_payload)
-
-    page_id = response['id']
-    response_state = response['properties']['State']['formula']['string']
-
-    content_page_url = f"https://api.notion.com/v1/blocks/{page_id}/children"
-    content_page_response = invoke_notion_api(content_page_url, is_get=True)
-
-    for i, result in enumerate(content_page_response):
-        rich_text = result[result['type']].get('rich_text', '')
-        if rich_text:
-            logger.info(rich_text[0]['plain_text'])
-    print_response(f"{i} {content_page_response}")
 
 
 def create_trading_page(name_row, description, large_description, example):
@@ -193,7 +161,7 @@ def copy_birthdays():
 
         birthday_task_dict = {
             "Task": birthday_state,
-            "Project": "OGg=",
+            "Project": Projects.birthdays,
             "Due": next_birthday,
             "Icon": "🎂"
         }
@@ -222,6 +190,53 @@ def copy_birthdays():
     logger.info(f"Successfully copied {success_task_count} tasks. Errors: {error_task_count}")
 
 
+def copy_expenses_and_warranty():
+    expense_and_warranties_pages = get_expenses_and_warranties()
+    if not expense_and_warranties_pages:
+        logger.info("No expenses and warranties to update")
+        return
+
+    daily_notion_category = get_daily_tasks(daily_notion_category_filter)
+    daily_notion_category_task_names = [task['properties']['Task']['title'][0]['plain_text'] for task in
+                                        daily_notion_category]
+
+    success_task_count = 0
+    error_task_count = 0
+
+    for expense_and_warranty_page in expense_and_warranties_pages:
+        warranty_state = expense_and_warranty_page['properties']['WarrantyState']['formula']['string']
+        try:
+            # Check for existing pages
+            existing_page_in_daily = find_state_items(daily_notion_category_task_names, warranty_state, "end of warranty")
+            if existing_page_in_daily:
+                logger.info(f"Page for '{warranty_state}' already exists and is named '{existing_page_in_daily}'")
+                continue
+
+            # Create the page
+            expense_and_warranty_task_dict = {
+                "Task": warranty_state,
+                "Project": Projects.notion,
+                "Due": today.isoformat(),
+                "Icon": "📝"
+            }
+
+            page_id = expense_and_warranty_page['id']
+
+            expense_and_warranty_task_dict_task_payload = generate_create_page_payload(daily_tasks_db_id, expense_and_warranty_task_dict)
+            expense_and_warranty_task_dict_task_payload.update(generate_page_content_page_notion_link(page_id))
+
+            response = create_page(expense_and_warranty_task_dict_task_payload)
+
+            logger.info(f"Successfully created a daily Expense and Warranty task for {warranty_state} with ID {response['id']}")
+            success_task_count += 1
+        except Exception as e:
+            logger.error(
+                f"Failed to create a daily Expense and Warranty task for {warranty_state}- error {str(e)}")
+            error_task_count += 1
+            continue
+    logger.info(f"Successfully copied {success_task_count} tasks. Errors: {error_task_count}")
+
+
 def get_tasks(tasks_filter=None, tasks_sort=None, is_daily=False, print_response=False):
     get_tasks_payload = generate_payload(tasks_filter if tasks_filter else default_tasks_filter,
                                          tasks_sort if tasks_sort else default_tasks_sorts)
@@ -237,10 +252,15 @@ def get_daily_tasks(daily_filter=None, daily_sorts=None, print_response=False):
 
 
 def get_birthday_tasks():
-    return get_daily_tasks(daily_filter=daily_birthday_filter, daily_sorts=[{
+    return get_daily_tasks(daily_filter=daily_birthday_category_filter, daily_sorts=[{
         "property": "Due",
         "direction": "ascending"
     }])
+
+
+def get_expenses_and_warranties():
+    expensive_and_warranties_payload = generate_payload(expense_and_warranty_filter)
+    return get_db_pages(expense_and_warranty_db_id, expensive_and_warranties_payload)
 
 
 def get_trading():
@@ -356,7 +376,7 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            # copy_birthdays()
+            copy_expenses_and_warranty()
             logger.info("End of manual run")
 
     except Exception as e:
@@ -379,7 +399,6 @@ if __name__ == '__main__':
             "ariel large description",
             "ariel example"
         ),
-        'get_habits': get_day_summary_rows,
         'uncheck_done': uncheck_done_weekly_task_id,
         'garmin': update_garmin_info,
         'create_daily_pages': create_daily_pages,

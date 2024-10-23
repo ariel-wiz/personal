@@ -173,6 +173,30 @@ def generate_simple_page_content(content):
     return children_block
 
 
+def generate_page_content_page_notion_link(page_link):
+    children_block = {"children": [
+        {
+            "object": "block",
+            "type": "paragraph",
+            "paragraph": {
+                "rich_text": [
+                    {
+                        "type": "mention",
+                        "mention": {
+                            "type": "page",
+                            "page": {
+                                "id": page_link
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+    }
+    return children_block
+
+
 # Generic operations
 def update_page_with_relation(page_id_add_relation, page_id_data_to_import, relation_name, other_params={}):
     """

@@ -1,9 +1,15 @@
 import argparse
 from epub import read_epub
 from garmin import get_garmin_info
-from helpers import today, find_state_items, create_tracked_lambda
+from helpers import today, find_state_items, create_tracked_lambda, get_date_offset, create_shabbat_dates
+from jewish_calendar import JewishCalendarAPI
+from notion_py.notion_children_blocks import generate_children_block_for_daily_inspirations, \
+    generate_page_content_page_notion_link, generate_children_block_for_shabbat
 from notion_py.notion_globals import *
 from notion_helpers import *
+from notion_py.notion_payload import generate_payload
+from notion_py.notion_helpers import create_page_with_db_dict, create_page_with_db_dict_and_children_block, \
+    update_page_with_relation
 from variables import Paths
 
 
@@ -123,16 +129,19 @@ def create_daily_stoics(check_date=False):
                 "Icon": "💬"
             }
 
-            stoic_payload = generate_create_page_payload(daily_tasks_db_id, stoic_dict)
-            stoic_payload["children"] = generate_children_block_for_daily_inspirations(note, author, main_content)
-
-            response = create_page(stoic_payload)
+            children_block = generate_children_block_for_daily_inspirations(note, author, main_content)
+            response = create_page_with_db_dict_and_children_block(daily_tasks_db_id, stoic_dict, children_block)
             logger.info(
                 f"Successfully created daily stoic page for {name} with due {str(date)} with ID {response['id']}")
 
         except Exception as e:
             logger.error(f"Error while creating daily stoic pages: {e}")
             continue
+
+
+def copy_pages_if_needed():
+    copy_birthdays()
+    copy_expenses_and_warranty()
 
 
 @track_operation(NotionAPIOperation.COPY_BIRTHDAYS)
@@ -166,8 +175,7 @@ def copy_birthdays():
             "Icon": "🎂"
         }
 
-        birthday_task_payload = generate_create_page_payload(daily_tasks_db_id, birthday_task_dict)
-        response = create_page(birthday_task_payload)
+        response = create_page_with_db_dict(daily_tasks_db_id, birthday_task_dict)
 
         # if response:
         #     page_id = task['id']
@@ -207,7 +215,8 @@ def copy_expenses_and_warranty():
         warranty_state = expense_and_warranty_page['properties']['WarrantyState']['formula']['string']
         try:
             # Check for existing pages
-            existing_page_in_daily = find_state_items(daily_notion_category_task_names, warranty_state, "end of warranty")
+            existing_page_in_daily = find_state_items(daily_notion_category_task_names, warranty_state,
+                                                      "end of warranty")
             if existing_page_in_daily:
                 logger.info(f"Page for '{warranty_state}' already exists and is named '{existing_page_in_daily}'")
                 continue
@@ -222,16 +231,64 @@ def copy_expenses_and_warranty():
 
             page_id = expense_and_warranty_page['id']
 
-            expense_and_warranty_task_dict_task_payload = generate_create_page_payload(daily_tasks_db_id, expense_and_warranty_task_dict)
-            expense_and_warranty_task_dict_task_payload.update(generate_page_content_page_notion_link(page_id))
+            children_block = generate_page_content_page_notion_link(page_id)
+            response = create_page_with_db_dict_and_children_block(daily_tasks_db_id, expense_and_warranty_task_dict,
+                                                                   children_block)
 
-            response = create_page(expense_and_warranty_task_dict_task_payload)
-
-            logger.info(f"Successfully created a daily Expense and Warranty task for {warranty_state} with ID {response['id']}")
+            logger.info(
+                f"Successfully created a daily Expense and Warranty task for {warranty_state} with ID {response['id']}")
             success_task_count += 1
         except Exception as e:
             logger.error(
                 f"Failed to create a daily Expense and Warranty task for {warranty_state}- error {str(e)}")
+            error_task_count += 1
+            continue
+    logger.info(f"Successfully copied {success_task_count} tasks. Errors: {error_task_count}")
+
+
+def copy_insurance():
+    insurances_pages = get_insurances()
+    if not insurances_pages:
+        logger.info("No insurances to update")
+        return
+
+    daily_notion_category = get_daily_tasks(daily_notion_category_filter)
+    daily_notion_category_task_names = [task['properties']['Task']['title'][0]['plain_text'] for task in
+                                        daily_notion_category]
+
+    success_task_count = 0
+    error_task_count = 0
+
+    for insurance_page in insurances_pages:
+        insurance_state = insurance_page['properties']['InsuranceState']['formula']['string']
+        try:
+            # Check for existing pages
+            existing_page_in_daily = find_state_items(daily_notion_category_task_names, insurance_state,
+                                                      "end of insurance")
+            if existing_page_in_daily:
+                logger.info(f"Page for '{insurance_state}' already exists and is named '{existing_page_in_daily}'")
+                continue
+
+            # Create the page
+            insurance_task_dict = {
+                "Task": insurance_state,
+                "Project": Projects.notion,
+                "Due": today.isoformat(),
+                "Icon": "🤑"
+            }
+
+            page_id = insurance_page['id']
+
+            children_block = generate_page_content_page_notion_link(page_id)
+            response = create_page_with_db_dict_and_children_block(daily_tasks_db_id, insurance_task_dict,
+                                                                   children_block)
+
+            logger.info(
+                f"Successfully created a daily Insurance task for {insurance_state} with ID {response['id']}")
+            success_task_count += 1
+        except Exception as e:
+            logger.error(
+                f"Failed to create a daily Expense and Warranty task for {insurance_state}- error {str(e)}")
             error_task_count += 1
             continue
     logger.info(f"Successfully copied {success_task_count} tasks. Errors: {error_task_count}")
@@ -251,6 +308,11 @@ def get_daily_tasks(daily_filter=None, daily_sorts=None, print_response=False):
                      is_daily=True, print_response=print_response)
 
 
+def get_daily_tasks_by_date_str(date_str, filter_to_add=None):
+    date_offset = get_date_offset(date_str)
+    return get_pages_by_date_offset(daily_tasks_db_id, date_offset, date_name="Due", filter_to_add=filter_to_add)
+
+
 def get_birthday_tasks():
     return get_daily_tasks(daily_filter=daily_birthday_category_filter, daily_sorts=[{
         "property": "Due",
@@ -261,6 +323,11 @@ def get_birthday_tasks():
 def get_expenses_and_warranties():
     expensive_and_warranties_payload = generate_payload(expense_and_warranty_filter)
     return get_db_pages(expense_and_warranty_db_id, expensive_and_warranties_payload)
+
+
+def get_insurances():
+    insurances_payload = generate_payload(insurances_filter)
+    return get_db_pages(insurance_db_id, insurances_payload)
 
 
 def get_trading():
@@ -309,10 +376,70 @@ def check_exercise_according_to_activity_status(activity_status):
     return {}
 
 
-@track_operation(NotionAPIOperation.UNCHECK_DONE)
+@track_operation(NotionAPIOperation.CREATE_PAGES)
 def create_daily_pages():
     create_daily_summary_pages()
     create_daily_api_pages()
+    create_parashat_hashavua()
+
+
+def create_parashat_hashavua():
+    jewish_api = JewishCalendarAPI()
+    shabbat_list = jewish_api.get_shabbat_times()
+
+    for shabbat in shabbat_list:
+        shabbat_dict = shabbat.to_dict()
+
+        city_list = []
+        for city in shabbat_dict["cities"]:
+            city_name = city["city"]
+            city_candle_lighting = city["candle_lighting"]
+            city_candle_havdalah = city["havdalah"]
+            city_str = f"{city_name} • 🌅{city_candle_lighting} -  🌠{city_candle_havdalah}"
+            city_list.append(city_str)
+
+        parasha_en_name = shabbat.parasha_name
+        parasha_hebrew_name = shabbat.parasha_hebrew
+        parasha_date = shabbat.date
+        parasha_hebrew_date = shabbat.hebrew_date
+        parasha_link = shabbat.link
+        parasha_summary = shabbat.summary
+
+        # variables to use in Notion
+        notion_parasha_task_name = f"{parasha_hebrew_name}\n{city_list[0].split(' • ')[1]}"
+        notion_link_name = f"{parasha_en_name} - {parasha_hebrew_date}"
+
+        shabat_daily_tasks = get_daily_tasks_by_date_str(parasha_date, filter_to_add={"property": "Category",
+                                                                                      "formula": {
+                                                                                          "string": {
+                                                                                              "contains": "Jewish"
+                                                                                          }}})
+        shabat_daily_page_exists = False
+        if shabat_daily_tasks:
+            for shabat_task in shabat_daily_tasks:
+                if "פרשת" in shabat_task['properties']['Task']['title'][0]['plain_text']:
+                    logger.info(f"Shabbat page for {parasha_date} already exists")
+                    shabat_daily_page_exists = True
+                    break
+
+        if shabat_daily_page_exists:  # Get the next element in the main loop
+            break
+
+        shabbat_dates = create_shabbat_dates(parasha_date, shabbat.city_times[0].candle_lighting,
+                                             shabbat.city_times[0].havdalah)
+
+        formatted_shabat_data = {
+            "Task": notion_parasha_task_name,
+            "Project": Projects.jewish_holidays,
+            "Due": shabbat_dates,
+            "Icon": "🕯️"
+        }
+
+        shabat_children_block = generate_children_block_for_shabbat(city_list, parasha_summary,
+                                                                    notion_link_name, parasha_link)
+        create_page_with_db_dict_and_children_block(daily_tasks_db_id, formatted_shabat_data,
+                                                    shabat_children_block)
+        logger.info(f"Successfully created a Parasha page for {parasha_en_name}")
 
 
 @track_operation(NotionAPIOperation.GARMIN)
@@ -350,8 +477,7 @@ def update_garmin_info(update_daily_tasks=True):
             "Activity Calories": garmin_dict['total_activity_calories']
         }
 
-        garmin_updated_payload = generate_create_page_payload(garmin_db_id, formatted_garmin_data)
-        response = create_page(garmin_updated_payload)
+        response = create_page_with_db_dict(garmin_db_id, formatted_garmin_data)
 
         logger.info(f"Successfully created Garmin info for {yesterday_date}")
 
@@ -376,7 +502,7 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            copy_expenses_and_warranty()
+            copy_insurance()
             logger.info("End of manual run")
 
     except Exception as e:
@@ -402,7 +528,7 @@ if __name__ == '__main__':
         'uncheck_done': uncheck_done_weekly_task_id,
         'garmin': update_garmin_info,
         'create_daily_pages': create_daily_pages,
-        'copy_birthdays': copy_birthdays,
+        'copy_pages': copy_pages_if_needed,
     }
 
     # Set up command-line argument parsing

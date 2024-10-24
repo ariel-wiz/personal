@@ -4,6 +4,8 @@ from typing import Callable
 
 from logger import logger
 
+TIMEZONE_OFFSET = 3
+
 
 def create_date_range(input_date_str, range_days=7):
     # Parse the input date string to a datetime object
@@ -60,7 +62,7 @@ def create_day_summary_name(date_str):
     return formatted_date
 
 
-class DateOffset(Enum):
+class DateOffset:
     TODAY = 0
     YESTERDAY = 1
     TWO_DAYS_AGO = 2
@@ -168,3 +170,34 @@ def find_state_items(items_list, full_text, str_to_split):
             return item
     return ""
 
+
+def get_date_offset(date_str: str):
+    # Parse the input string to a date object
+    input_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+
+    # Calculate the difference in days
+    delta_days = (today - input_date).days
+
+    return delta_days
+
+
+def create_shabbat_dates(date_str: str, start_hour: str, end_hour: str) -> tuple:
+    # Convert the date and start_hour to a datetime object
+    start_datetime = datetime.strptime(f"{date_str} {start_hour}", "%Y-%m-%d %H:%M")
+
+    # Subtract 3 hours from the start time
+    start_datetime_offset = start_datetime - timedelta(hours=TIMEZONE_OFFSET)
+
+    # Create the first ISO format date (date + start hour - 3 hours)
+    iso_start_date = start_datetime_offset.isoformat()
+
+    # Convert the date and end_hour to a datetime object and add 1 day to the date
+    end_datetime = datetime.strptime(f"{date_str} {end_hour}", "%Y-%m-%d %H:%M") + timedelta(days=1)
+
+    # Subtract 3 hours from the end time
+    end_datetime_offset = end_datetime - timedelta(hours=TIMEZONE_OFFSET)
+
+    # Create the second ISO format date (date + 1 day + end hour - 3 hours)
+    iso_end_date = end_datetime_offset.isoformat()
+
+    return [iso_start_date, iso_end_date]

@@ -15,6 +15,7 @@ birthday_db_id = Keys.birthday_db_id
 api_db_id = Keys.api_db_id
 daily_inspiration_project_id = Projects.daily_inspiration
 expense_and_warranty_db_id = Keys.expense_and_warranty_db_id
+insurance_db_id = Keys.insurance_db_id
 
 
 class NotionPropertyType:
@@ -46,6 +47,7 @@ class NotionAPIOperation:
     CREATE_PAGES = "Create Pages"
     UNCHECK_DONE = "Uncheck Done"
     COPY_BIRTHDAYS = "Copy Birthdays"
+    SHABAT = "Shabat"
 
 
 class FieldMap:
@@ -164,6 +166,13 @@ first_created_sorts = [{
 }]
 expense_and_warranty_filter = {
     "property": "WarrantyState",
+    "formula": {
+        "string": {
+            "is_not_empty": True
+        }}
+}
+insurances_filter = {
+    "property": "InsuranceState",
     "formula": {
         "string": {
             "is_not_empty": True

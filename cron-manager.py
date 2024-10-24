@@ -113,9 +113,9 @@ NOTION_SCRIPTS = [
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     ),
     ScriptConfig(
-        name="Copy Birthdays",
+        name="Copy Pages",
         path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--copy_birthdays",
+        arg="--copy_pages",
         frequency="15/*",  # Runs on the 15th of every month
         python_path="/Users/ariel/PycharmProjects/personal",
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"

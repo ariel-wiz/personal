@@ -4,10 +4,13 @@ from datetime import datetime, timedelta
 
 import requests
 
-from helpers import replace_none_with_list_or_string, DateOffset, yesterday, create_date_range, create_day_summary_name
+from helpers import DateOffset, yesterday, create_date_range, create_day_summary_name
 from logger import logger
+from notion_py.notion_children_blocks import generate_simple_page_content
 from notion_py.notion_globals import next_month_filter, day_summary_sorts, api_db_id, day_summary_db_id, \
-    NotionPropertyType, Method, NotionAPIStatus, NotionAPIOperation
+    Method, NotionAPIStatus
+from notion_py.notion_payload import generate_payload, generate_create_page_payload, get_relation_payload, \
+    get_api_status_payload
 from variables import Keys
 
 headers = {
@@ -58,179 +61,8 @@ def get_db_pages(db_id, get_db_payload={}, print_response=False, print_response_
                               print_response_type=print_response_type)
 
 
-# Payloads
-def generate_payload(filter=None, sorts=None):
-    new_payload = {}
-    if filter:
-        new_payload['filter'] = filter
-    if sorts:
-        new_payload['sorts'] = sorts
-    return new_payload
 
-
-def generate_create_page_payload(db_id, db_dict):
-    daily_task_payload = {"parent": {"database_id": db_id}, "properties": {}}  # Initialize the payload
-
-    daily_db_items = {
-        NotionPropertyType.TITLE: ["Name", "Task", "Day"],
-        NotionPropertyType.TEXT: ["Sleep Start", "Sleep End", "Sleep Duration", "Activity Duration"],
-        NotionPropertyType.SELECT_ID: ["Project"],
-        NotionPropertyType.SELECT_NAME: ["Sleep Feedback"],
-        NotionPropertyType.DATE: ["Date", "Due"],
-        NotionPropertyType.URL: ["gCal Link"],
-        NotionPropertyType.NUMBER: ["Steps", "Steps Goal", "Calories", "Sleep Note", "Activity Calories"]
-    }
-
-    daily_db_payload = {
-        NotionPropertyType.TITLE: {"title": [{"text": {"content": None}}]},
-        NotionPropertyType.TEXT: {"rich_text": [{"text": {"content": None}}]},
-        NotionPropertyType.SELECT_ID: {"select": {"id": None}},
-        NotionPropertyType.SELECT_NAME: {"select": {"name": None}},
-        NotionPropertyType.DATE: {"date": {"start": None}},
-        NotionPropertyType.URL: {"url": None},
-        NotionPropertyType.NUMBER: {"number": None}
-    }
-
-    for daily_task_element in db_dict.items():
-        key, value = daily_task_element
-        for db_item_category_key in list(daily_db_items.keys()):
-            if key == "Icon":
-                icon_element = {"type": "emoji", "emoji": value}
-                daily_task_payload["icon"] = icon_element
-                break
-            elif key in daily_db_items[db_item_category_key]:
-                if db_item_category_key == "Date" and isinstance(value, list) and len(
-                        value) == 2:  # Start date and end date
-                    start_date = value[0]
-                    end_date = value[1]
-                    payload_element = replace_none_with_list_or_string(daily_db_payload[db_item_category_key],
-                                                                       start_date)
-                    payload_element["date"]["end"] = end_date
-                else:
-                    payload_element = replace_none_with_list_or_string(daily_db_payload[db_item_category_key], value)
-                daily_task_payload["properties"][key] = payload_element
-                break
-
-    return daily_task_payload
-
-
-# Children block
-def generate_children_block_for_daily_inspirations(note, author, main_content):
-    children_block = [
-        {
-            "object": "block",
-            "type": "quote",
-            "quote": {
-                "rich_text": [
-                    {"type": "text",
-                     "text": {"content": note},
-                     "annotations": {"italic": True}
-                     },
-                    {"type": "text",
-                     "text": {"content": f"\n💬 {author}"}
-                     }],
-                "color": "gray_background"
-            }
-        },
-        {
-            "object": "block",
-            "type": "divider",
-            "divider": {}
-        },
-        {
-            "object": "block",
-            "type": "paragraph",
-            "paragraph": {
-                "rich_text": [{"type": "text", "text": {"content": ""}}]
-            }
-        },
-    ]
-
-    for line in main_content.split(". "):
-        children_block.append(
-            {
-                "object": "block",
-                "type": "paragraph",
-                "paragraph": {
-                    "rich_text": [{"type": "text", "text": {"content": line + '.'}}]
-                }
-            })
-    return children_block
-
-
-def generate_simple_page_content(content):
-    children_block = {"children": [
-        {
-            "object": "block",
-            "type": "paragraph",
-            "paragraph": {
-                "rich_text": [{"type": "text", "text": {"content": content}}]
-            }
-        }
-    ]
-    }
-
-    return children_block
-
-
-def generate_page_content_page_notion_link(page_link):
-    children_block = {"children": [
-        {
-            "object": "block",
-            "type": "paragraph",
-            "paragraph": {
-                "rich_text": [
-                    {
-                        "type": "mention",
-                        "mention": {
-                            "type": "page",
-                            "page": {
-                                "id": page_link
-                            }
-                        }
-                    }
-                ]
-            }
-        }
-    ]
-    }
-    return children_block
-
-
-# Generic operations
-def update_page_with_relation(page_id_add_relation, page_id_data_to_import, relation_name, other_params={}):
-    """
-    Updates a page with a relation to another page.
-
-    Parameters:
-    - page_id_add_relation: The ID of the page where the relation will be added.
-    - page_id_data_to_import: The ID of the page that will be linked as a relation.
-    """
-
-    # Payload for updating the relation
-    relation_payload = {
-        "properties": {
-            relation_name: {
-                "relation": [
-                    {
-                        "id": page_id_data_to_import  # Add this page as a relation
-                    }
-                ]
-            }
-        }
-    }
-    if other_params:
-        relation_payload["properties"].update(other_params)
-
-    response = update_page(page_id_add_relation, relation_payload)
-
-    if response:
-        logger.info("Relation added successfully!")
-    else:
-        logger.error(f"Failed to add relation")
-
-
-def get_pages_by_date_offset(database_id, offset: DateOffset):
+def get_pages_by_date_offset(database_id, offset: int, date_name="Date", filter_to_add={}):
     """
     Queries the specified Notion database to find pages where the State is not empty
     and the Date is equal to the date corresponding to the provided offset.
@@ -243,18 +75,22 @@ def get_pages_by_date_offset(database_id, offset: DateOffset):
     - List of page IDs that match the criteria.
     """
     # Calculate the target date based on the offset
-    target_date = datetime.now().date() - timedelta(days=offset.value)
+    target_date = datetime.now().date() - timedelta(days=offset)
 
     # Get the target date in YYYY-MM-DD format
     target_date_str = target_date.isoformat()
 
-    # Prepare the query payload
-    query_payload = generate_payload(filter={
-        "property": "Date",
+    query_filter = {
+        "property": date_name,
         "date": {
             "equals": target_date_str
         }
-    })
+    }
+    if filter_to_add:
+        query_filter = {"and": [query_filter, filter_to_add]}
+
+    # Prepare the query payload
+    query_payload = generate_payload(filter=query_filter)
 
     response = get_db_pages(database_id, query_payload)
 
@@ -293,8 +129,7 @@ def create_daily_pages_for_db_id(db_id, icon=None, days_range_to_create=10):
         payload_content = {"Date": day_to_create, "Day": day_summary_name} if not icon else {"Date": day_to_create,
                                                                                              "Day": day_summary_name,
                                                                                              "Icon": icon}
-        day_summary_payload = generate_create_page_payload(db_id, payload_content)
-        response = create_page(day_summary_payload)
+        response = create_page_with_db_dict(db_id, payload_content)
         logger.info(f"Created daily summary for {day_summary_name} with ID {response['id']}")
 
 
@@ -317,15 +152,7 @@ def _update_api_status(status, operation, details=None):
         api_status_page_id = api_status_today_pages[0].get('id')
 
         # Prepare the payload to update the status
-        update_payload = {
-            "properties": {
-                operation: {
-                    "select": {
-                        "name": status
-                    }
-                }
-            }
-        }
+        update_payload = get_api_status_payload(status, operation)
 
         # Update the API status page
         update_page(api_status_page_id, update_payload)
@@ -381,7 +208,8 @@ def _invoke_notion_api(query_url, query_payload={}, method=Method.GET, print_res
     start_cursor = None
 
     while True:
-        response_data = _query_notion_api(query_url, query_payload, method, start_cursor=start_cursor, print_response=False)
+        response_data = _query_notion_api(query_url, query_payload, method, start_cursor=start_cursor,
+                                          print_response=False)
         if response_data:
             if 'results' not in response_data:  # For not GET requests
                 if print_response:
@@ -465,3 +293,22 @@ def print_notion_response(response, type=''):
             logger.info(get_zahar_nekeva_attributes_str(properties))
         else:
             logger.info(json.dumps(properties, indent=4))
+
+
+def create_page_with_db_dict(db_id, db_dict):
+    generated_payload = generate_create_page_payload(db_id, db_dict)
+    return create_page(generated_payload)
+
+
+def create_page_with_db_dict_and_children_block(db_id, db_dict, children_block):
+    generated_payload = generate_create_page_payload(db_id, db_dict)
+    generated_payload.update(children_block)
+
+    return create_page(generated_payload)
+
+
+def update_page_with_relation(page_id_add_relation, page_id_data_to_import, relation_name, other_params={}):
+    relation_payload = get_relation_payload(page_id_data_to_import, relation_name, other_params)
+    update_page(page_id_add_relation, relation_payload)
+
+    logger.info("Relation added successfully!")

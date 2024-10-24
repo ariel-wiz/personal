@@ -11,7 +11,7 @@ from notion_py.notion_globals import *
 from notion_py.helpers.notion_payload import generate_payload, get_trading_payload
 from notion_py.helpers.notion_common import create_page_with_db_dict, create_page_with_db_dict_and_children_block, \
     update_page_with_relation, get_db_pages, track_operation, create_daily_summary_pages, create_daily_api_pages, \
-    update_page, create_page, get_pages_by_date_offset, copy_tasks_to_daily, get_daily_tasks, \
+    update_page, create_page, get_pages_by_date_offset, recurring_tasks_to_daily, get_daily_tasks, \
     get_daily_tasks_by_date_str, get_tasks
 from variables import Paths
 
@@ -80,7 +80,7 @@ def copy_birthdays():
         children_block=False
     )
 
-    copy_tasks_to_daily(birthday_config)
+    recurring_tasks_to_daily(birthday_config)
 
 
 def get_birthday_tasks():
@@ -111,7 +111,7 @@ def copy_expenses_and_warranty():
         project=Projects.notion
     )
 
-    copy_tasks_to_daily(expense_warranty_config)
+    recurring_tasks_to_daily(expense_warranty_config)
 
 
 def copy_insurance():
@@ -125,16 +125,54 @@ def copy_insurance():
         project=Projects.notion
     )
 
-    copy_tasks_to_daily(insurance_config)
+    recurring_tasks_to_daily(insurance_config)
+
+
+def copy_recurring_tasks():
+    insurance_config = TaskConfig(
+        name="Recurring Tasks",
+        get_pages_func=get_dailystate_recurring,
+        state_property_name="DailyState",
+        daily_filter=daily_notion_category_filter,
+        state_suffix="",
+        icon="🔁",
+        project=Projects.notion
+    )
+
+    recurring_tasks_to_daily(insurance_config)
+
+
+def copy_normal_tasks():
+    insurance_config = TaskConfig(
+        name="Normal Tasks",
+        get_pages_func=get_dailystate_tasks,
+        state_property_name="DailyState",
+        daily_filter=daily_notion_category_filter,
+        state_suffix="",
+        icon="✔️",
+        project=Projects.notion
+    )
+
+    recurring_tasks_to_daily(insurance_config)
 
 
 def get_trading():
     return get_db_pages(trading_db_id)
 
 
-def get_recursive():
-    recursive_payload = generate_payload(recursive_filter, recursive_sorts)
-    return get_db_pages(recurring_db_id, recursive_payload)
+def get_recurring():
+    recurring_payload = generate_payload(recursive_filter, recursive_sorts)
+    return get_db_pages(recurring_db_id, recurring_payload)
+
+
+def get_dailystate_recurring():
+    recurring_payload = generate_payload(daily_recurring_filter, recursive_sorts)
+    return get_db_pages(recurring_db_id, recurring_payload)
+
+
+def get_dailystate_tasks():
+    tasks_payload = generate_payload(daily_recurring_filter)
+    return get_db_pages(tasks_db_id, tasks_payload)
 
 
 def get_zahar_nekeva():
@@ -222,11 +260,9 @@ def update_garmin_info(update_daily_tasks=True):
     logger.info(f"Updating Garmin info for {yesterday_date}")
 
     # Checking if the page exists already
-    garmin_pages = []
-    # garmin_pages = get_pages_by_date_offset(garmin_db_id, DateOffset.YESTERDAY)
+    garmin_pages = get_pages_by_date_offset(garmin_db_id, DateOffset.YESTERDAY)
     if garmin_pages:
         garmin_page_id = garmin_pages[0]["id"]
-        activity_status = garmin_pages[0]["properties"]["Activity Status"]["formula"]["string"]
         logger.info(f"Garmin page for {yesterday_date} already exists with page ID {garmin_page_id}")
     else:
         garmin_dict = get_garmin_info()
@@ -248,23 +284,24 @@ def update_garmin_info(update_daily_tasks=True):
             "Steps Goal": garmin_dict['daily_steps_goal'],
             "Calories": garmin_dict['total_calories'],
             "Activity Duration": garmin_dict['total_activity_duration'],
-            "Activity Calories": garmin_dict['total_activity_calories']
+            "Activity Calories": garmin_dict['total_activity_calories'],
+            "Icon": "⌚"
         }
 
         response = create_page_with_db_dict(garmin_db_id, formatted_garmin_data)
 
         logger.info(f"Successfully created Garmin info for {yesterday_date}")
 
-    if update_daily_tasks:
-        garmin_page_id = response['id']
-        activity_status = response["properties"]["Activity Status"]["formula"]["string"]
+        if update_daily_tasks:
+            garmin_page_id = response['id']
+            activity_status = response["properties"]["Activity Status"]["formula"]["string"]
 
-        daily_tasks = get_pages_by_date_offset(day_summary_db_id, DateOffset.YESTERDAY)
-        if daily_tasks:
-            daily_task_id = daily_tasks[0]["id"]
-            other_fields = check_exercise_according_to_activity_status({FieldMap.exercise: activity_status})
-            update_page_with_relation(daily_task_id, garmin_page_id, "Watch Metrics", other_fields)
-            logger.info(f"Successfully updated daily task with Garmin info for {yesterday_date}")
+            daily_tasks = get_pages_by_date_offset(day_summary_db_id, DateOffset.YESTERDAY)
+            if daily_tasks:
+                daily_task_id = daily_tasks[0]["id"]
+                other_fields = check_exercise_according_to_activity_status({FieldMap.exercise: activity_status})
+                update_page_with_relation(daily_task_id, garmin_page_id, "Watch Metrics", other_fields)
+                logger.info(f"Successfully updated daily task with Garmin info for {yesterday_date}")
 
 
 @track_operation(NotionAPIOperation.UNCHECK_DONE)
@@ -278,6 +315,8 @@ def create_daily_pages():
     create_daily_summary_pages()
     create_daily_api_pages()
     create_parashat_hashavua()
+    copy_recurring_tasks()
+    copy_normal_tasks()
 
 
 @track_operation(NotionAPIOperation.COPY_PAGES)
@@ -296,7 +335,7 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            create_daily_api_pages()
+            copy_normal_tasks()
             logger.info("End of manual run")
 
     except Exception as e:
@@ -310,7 +349,7 @@ if __name__ == '__main__':
     task_map = {
         'tasks': get_tasks,
         'trading': get_trading,
-        'recursive': get_recursive,
+        'recursive': get_recurring,
         'zahar_nekeva': get_zahar_nekeva,
         'add_trading': create_tracked_lambda(
             create_trading_page,

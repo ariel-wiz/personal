@@ -217,6 +217,13 @@ insurances_filter = {
             "is_not_empty": True
         }}
 }
+daily_recurring_filter = {
+    "property": "DailyState",
+    "formula": {
+        "string": {
+            "is_not_empty": True
+        }}
+}
 recursive_filter = {
     "property": "State",
     "formula": {

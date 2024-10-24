@@ -112,7 +112,7 @@ def create_daily_summary_pages():
 
 
 def create_daily_api_pages():
-    create_daily_pages_for_db_id(api_db_id, "💽", link_to_day_summary_tasks=True)
+    create_daily_pages_for_db_id(api_db_id, "🌐", link_to_day_summary_tasks=True)
 
 
 def create_daily_pages_for_db_id(db_id, icon=None, link_to_day_summary_tasks=False, days_range_to_create=10):
@@ -139,7 +139,7 @@ def create_daily_pages_for_db_id(db_id, icon=None, link_to_day_summary_tasks=Fal
             if day_summary_pages:
                 daily_summary_page_id = day_summary_pages[0]['id']
                 created_page_id = response['id']
-                update_page_with_relation(daily_summary_page_id, created_page_id, "API Status")
+                update_page_with_relation(daily_summary_page_id, created_page_id, "API Status Page")
 
         logger.info(f"Created daily summary for {day_summary_name} with ID {response['id']}")
 
@@ -315,7 +315,7 @@ def update_page_with_relation(page_id_add_relation, page_id_data_to_import, rela
     logger.info("Relation added successfully!")
 
 
-def copy_tasks_to_daily(config: TaskConfig) -> None:
+def recurring_tasks_to_daily(config: TaskConfig) -> None:
     """
     Generic function to copy tasks from a source database to daily tasks.
 
@@ -360,7 +360,7 @@ def copy_tasks_to_daily(config: TaskConfig) -> None:
             due_date = (
                 source_page['properties'][config.date_property_name]['formula']['date']['start']
                 if config.date_property_name
-                else date.today().isoformat()
+                else today.isoformat()
             )
 
             # Create the task

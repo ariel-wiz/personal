@@ -87,11 +87,11 @@ def seconds_to_hours_minutes(seconds):
     # Return the result as a tuple (hours, minutes)
     str_time = ''
     if hours > 0 and seconds > 0:
-        str_time = f"{hours:02}h{minutes:02}"
+        str_time = f"{hours:01d}h{minutes:02d}m"
     elif hours > 0:
-        str_time = f"{hours:02}h00"
+        str_time = f"{hours:01d}h"
     elif minutes > 0:
-        str_time = f"{minutes:02}m"
+        str_time = f"{minutes:02d}m"
     else:
         str_time = "No activity"
     return str_time

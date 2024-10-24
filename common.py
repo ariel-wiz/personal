@@ -81,11 +81,10 @@ def add_hours_to_time(time_str):
 
 def seconds_to_hours_minutes(seconds):
     # Calculate hours and minutes from total seconds
-    hours = seconds // 3600
-    minutes = (seconds % 3600) // 60
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
 
-    # Return the result as a tuple (hours, minutes)
-    str_time = ''
+    # Return the result as a formatted string
     if hours > 0 and seconds > 0:
         str_time = f"{hours:01d}h{minutes:02d}m"
     elif hours > 0:

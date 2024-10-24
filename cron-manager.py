@@ -72,7 +72,7 @@ class ScriptManager:
                 cwd=working_dir
             )
 
-            logger.info(f" ++++ Successfully completed {script.name} ++++")
+            logger.info(f" ++++ Successfully completed {script.name} ++++\n\n")
 
         except subprocess.CalledProcessError as e:
             logger.error(f"Error running {script.name}: {e}")
@@ -101,6 +101,14 @@ NOTION_SCRIPTS = [
         path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
         arg="--uncheck_done",
         frequency="saturday",
+        python_path="/Users/ariel/PycharmProjects/personal",
+        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    ),
+    ScriptConfig(
+        name="Handle Done Tasks",
+        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+        arg="--handle_done_tasks",
+        frequency="daily",
         python_path="/Users/ariel/PycharmProjects/personal",
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     ),

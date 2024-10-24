@@ -1,18 +1,19 @@
 import argparse
 from epub import read_epub
 from garmin import get_garmin_info
-from common import today, find_state_items, create_tracked_lambda, get_date_offset, create_shabbat_dates, yesterday, \
+from common import create_tracked_lambda, create_shabbat_dates, yesterday, \
     DateOffset
 from jewish_calendar import JewishCalendarAPI
 from logger import logger
 from notion_py.helpers.notion_children_blocks import generate_children_block_for_daily_inspirations, \
-    generate_page_content_page_notion_link, generate_children_block_for_shabbat
+    generate_children_block_for_shabbat
 from notion_py.notion_globals import *
-from notion_py.helpers.notion_payload import generate_payload, get_trading_payload
+from notion_py.helpers.notion_payload import generate_payload, get_trading_payload, uncheck_done_set_today_payload, \
+    check_done_payload
 from notion_py.helpers.notion_common import create_page_with_db_dict, create_page_with_db_dict_and_children_block, \
     update_page_with_relation, get_db_pages, track_operation, create_daily_summary_pages, create_daily_api_pages, \
     update_page, create_page, get_pages_by_date_offset, recurring_tasks_to_daily, get_daily_tasks, \
-    get_daily_tasks_by_date_str, get_tasks
+    get_daily_tasks_by_date_str, get_tasks, get_page
 from variables import Paths
 
 
@@ -83,7 +84,7 @@ def copy_birthdays():
     recurring_tasks_to_daily(birthday_config)
 
 
-def get_birthday_tasks():
+def get_birthday_daily_tasks():
     return get_daily_tasks(daily_filter=daily_birthday_category_filter, daily_sorts=[{
         "property": "Due",
         "direction": "ascending"
@@ -254,6 +255,33 @@ def create_parashat_hashavua():
         logger.info(f"Successfully created a Parasha page for {parasha_en_name}")
 
 
+@track_operation(NotionAPIOperation.HANDLE_DONE_TASKS)
+def copy_done_from_daily_to_copied_tasks():
+    daily_tasks = get_daily_tasks(daily_filter=daily_notion_category_filter_with_done_last_week)
+    for daily_task in daily_tasks:
+        daily_page_id = daily_task['id']
+        daily_page_name = daily_task['properties']['Task']['title'][0]['plain_text']
+        daily_children = get_page(daily_page_id, get_children=True)
+        if not daily_children:
+            logger.debug(f"No children found for the daily task {daily_page_name}")
+            continue
+
+        try:
+            daily_children_page_id = \
+                (daily_children[0]['paragraph']['rich_text'][0]['mention']["page"]["id"]).replace("-", "")
+
+        except KeyError as ke:
+            logger.error(f"Could not get the children's page_id for {daily_page_name}: {ke}")
+            continue
+
+        try:
+            update_page(daily_children_page_id, check_done_payload)
+            logger.info(f"Successfully updated the status to done for the children of {daily_page_name}")
+        except Exception as e:
+            logger.error(f"Could not Update the status to done for the children of {daily_page_name}: {e}")
+            continue
+
+
 @track_operation(NotionAPIOperation.GARMIN)
 def update_garmin_info(update_daily_tasks=True):
     yesterday_date = yesterday.strftime('%d-%m-%Y')
@@ -306,8 +334,8 @@ def update_garmin_info(update_daily_tasks=True):
 
 @track_operation(NotionAPIOperation.UNCHECK_DONE)
 def uncheck_done_weekly_task_id():
-    update_page_filter = uncheck_done_set_today_filter
-    update_page(weekly_task_page_id, update_page_filter)
+    update_page_payload = uncheck_done_set_today_payload
+    update_page(weekly_task_page_id, update_page_payload)
 
 
 @track_operation(NotionAPIOperation.CREATE_DAILY_PAGES)
@@ -335,7 +363,7 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            copy_normal_tasks()
+            copy_done_from_daily_to_copied_tasks()
             logger.info("End of manual run")
 
     except Exception as e:
@@ -359,6 +387,7 @@ if __name__ == '__main__':
             "ariel example"
         ),
         'uncheck_done': uncheck_done_weekly_task_id,
+        'handle_done_tasks': copy_done_from_daily_to_copied_tasks,
         'garmin': update_garmin_info,
         'create_daily_pages': create_daily_pages,
         'copy_pages': copy_pages_from_other_db_if_needed,

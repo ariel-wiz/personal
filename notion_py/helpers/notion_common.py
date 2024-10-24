@@ -53,8 +53,10 @@ def create_page(create_payload, print_response=False):
     return _invoke_notion_api(create_url, create_payload, method=Method.POST, print_response=print_response)
 
 
-def get_page(page_id, print_response=False):
+def get_page(page_id, get_children=False, print_response=False):
     get_url = f"https://api.notion.com/v1/pages/{page_id}"
+    if get_children:
+        get_url = f"https://api.notion.com/v1/blocks/{page_id}/children"
     return _invoke_notion_api(get_url, method=Method.GET, print_response=print_response)
 
 

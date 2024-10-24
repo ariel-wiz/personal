@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, date
 from typing import Callable, List, Dict, Optional
 
-from common import today
 from variables import Keys, Projects
 
 tasks_db_id = Keys.tasks_db_id
@@ -48,8 +47,9 @@ class NotionAPIStatus:
 class NotionAPIOperation:
     GARMIN = "Garmin"
     CREATE_DAILY_PAGES = "Create Daily Pages"
-    UNCHECK_DONE = "Uncheck Done"
+    HANDLE_DONE_TASKS = "Handle Done Tasks"
     COPY_PAGES = "Copy Pages"
+    UNCHECK_DONE = "Uncheck Done"
 
 
 class FieldMap:
@@ -116,6 +116,33 @@ daily_notion_category_filter = {
              }}}
     ]
 }
+daily_notion_category_filter_with_done_last_week = {
+    "and": [
+        {
+            "property": "Last edited time",
+            "date": {
+                "past_week": {}
+            }
+        },
+        {
+            "property": "Category",
+            "formula": {
+                "string": {
+                    "contains": "Notion"
+                }
+            }
+        },
+        {
+            "property": "State",
+            "formula": {
+                "string": {
+                    "contains": "Done"
+                }
+            }
+        }
+    ]
+}
+
 next_month_filter = {
     "and": [
         {
@@ -133,11 +160,11 @@ next_month_filter = {
     ]
 }
 on_or_after_today_filter = {
-            "property": "Date",
-            "date": {
-                "on_or_after": datetime.now().date().isoformat()
-            }
-        }
+    "property": "Date",
+    "date": {
+        "on_or_after": datetime.now().date().isoformat()
+    }
+}
 
 next_filter = {
     "and": [
@@ -198,18 +225,6 @@ daily_inspiration_filter = {"property": "Category",
                                 "string": {
                                     "contains": "Daily Inspiration"
                                 }}}
-uncheck_done_set_today_filter = {
-        "properties": {
-            "Done": {
-                "checkbox": False  # Set checkbox to False (uncheck)
-            },
-            "Due": {
-                "date": {
-                    "start": (today + timedelta(days=1)).isoformat()
-                }
-            }
-        }
-    }
 insurances_filter = {
     "property": "InsuranceState",
     "formula": {

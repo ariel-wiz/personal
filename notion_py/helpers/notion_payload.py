@@ -1,4 +1,6 @@
-from common import replace_none_with_list_or_string
+from datetime import timedelta
+
+from common import replace_none_with_list_or_string, today
 from notion_py.notion_globals import NotionPropertyType
 
 
@@ -169,3 +171,24 @@ def get_trading_payload(db_id, name_row, description, large_description, example
         ]
     }
     return trading_payload
+
+
+uncheck_done_set_today_payload = {
+    "properties": {
+        "Done": {
+            "checkbox": False  # Set checkbox to False (uncheck)
+        },
+        "Due": {
+            "date": {
+                "start": (today + timedelta(days=1)).isoformat()
+            }
+        }
+    }
+}
+check_done_payload = {
+    "properties": {
+        "Done": {
+            "checkbox": True
+        }
+    }
+}

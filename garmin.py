@@ -22,7 +22,7 @@ from garminconnect import (
     GarminConnectTooManyRequestsError,
 )
 
-from helpers import add_hours_to_time, seconds_to_hours_minutes, day_before_yesterday
+from common import add_hours_to_time, seconds_to_hours_minutes, day_before_yesterday
 from logger import logger
 
 # Load environment variables if defined

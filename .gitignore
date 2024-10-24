@@ -40,3 +40,4 @@ build/
 .DS_Store
 env-consts.py
 variables.py
+notion_ids.py

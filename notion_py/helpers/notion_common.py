@@ -4,12 +4,15 @@ from datetime import datetime, timedelta
 
 import requests
 
-from helpers import DateOffset, yesterday, create_date_range, create_day_summary_name
+from common import DateOffset, yesterday, create_date_range, create_day_summary_name, get_date_offset, find_state_items, \
+    today
 from logger import logger
-from notion_py.notion_children_blocks import generate_simple_page_content
-from notion_py.notion_globals import next_month_filter, day_summary_sorts, api_db_id, day_summary_db_id, \
-    Method, NotionAPIStatus
-from notion_py.notion_payload import generate_payload, generate_create_page_payload, get_relation_payload, \
+from notion_py.helpers.notion_children_blocks import generate_simple_page_content, \
+    generate_page_content_page_notion_link
+from notion_py.notion_globals import next_month_filter, date_descending_sort, api_db_id, day_summary_db_id, \
+    Method, NotionAPIStatus, TaskConfig, daily_tasks_db_id, tasks_db_id, next_filter, first_created_sorts, \
+    default_tasks_filter, default_tasks_sorts, daily_notion_category_filter, on_or_after_today_filter
+from notion_py.helpers.notion_payload import generate_payload, generate_create_page_payload, get_relation_payload, \
     get_api_status_payload
 from variables import Keys
 
@@ -61,7 +64,6 @@ def get_db_pages(db_id, get_db_payload={}, print_response=False, print_response_
                               print_response_type=print_response_type)
 
 
-
 def get_pages_by_date_offset(database_id, offset: int, date_name="Date", filter_to_add={}):
     """
     Queries the specified Notion database to find pages where the State is not empty
@@ -104,25 +106,26 @@ def get_pages_by_date_offset(database_id, offset: int, date_name="Date", filter_
     return response
 
 
+# Daily and tasks functions
 def create_daily_summary_pages():
     create_daily_pages_for_db_id(day_summary_db_id)
 
 
 def create_daily_api_pages():
-    create_daily_pages_for_db_id(api_db_id, "💽")
+    create_daily_pages_for_db_id(api_db_id, "💽", link_to_day_summary_tasks=True)
 
 
-def create_daily_pages_for_db_id(db_id, icon=None, days_range_to_create=10):
-    day_summary_payload = generate_payload(next_month_filter, day_summary_sorts)
+def create_daily_pages_for_db_id(db_id, icon=None, link_to_day_summary_tasks=False, days_range_to_create=10):
+    day_summary_payload = generate_payload(on_or_after_today_filter, date_descending_sort)
     response = get_db_pages(db_id, day_summary_payload)
 
-    if not response or 'properties' not in response:
-        logger.info(f"No daily tasks found for the next month")
+    if not response:
+        logger.info(f"No daily tasks found for the future")
         last_date = str(yesterday.isoformat())
     else:
-        last_date = response['properties']['Date']['date']['start']
+        last_date = response[0]['properties']['Date']['date']['start']
 
-    days_to_create = create_date_range(last_date, days_range_to_create)
+    days_to_create = create_date_range(last_date, days_range_to_create+1)
 
     for day_to_create in days_to_create:
         day_summary_name = create_day_summary_name(day_to_create)
@@ -130,7 +133,39 @@ def create_daily_pages_for_db_id(db_id, icon=None, days_range_to_create=10):
                                                                                              "Day": day_summary_name,
                                                                                              "Icon": icon}
         response = create_page_with_db_dict(db_id, payload_content)
+
+        if link_to_day_summary_tasks:
+            day_summary_pages = get_day_summary_by_date_str(day_to_create)
+            if day_summary_pages:
+                daily_summary_page_id = day_summary_pages[0]['id']
+                created_page_id = response['id']
+                update_page_with_relation(daily_summary_page_id, created_page_id, "API Status")
+
         logger.info(f"Created daily summary for {day_summary_name} with ID {response['id']}")
+
+
+def get_tasks(tasks_filter=None, tasks_sort=None, is_daily=False, print_response=False):
+    get_tasks_payload = generate_payload(tasks_filter if tasks_filter else default_tasks_filter,
+                                         tasks_sort if tasks_sort else default_tasks_sorts)
+    if is_daily:
+        return get_db_pages(daily_tasks_db_id, get_tasks_payload, print_response)
+    else:
+        return get_db_pages(tasks_db_id, get_tasks_payload, print_response, 'tasks')
+
+
+def get_daily_tasks(daily_filter=None, daily_sorts=None, print_response=False):
+    return get_tasks(daily_filter if daily_filter else next_filter, daily_sorts if daily_sorts else first_created_sorts,
+                     is_daily=True, print_response=print_response)
+
+
+def get_daily_tasks_by_date_str(date_str, filter_to_add=None):
+    date_offset = get_date_offset(date_str)
+    return get_pages_by_date_offset(daily_tasks_db_id, date_offset, date_name="Due", filter_to_add=filter_to_add)
+
+
+def get_day_summary_by_date_str(date_str, filter_to_add=None):
+    date_offset = get_date_offset(date_str)
+    return get_pages_by_date_offset(day_summary_db_id, date_offset, date_name="Date", filter_to_add=filter_to_add)
 
 
 # Notion API Status operations
@@ -261,6 +296,108 @@ def _query_notion_api(url, payload={}, method=None, start_cursor=None, print_res
         raise Exception(error_message)
 
 
+def create_page_with_db_dict(db_id, db_dict):
+    generated_payload = generate_create_page_payload(db_id, db_dict)
+    return create_page(generated_payload)
+
+
+def create_page_with_db_dict_and_children_block(db_id, db_dict, children_block):
+    generated_payload = generate_create_page_payload(db_id, db_dict)
+    generated_payload.update(children_block)
+
+    return create_page(generated_payload)
+
+
+def update_page_with_relation(page_id_add_relation, page_id_data_to_import, relation_name, other_params={}):
+    relation_payload = get_relation_payload(page_id_data_to_import, relation_name, other_params)
+    update_page(page_id_add_relation, relation_payload)
+
+    logger.info("Relation added successfully!")
+
+
+def copy_tasks_to_daily(config: TaskConfig) -> None:
+    """
+    Generic function to copy tasks from a source database to daily tasks.
+
+    Args:
+        config: TaskConfig object containing all necessary configuration
+    """
+    # Get source pages
+    source_pages = config.get_pages_func()
+    if not source_pages:
+        logger.info(f"No {config.name} to update")
+        return
+
+    # Get existing daily tasks using the filter
+    daily_tasks = get_daily_tasks(config.daily_filter)
+    existing_task_names = [
+        task['properties']['Task']['title'][0]['plain_text']
+        for task in daily_tasks
+    ]
+
+    success_task_count = 0
+    error_task_count = 0
+
+    for source_page in source_pages:
+        state = source_page['properties'][config.state_property_name]['formula']['string']
+
+        try:
+            # Check for existing pages
+            if config.state_suffix:
+                existing_page = find_state_items(
+                    existing_task_names,
+                    state,
+                    config.state_suffix
+                )
+            else:
+                existing_page = state in existing_task_names
+
+            if existing_page:
+                logger.info(f"Page for '{state}' already exists")
+                continue
+
+            # Get due date if configured
+            due_date = (
+                source_page['properties'][config.date_property_name]['formula']['date']['start']
+                if config.date_property_name
+                else date.today().isoformat()
+            )
+
+            # Create the task
+            task_dict = {
+                "Task": state,
+                "Project": config.project,
+                "Due": due_date,
+                "Icon": config.icon
+            }
+
+            # Create page with or without children block
+            if config.children_block:
+                children_block = generate_page_content_page_notion_link(source_page['id'])
+                response = create_page_with_db_dict_and_children_block(
+                    daily_tasks_db_id,
+                    task_dict,
+                    children_block
+                )
+            else:
+                response = create_page_with_db_dict(daily_tasks_db_id, task_dict)
+
+            logger.info(f"Successfully created a daily {config.name} task for {state} with ID {response['id']}")
+            success_task_count += 1
+
+        except Exception as e:
+            logger.error(f"Failed to create a daily {config.name} task for {state} - error {str(e)}")
+            error_task_count += 1
+            continue
+
+    if success_task_count > 0 and error_task_count > 0:
+        logger.info(f"Successfully copied {success_task_count} tasks. Errors: {error_task_count}")
+    elif success_task_count > 0:
+        logger.info(f"Successfully copied {success_task_count} tasks")
+    elif error_task_count > 0:
+        logger.info(f"Failed to create daily {config.name} tasks - Errors: {error_task_count}")
+
+
 # Format responses
 def get_task_attributes_str(properties):
     notion_task_name = properties['Task']['title'][0]['plain_text']
@@ -293,22 +430,3 @@ def print_notion_response(response, type=''):
             logger.info(get_zahar_nekeva_attributes_str(properties))
         else:
             logger.info(json.dumps(properties, indent=4))
-
-
-def create_page_with_db_dict(db_id, db_dict):
-    generated_payload = generate_create_page_payload(db_id, db_dict)
-    return create_page(generated_payload)
-
-
-def create_page_with_db_dict_and_children_block(db_id, db_dict, children_block):
-    generated_payload = generate_create_page_payload(db_id, db_dict)
-    generated_payload.update(children_block)
-
-    return create_page(generated_payload)
-
-
-def update_page_with_relation(page_id_add_relation, page_id_data_to_import, relation_name, other_params={}):
-    relation_payload = get_relation_payload(page_id_data_to_import, relation_name, other_params)
-    update_page(page_id_add_relation, relation_payload)
-
-    logger.info("Relation added successfully!")

@@ -1,15 +1,18 @@
 import argparse
 from epub import read_epub
 from garmin import get_garmin_info
-from helpers import today, find_state_items, create_tracked_lambda, get_date_offset, create_shabbat_dates
+from common import today, find_state_items, create_tracked_lambda, get_date_offset, create_shabbat_dates, yesterday, \
+    DateOffset
 from jewish_calendar import JewishCalendarAPI
-from notion_py.notion_children_blocks import generate_children_block_for_daily_inspirations, \
+from logger import logger
+from notion_py.helpers.notion_children_blocks import generate_children_block_for_daily_inspirations, \
     generate_page_content_page_notion_link, generate_children_block_for_shabbat
 from notion_py.notion_globals import *
-from notion_helpers import *
-from notion_py.notion_payload import generate_payload
-from notion_py.notion_helpers import create_page_with_db_dict, create_page_with_db_dict_and_children_block, \
-    update_page_with_relation
+from notion_py.helpers.notion_payload import generate_payload, get_trading_payload
+from notion_py.helpers.notion_common import create_page_with_db_dict, create_page_with_db_dict_and_children_block, \
+    update_page_with_relation, get_db_pages, track_operation, create_daily_summary_pages, create_daily_api_pages, \
+    update_page, create_page, get_pages_by_date_offset, copy_tasks_to_daily, get_daily_tasks, \
+    get_daily_tasks_by_date_str, get_tasks
 from variables import Paths
 
 
@@ -17,87 +20,13 @@ from variables import Paths
 
 
 def create_trading_page(name_row, description, large_description, example):
-    trading_payload = {
-        "parent": {"database_id": trading_db_id},
-        "properties": {
-            "Name": {
-                "title": [
-                    {
-                        "text": {
-                            "content": name_row
-                        }
-                    }
-                ]
-            },
-            "Description": {
-                "rich_text": [
-                    {
-                        "text": {
-                            "content": description
-                        }
-                    }
-                ]
-            },
-            "Category": {
-                "select":
-                    {"name": "Trading"}
-            }
-        },
-        "children": [
-            {
-                "object": "block",
-                "type": "paragraph",
-                "paragraph": {
-                    "rich_text": [
-                        {
-                            "type": "text",
-                            "text": {
-                                "content": large_description
-                            }
-                        }
-                    ]
-                }
-            },
-            {
-                "object": "block",
-                "type": "heading_2",
-                "heading_2": {
-                    "rich_text": [
-                        {
-                            "type": "text",
-                            "text": {
-                                "content": "Example"
-                            }
-                        }
-                    ]
-                }
-            },
-            {
-                "object": "block",
-                "type": "paragraph",
-                "paragraph": {
-                    "rich_text": [
-                        {
-                            "type": "text",
-                            "text": {
-                                "content": example
-                            }
-                        }
-                    ]
-                }
-            }
-        ]
-    }
+    trading_payload = get_trading_payload(trading_db_id, name_row, description, large_description, example)
     create_page(trading_payload)
 
 
 def create_daily_stoics(check_date=False):
     if check_date:
-        daily_inspirations = get_daily_tasks(daily_filter={"property": "Category",
-                                                           "formula": {
-                                                               "string": {
-                                                                   "contains": "Daily Inspiration"
-                                                               }}})
+        daily_inspirations = get_daily_tasks(daily_filter=daily_inspiration_filter)
         daily_inspirations_dict = {
             daily_inspiration['properties']['Due']['date']['start']:
                 daily_inspiration['properties']['Task']['title'][0]['plain_text'] for daily_inspiration in
@@ -139,178 +68,19 @@ def create_daily_stoics(check_date=False):
             continue
 
 
-def copy_pages_if_needed():
-    copy_birthdays()
-    copy_expenses_and_warranty()
-
-
-@track_operation(NotionAPIOperation.COPY_BIRTHDAYS)
 def copy_birthdays():
-    birthday_daily_tasks = get_birthday_tasks()
-    daily_tasks_birthday_upcoming_state = [task['properties']['Task']['title'][0]['plain_text'] for task in
-                                           birthday_daily_tasks]
+    birthday_config = TaskConfig(
+        name="Birthday",
+        get_pages_func=get_birthdays,
+        state_property_name="FullBirthdayState",
+        daily_filter=daily_birthday_category_filter,
+        date_property_name="Next Birthday",
+        icon="🎂",
+        project=Projects.birthdays,
+        children_block=False
+    )
 
-    birthday_pages = get_birthdays()
-    success_task_count = 0
-    error_task_count = 0
-
-    for birthday_page in birthday_pages:
-        next_birthday = birthday_page['properties']['Next Birthday']['formula']['date']['start']
-        birthday_state = birthday_page['properties']['FullBirthdayState']['formula']['string']
-
-        if birthday_state in daily_tasks_birthday_upcoming_state:
-            logger.info(f"Birthday task for {birthday_state} already exists")
-            continue
-
-        # if task['properties']['Due']['date']['end'] and '00:00:00' not in \
-        #         task['properties']['Due']['date']['end'].split('T')[1].split('+')[0]:
-        #     task_due = [task_due_start, task_due_end]
-        # else:
-        #     task_due = task_due_start
-
-        birthday_task_dict = {
-            "Task": birthday_state,
-            "Project": Projects.birthdays,
-            "Due": next_birthday,
-            "Icon": "🎂"
-        }
-
-        response = create_page_with_db_dict(daily_tasks_db_id, birthday_task_dict)
-
-        # if response:
-        #     page_id = task['id']
-        #     update_data = {
-        #         "properties": {
-        #             "copied": {
-        #                 "checkbox": True
-        #             }
-        #         }
-        #     }
-        #     update_page(page_id, update_data)
-
-        logger.info(f"Successfully created daily task for {birthday_state} with ID {response['id']}")
-        success_task_count += 1
-    else:
-        logger.info(
-            f"Failed to create daily task for daily task for {birthday_state} and birthday date {next_birthday} "
-            f"- response {response}")
-        error_task_count += 1
-    logger.info(f"Successfully copied {success_task_count} tasks. Errors: {error_task_count}")
-
-
-def copy_expenses_and_warranty():
-    expense_and_warranties_pages = get_expenses_and_warranties()
-    if not expense_and_warranties_pages:
-        logger.info("No expenses and warranties to update")
-        return
-
-    daily_notion_category = get_daily_tasks(daily_notion_category_filter)
-    daily_notion_category_task_names = [task['properties']['Task']['title'][0]['plain_text'] for task in
-                                        daily_notion_category]
-
-    success_task_count = 0
-    error_task_count = 0
-
-    for expense_and_warranty_page in expense_and_warranties_pages:
-        warranty_state = expense_and_warranty_page['properties']['WarrantyState']['formula']['string']
-        try:
-            # Check for existing pages
-            existing_page_in_daily = find_state_items(daily_notion_category_task_names, warranty_state,
-                                                      "end of warranty")
-            if existing_page_in_daily:
-                logger.info(f"Page for '{warranty_state}' already exists and is named '{existing_page_in_daily}'")
-                continue
-
-            # Create the page
-            expense_and_warranty_task_dict = {
-                "Task": warranty_state,
-                "Project": Projects.notion,
-                "Due": today.isoformat(),
-                "Icon": "📝"
-            }
-
-            page_id = expense_and_warranty_page['id']
-
-            children_block = generate_page_content_page_notion_link(page_id)
-            response = create_page_with_db_dict_and_children_block(daily_tasks_db_id, expense_and_warranty_task_dict,
-                                                                   children_block)
-
-            logger.info(
-                f"Successfully created a daily Expense and Warranty task for {warranty_state} with ID {response['id']}")
-            success_task_count += 1
-        except Exception as e:
-            logger.error(
-                f"Failed to create a daily Expense and Warranty task for {warranty_state}- error {str(e)}")
-            error_task_count += 1
-            continue
-    logger.info(f"Successfully copied {success_task_count} tasks. Errors: {error_task_count}")
-
-
-def copy_insurance():
-    insurances_pages = get_insurances()
-    if not insurances_pages:
-        logger.info("No insurances to update")
-        return
-
-    daily_notion_category = get_daily_tasks(daily_notion_category_filter)
-    daily_notion_category_task_names = [task['properties']['Task']['title'][0]['plain_text'] for task in
-                                        daily_notion_category]
-
-    success_task_count = 0
-    error_task_count = 0
-
-    for insurance_page in insurances_pages:
-        insurance_state = insurance_page['properties']['InsuranceState']['formula']['string']
-        try:
-            # Check for existing pages
-            existing_page_in_daily = find_state_items(daily_notion_category_task_names, insurance_state,
-                                                      "end of insurance")
-            if existing_page_in_daily:
-                logger.info(f"Page for '{insurance_state}' already exists and is named '{existing_page_in_daily}'")
-                continue
-
-            # Create the page
-            insurance_task_dict = {
-                "Task": insurance_state,
-                "Project": Projects.notion,
-                "Due": today.isoformat(),
-                "Icon": "🤑"
-            }
-
-            page_id = insurance_page['id']
-
-            children_block = generate_page_content_page_notion_link(page_id)
-            response = create_page_with_db_dict_and_children_block(daily_tasks_db_id, insurance_task_dict,
-                                                                   children_block)
-
-            logger.info(
-                f"Successfully created a daily Insurance task for {insurance_state} with ID {response['id']}")
-            success_task_count += 1
-        except Exception as e:
-            logger.error(
-                f"Failed to create a daily Expense and Warranty task for {insurance_state}- error {str(e)}")
-            error_task_count += 1
-            continue
-    logger.info(f"Successfully copied {success_task_count} tasks. Errors: {error_task_count}")
-
-
-def get_tasks(tasks_filter=None, tasks_sort=None, is_daily=False, print_response=False):
-    get_tasks_payload = generate_payload(tasks_filter if tasks_filter else default_tasks_filter,
-                                         tasks_sort if tasks_sort else default_tasks_sorts)
-    if is_daily:
-        return get_db_pages(daily_tasks_db_id, get_tasks_payload, print_response)
-    else:
-        return get_db_pages(tasks_db_id, get_tasks_payload, print_response, 'tasks')
-
-
-def get_daily_tasks(daily_filter=None, daily_sorts=None, print_response=False):
-    return get_tasks(daily_filter if daily_filter else next_filter, daily_sorts if daily_sorts else first_created_sorts,
-                     is_daily=True, print_response=print_response)
-
-
-def get_daily_tasks_by_date_str(date_str, filter_to_add=None):
-    date_offset = get_date_offset(date_str)
-    return get_pages_by_date_offset(daily_tasks_db_id, date_offset, date_name="Due", filter_to_add=filter_to_add)
+    copy_tasks_to_daily(birthday_config)
 
 
 def get_birthday_tasks():
@@ -328,6 +98,34 @@ def get_expenses_and_warranties():
 def get_insurances():
     insurances_payload = generate_payload(insurances_filter)
     return get_db_pages(insurance_db_id, insurances_payload)
+
+
+def copy_expenses_and_warranty():
+    expense_warranty_config = TaskConfig(
+        name="Expense and Warranty",
+        get_pages_func=get_expenses_and_warranties,
+        state_property_name="WarrantyState",
+        daily_filter=daily_notion_category_filter,
+        state_suffix="end of warranty",
+        icon="📝",
+        project=Projects.notion
+    )
+
+    copy_tasks_to_daily(expense_warranty_config)
+
+
+def copy_insurance():
+    insurance_config = TaskConfig(
+        name="Insurance",
+        get_pages_func=get_insurances,
+        state_property_name="InsuranceState",
+        daily_filter=daily_notion_category_filter,
+        state_suffix="end of insurance",
+        icon="🤑",
+        project=Projects.notion
+    )
+
+    copy_tasks_to_daily(insurance_config)
 
 
 def get_trading():
@@ -348,23 +146,6 @@ def get_birthdays():
     return get_db_pages(birthday_db_id, birthday_payload)
 
 
-@track_operation(NotionAPIOperation.UNCHECK_DONE)
-def uncheck_done_weekly_task_id():
-    update_data = {
-        "properties": {
-            "Done": {
-                "checkbox": False  # Set checkbox to False (uncheck)
-            },
-            "Due": {
-                "date": {
-                    "start": (today + timedelta(days=1)).isoformat()
-                }
-            }
-        }
-    }
-    update_page(weekly_task_page_id, update_data)
-
-
 def check_exercise_according_to_activity_status(activity_status):
     if FieldMap.exercise in activity_status:
         activity = activity_status[FieldMap.exercise]
@@ -374,13 +155,6 @@ def check_exercise_according_to_activity_status(activity_status):
                 "checkbox": True
             }}
     return {}
-
-
-@track_operation(NotionAPIOperation.CREATE_PAGES)
-def create_daily_pages():
-    create_daily_summary_pages()
-    create_daily_api_pages()
-    create_parashat_hashavua()
 
 
 def create_parashat_hashavua():
@@ -493,6 +267,26 @@ def update_garmin_info(update_daily_tasks=True):
             logger.info(f"Successfully updated daily task with Garmin info for {yesterday_date}")
 
 
+@track_operation(NotionAPIOperation.UNCHECK_DONE)
+def uncheck_done_weekly_task_id():
+    update_page_filter = uncheck_done_set_today_filter
+    update_page(weekly_task_page_id, update_page_filter)
+
+
+@track_operation(NotionAPIOperation.CREATE_DAILY_PAGES)
+def create_daily_pages():
+    create_daily_summary_pages()
+    create_daily_api_pages()
+    create_parashat_hashavua()
+
+
+@track_operation(NotionAPIOperation.COPY_PAGES)
+def copy_pages_from_other_db_if_needed():
+    copy_birthdays()
+    copy_expenses_and_warranty()
+    copy_insurance()
+
+
 def main(selected_tasks):
     try:
         if selected_tasks:
@@ -502,7 +296,7 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            copy_insurance()
+            create_daily_api_pages()
             logger.info("End of manual run")
 
     except Exception as e:
@@ -528,7 +322,7 @@ if __name__ == '__main__':
         'uncheck_done': uncheck_done_weekly_task_id,
         'garmin': update_garmin_info,
         'create_daily_pages': create_daily_pages,
-        'copy_pages': copy_pages_if_needed,
+        'copy_pages': copy_pages_from_other_db_if_needed,
     }
 
     # Set up command-line argument parsing

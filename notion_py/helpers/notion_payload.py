@@ -1,4 +1,4 @@
-from helpers import replace_none_with_list_or_string
+from common import replace_none_with_list_or_string
 from notion_py.notion_globals import NotionPropertyType
 
 
@@ -94,3 +94,78 @@ def get_api_status_payload(status, operation):
             }
         }
     }
+
+
+def get_trading_payload(db_id, name_row, description, large_description, example):
+    trading_payload = {
+        "parent": {"database_id": db_id},
+        "properties": {
+            "Name": {
+                "title": [
+                    {
+                        "text": {
+                            "content": name_row
+                        }
+                    }
+                ]
+            },
+            "Description": {
+                "rich_text": [
+                    {
+                        "text": {
+                            "content": description
+                        }
+                    }
+                ]
+            },
+            "Category": {
+                "select":
+                    {"name": "Trading"}
+            }
+        },
+        "children": [
+            {
+                "object": "block",
+                "type": "paragraph",
+                "paragraph": {
+                    "rich_text": [
+                        {
+                            "type": "text",
+                            "text": {
+                                "content": large_description
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "object": "block",
+                "type": "heading_2",
+                "heading_2": {
+                    "rich_text": [
+                        {
+                            "type": "text",
+                            "text": {
+                                "content": "Example"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "object": "block",
+                "type": "paragraph",
+                "paragraph": {
+                    "rich_text": [
+                        {
+                            "type": "text",
+                            "text": {
+                                "content": example
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+    return trading_payload

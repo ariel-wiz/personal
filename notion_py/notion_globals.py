@@ -1,5 +1,8 @@
+from dataclasses import dataclass
 from datetime import datetime, timedelta, date
+from typing import Callable, List, Dict, Optional
 
+from common import today
 from variables import Keys, Projects
 
 tasks_db_id = Keys.tasks_db_id
@@ -44,14 +47,26 @@ class NotionAPIStatus:
 
 class NotionAPIOperation:
     GARMIN = "Garmin"
-    CREATE_PAGES = "Create Pages"
+    CREATE_DAILY_PAGES = "Create Daily Pages"
     UNCHECK_DONE = "Uncheck Done"
-    COPY_BIRTHDAYS = "Copy Birthdays"
-    SHABAT = "Shabat"
+    COPY_PAGES = "Copy Pages"
 
 
 class FieldMap:
     exercise = '🏃🏼\xa0Exercise'
+
+
+@dataclass
+class TaskConfig:
+    name: str
+    get_pages_func: Callable[[], List[Dict]]
+    state_property_name: str
+    daily_filter: str  # New: just store the filter string
+    date_property_name: Optional[str] = None
+    state_suffix: str = ""
+    icon: str = "📝"
+    project: str = Projects.notion
+    children_block: bool = True
 
 
 default_tasks_filter = {
@@ -117,6 +132,13 @@ next_month_filter = {
         }
     ]
 }
+on_or_after_today_filter = {
+            "property": "Date",
+            "date": {
+                "on_or_after": datetime.now().date().isoformat()
+            }
+        }
+
 next_filter = {
     "and": [
         {"property": "State",
@@ -171,6 +193,23 @@ expense_and_warranty_filter = {
             "is_not_empty": True
         }}
 }
+daily_inspiration_filter = {"property": "Category",
+                            "formula": {
+                                "string": {
+                                    "contains": "Daily Inspiration"
+                                }}}
+uncheck_done_set_today_filter = {
+        "properties": {
+            "Done": {
+                "checkbox": False  # Set checkbox to False (uncheck)
+            },
+            "Due": {
+                "date": {
+                    "start": (today + timedelta(days=1)).isoformat()
+                }
+            }
+        }
+    }
 insurances_filter = {
     "property": "InsuranceState",
     "formula": {
@@ -195,9 +234,7 @@ recursive_sorts = [
         "direction": "ascending"
     }
 ]
-day_summary_sorts = [{
+date_descending_sort = [{
     "property": "Date",
     "direction": "descending"
 }]
-
-

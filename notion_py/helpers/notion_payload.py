@@ -18,18 +18,22 @@ def generate_create_page_payload(db_id, db_dict):
 
     daily_db_items = {
         NotionPropertyType.TITLE: ["Name", "Task", "Day"],
-        NotionPropertyType.TEXT: ["Sleep Start", "Sleep End", "Sleep Duration", "Activity Duration"],
+        NotionPropertyType.TEXT: ["Sleep Start", "Sleep End", "Sleep Duration", "Activity Duration", "Memo"],
         NotionPropertyType.SELECT_ID: ["Project"],
-        NotionPropertyType.SELECT_NAME: ["Sleep Feedback"],
-        NotionPropertyType.DATE: ["Date", "Due"],
+        NotionPropertyType.SELECT_NAME: ["Sleep Feedback", "Person Card", "Status", "Type", "Original Currency",
+                                         "Charged Currency"],
+        NotionPropertyType.MULTI_SELECT: ["Category"],
+        NotionPropertyType.DATE: ["Date", "Due", "Processed Date"],
         NotionPropertyType.URL: ["gCal Link"],
-        NotionPropertyType.NUMBER: ["Steps", "Steps Goal", "Calories", "Sleep Note", "Activity Calories"]
+        NotionPropertyType.NUMBER: ["Steps", "Steps Goal", "Calories", "Sleep Note", "Activity Calories",
+                                    "Charged Amount", "Original Amount"]
     }
 
     daily_db_payload = {
         NotionPropertyType.TITLE: {"title": [{"text": {"content": None}}]},
         NotionPropertyType.TEXT: {"rich_text": [{"text": {"content": None}}]},
         NotionPropertyType.SELECT_ID: {"select": {"id": None}},
+        NotionPropertyType.MULTI_SELECT: {"multi_select": []},
         NotionPropertyType.SELECT_NAME: {"select": {"name": None}},
         NotionPropertyType.DATE: {"date": {"start": None}},
         NotionPropertyType.URL: {"url": None},
@@ -51,6 +55,10 @@ def generate_create_page_payload(db_id, db_dict):
                     payload_element = replace_none_with_list_or_string(daily_db_payload[db_item_category_key],
                                                                        start_date)
                     payload_element["date"]["end"] = end_date
+                elif db_item_category_key == NotionPropertyType.MULTI_SELECT:
+                    if isinstance(value, str):
+                        value = [value]
+                    payload_element = {"multi_select": [{"name": v} for v in value]}
                 else:
                     payload_element = replace_none_with_list_or_string(daily_db_payload[db_item_category_key], value)
                 daily_task_payload["properties"][key] = payload_element
@@ -192,3 +200,4 @@ check_done_payload = {
         }
     }
 }
+

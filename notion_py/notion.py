@@ -367,7 +367,7 @@ def main(selected_tasks):
             logger.info("End of manual run")
 
     except Exception as e:
-        logger.error(f"Error: {e}")
+        logger.error(f"An error occured: {e}", exc_info=True)
 
     logger.info("Script completed successfully.")
 

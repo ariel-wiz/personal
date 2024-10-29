@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, date
 from typing import Callable, List, Dict, Optional
 
+from common import today
 from variables import Keys, Projects
 
 tasks_db_id = Keys.tasks_db_id
@@ -18,6 +19,7 @@ api_db_id = Keys.api_db_id
 daily_inspiration_project_id = Projects.daily_inspiration
 expense_and_warranty_db_id = Keys.expense_and_warranty_db_id
 insurance_db_id = Keys.insurance_db_id
+expense_tracker_db_id = Keys.expense_tracker_db_id
 
 
 class NotionPropertyType:
@@ -25,6 +27,7 @@ class NotionPropertyType:
     TEXT = "rich_text"
     SELECT_ID = "select_id"
     SELECT_NAME = "select_name"
+    MULTI_SELECT = "multi_select"
     DATE = "date"
     URL = "url"
     NUMBER = "number"
@@ -260,3 +263,10 @@ date_descending_sort = [{
     "property": "Date",
     "direction": "descending"
 }]
+
+last_2_months_expense_filter = {
+    "property": "Processed Date",
+    "date": {
+        "on_or_after": (today - timedelta(days=62)).isoformat()
+    }
+}

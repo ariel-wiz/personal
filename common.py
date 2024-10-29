@@ -199,3 +199,20 @@ def create_shabbat_dates(date_str: str, start_hour: str, end_hour: str) -> tuple
     iso_end_date = end_datetime_offset.isoformat()
 
     return [iso_start_date, iso_end_date]
+
+
+def parse_expense_date(date_str, include_hour=False):
+    # Parse the date string in ISO 8601 format to a datetime object
+    date_obj = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+
+    if include_hour:
+        # Apply the timezone offset by subtracting the TIMEZONE_OFFSET
+        adjusted_date = date_obj - timedelta(hours=TIMEZONE_OFFSET)
+        return adjusted_date.isoformat()
+
+    # Return the adjusted date in ISO 8601 format
+    return date_obj.date().isoformat()
+
+
+def get_key_for_value(dict, value):
+    return [key for key, val in dict.items() if val == value][0]

@@ -54,6 +54,7 @@ def create_page(create_payload, print_response=False):
 
 
 def get_page(page_id, get_children=False, print_response=False):
+    page_id = page_id.strip().replace("-", "")
     get_url = f"https://api.notion.com/v1/pages/{page_id}"
     if get_children:
         get_url = f"https://api.notion.com/v1/blocks/{page_id}/children"
@@ -64,6 +65,12 @@ def get_db_pages(db_id, get_db_payload={}, print_response=False, print_response_
     get_db_url = f"https://api.notion.com/v1/databases/{db_id}/query"
     return _invoke_notion_api(get_db_url, get_db_payload, method=Method.POST, print_response=print_response,
                               print_response_type=print_response_type)
+
+
+def delete_page(page_id):
+    page_id = page_id.strip().replace("-", "")
+    archived_payload = {"archived": True}
+    return update_page(page_id, archived_payload)
 
 
 def get_pages_by_date_offset(database_id, offset: int, date_name="Date", filter_to_add={}):
@@ -259,7 +266,7 @@ def _invoke_notion_api(query_url, query_payload={}, method=Method.GET, print_res
             # Break if there's no next cursor
             if not start_cursor:
                 break
-            logger.info(f"Handling pagination with cursor {start_cursor}...")
+            logger.debug(f"Handling pagination with cursor {start_cursor}...")
         else:
             break
 
@@ -276,6 +283,8 @@ def _query_notion_api(url, payload={}, method=None, start_cursor=None, print_res
         if payload:
             if method == Method.GET:
                 response = requests.get(url, headers=headers)
+            if method == Method.DELETE:
+                response = requests.delete(url, headers=headers)
             elif method == Method.POST:
                 response = requests.post(url, headers=headers, json=payload)
             elif method == Method.PATCH:
@@ -283,6 +292,8 @@ def _query_notion_api(url, payload={}, method=None, start_cursor=None, print_res
         else:
             if method == Method.GET:
                 response = requests.get(url, headers=headers)
+            if method == Method.DELETE:
+                response = requests.delete(url, headers=headers)
             elif method == Method.POST:
                 response = requests.post(url, headers=headers)
             elif method == Method.PATCH:

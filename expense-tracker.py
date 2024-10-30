@@ -6,7 +6,7 @@ from datetime import datetime
 
 from common import parse_expense_date, get_key_for_value
 from logger import logger
-from notion_py.helpers.notion_common import get_db_pages, create_page
+from notion_py.helpers.notion_common import get_db_pages, create_page, delete_page
 from notion_py.helpers.notion_payload import generate_create_page_payload, generate_payload
 from notion_py.notion_globals import expense_tracker_db_id, last_2_months_expense_filter, date_descending_sort
 from variables import ACCOUNT_NUMBER_TO_PERSON_CARD, CHEN_CAL, ARIEL_MAX, CHEN_MAX, ARIEL_SALARY_AVG, PRICE_VAAD_BAIT, \
@@ -53,17 +53,19 @@ MODIFIED_NAMES = {
 
 ENGLISH_CATEGORY = {
     "Insurance & Monthly Fees 🔄": ["גן", "צהרון", "ביטוח", "לאומי", "ועד", "הפקדות", "מים", "מי", "חשמל", "סלולר",
-                                   "סלקום", "פרטנר"],
+                                   "סלקום", "פרטנר", "עיריית", "פזגז"],
     "Food 🍽️": ["מזון", "צריכה", "משקאות", "מסעדות", "קפה", "מסעדה", "ברים", "סופרמרקט", "שופרסל", "רמי לוי", "מעדניה",
-                "מקדונלדס", "ארומה"],
-    "Banking & Finance 💳": ["העברת", "כספים", "פיננסים", "שק", "שיק", "העברה", "ביט", "קצבת", "הלוואה", "השקעות"],
-    "Online Shopping 🛒": ["AMAZON", "עלי אקספרס", "איביי", "אמזון", "GOOGLE", "ALIEXPRESS", "KSP", "PAYPAL"],
+                "מקדונלדס", "ארומה", "מסעדה"],
+    "Banking & Finance 💳": ["העברת", "כספים", "פיננסים", "שק", "שיק", "העברה", "ביט", "קצבת", "הלוואה", "השקעות", "BIT", "paybox", "כספומט"],
+    "Online Shopping 🛒": ["AMAZON", "עלי אקספרס", "איביי", "אמזון", "GOOGLE", "ALIEXPRESS", "KSP", "PAYPAL", "AMZN",
+                          "google", "NOTION", "אייבורי", "shein", "lastpass", "marketplace"],
     "Fashion & Apparel 👔": ["ביגוד", "אופנה", "הלבשה", "נעליים", "אקססוריז", "זארה", "קניון", "טרמינל", "פנאי", "טרמינל"],
-    "Transportation & Auto 🚗": ["תחבורה", "רכבים", "מוסדות", "דלק", "רכבת", "אוטובוס", "מונית", "סונול"],
-    "Home & Living 🏠": ["עיצוב", "הבית", "ציוד", "ריהוט", "תחזוקה", "שיפוצים"],
+    "Transportation & Auto 🚗": ["תחבורה", "רכבים", "מוסדות", "דלק", "רכבת", "אוטובוס", "מונית", "סונול", 'סד"ש', 'פנגו', 'yellow', 'דור אלון', 'מוטורס', 'מוטורוס'],
+    "Home & Living 🏠": ["עיצוב", "הבית", "ציוד", "ריהוט", "תחזוקה", "שיפוצים", "מועצה דתית", "פנים"],
+    "Vacation 🍹": ["חופשה", "air", "trip"],
     "Health & Wellness 🏥": ["טיפוח", "יופי", "רפואה", "פארם", "בריאות", "קופת חולים", "תרופות", "טיפולים", "קרוספיט",
-                            "פיט"],
-    "Education & Learning 📚": ["חינוך", "קורסים", "לימודים", "ספרים", "הכשרה"],
+                            "פיט", "מרפקה"],
+    "Education & Learning 📚": ["חינוך", "קורסים", "לימודים", "ספרים", "הכשרה", "סטימצקי"],
     "Children & Family 👨‍👩‍👧‍👦": ["ילדים", "טיק", "צעצועים", "בייבי", "משפחה"],
     "Income 🏦": [],
     "Other 🗂️": ["שונות"]
@@ -146,6 +148,14 @@ class Expense:
             logger.info(f"Successfully added expense {self} to Notion.")
         return
 
+    def delete_from_notion(self, index=None, total=None):
+        delete_page(self.page_id)
+        if index is not None and total is not None:
+            logger.info(f"{index + 1}/{total} - Successfully added expense {self} to Notion.")
+        else:
+            logger.info(f"Successfully added expense {self} to Notion.")
+        return
+
     def get_attr(self, field):
         # Map ExpenseField values to Expense attribute names
         field_map = {
@@ -197,9 +207,9 @@ class Expense:
 
 class ExpenseManager:
     def __init__(self):
-        self.expense_json = self.load_data_from_json()
-        self.expenses_objects_to_create = self.create_expense_objects()
-        self.existing_expenses_objects = self.get_expenses_from_notion()
+        self.expense_json = []
+        self.expenses_objects_to_create = []
+        self.existing_expenses_objects = []
 
     def load_data_from_json(self):
         if os.path.exists(CASPION_FILE_PATH):
@@ -256,6 +266,10 @@ class ExpenseManager:
         return sorted_count
 
     def add_all_expenses_to_notion(self, check_before_adding=True):
+        self.expense_json = self.load_data_from_json()
+        self.expenses_objects_to_create = self.create_expense_objects()
+        self.existing_expenses_objects = self.get_all_expenses_from_notion()
+
         if check_before_adding:
             expenses_to_add = self.get_notion_that_can_be_added_not_present_in_notion()
         else:
@@ -265,9 +279,15 @@ class ExpenseManager:
         for i, expense in enumerate(expenses_to_add):
             expense.add_to_notion(index=i, total=expenses_to_add_len)
 
+    def get_all_expenses_from_notion(self):
+        return self.get_expenses_from_notion(filter_by={})
+
     def get_expenses_from_notion(self, filter_by=None):
         expenses_objects_from_notion = []
-        payload = generate_payload(last_2_months_expense_filter, date_descending_sort)
+        if filter_by is None:
+            payload = generate_payload(last_2_months_expense_filter, date_descending_sort)
+        else:
+            payload = generate_payload(filter_by, date_descending_sort)
         expenses_notion_pages = get_db_pages(expense_tracker_db_id, payload)
 
         for expenses_notion_page in expenses_notion_pages:
@@ -302,8 +322,8 @@ class ExpenseManager:
                     account_number = acc_num
                     break
 
-            category_name = properties[ExpenseField.CATEGORY]['multi_select'][0]['name'] \
-                if properties[ExpenseField.CATEGORY]['multi_select'] else DEFAULT_CATEGORY
+            category_name = properties[ExpenseField.CATEGORY]['select']['name'] \
+                if ExpenseField.CATEGORY in properties else DEFAULT_CATEGORY
             category = category_name
 
             status = (get_key_for_value(STATUS_DICT, properties[ExpenseField.STATUS]['select']['name'])
@@ -359,6 +379,27 @@ class ExpenseManager:
             )
         except Exception as e:
             print(f"Error creating Expense object from Notion page: {e}")
+
+    def remove_duplicates(self):
+        unique_expenses = []
+        expenses_to_remove = []
+        all_notion_expenses = self.get_all_expenses_from_notion()
+        for expense in all_notion_expenses:
+            for unique_expense in unique_expenses:
+                if expense.equals(unique_expense):
+                    expenses_to_remove.append(expense)
+            unique_expenses.append(expense)
+
+        expense_with_unique_page_ids = set([expense.page_id for expense in expenses_to_remove])
+        if len(expense_with_unique_page_ids) > 0:
+            logger.info(f"Found {len(expense_with_unique_page_ids)} duplicate expenses to remove.")
+        else:
+            logger.info("No duplicate expenses found.")
+            return
+
+        for i, page_id in enumerate(expense_with_unique_page_ids):
+            delete_page(page_id)
+            logger.info(f"{i + 1}/{len(expense_with_unique_page_ids)} - Successfully removed duplicate expense.")
 
     def get_notion_that_can_be_added_not_present_in_notion(self):
         expenses_not_in_notion = []
@@ -430,7 +471,7 @@ def get_name(description, price):
                                 price)):
                         return name
 
-    for not_desired_word in ['בע"מ']:
+    for not_desired_word in ['בע"מ', 'בעמ']:
         if not_desired_word in description:
             description = description.replace(not_desired_word, '')
     return description
@@ -444,7 +485,7 @@ def get_category_name(description, he_category, price):
         for item_to_check_word in items_to_check.split(' '):
             for category_en, category_list in ENGLISH_CATEGORY.items():
                 for category_word in category_list:
-                    if category_word in item_to_check_word:
+                    if category_word.lower() in item_to_check_word.lower():
                         return category_en
     return DEFAULT_CATEGORY
 

@@ -17,7 +17,7 @@ def generate_create_page_payload(db_id, db_dict):
     daily_task_payload = {"parent": {"database_id": db_id}, "properties": {}}  # Initialize the payload
 
     daily_db_items = {
-        NotionPropertyType.TITLE: ["Name", "Task", "Day"],
+        NotionPropertyType.TITLE: ["Name", "Task", "Day", "Expense"],
         NotionPropertyType.TEXT: ["Sleep Start", "Sleep End", "Sleep Duration", "Activity Duration", "Memo"],
         NotionPropertyType.SELECT_ID: ["Project"],
         NotionPropertyType.SELECT_NAME: ["Sleep Feedback", "Person Card", "Status", "Type", "Original Currency",

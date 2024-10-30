@@ -9,29 +9,63 @@ from logger import logger
 from notion_py.helpers.notion_common import get_db_pages, create_page
 from notion_py.helpers.notion_payload import generate_create_page_payload, generate_payload
 from notion_py.notion_globals import expense_tracker_db_id, last_2_months_expense_filter, date_descending_sort
-from variables import ACCOUNT_NUMBER_TO_PERSON_CARD
+from variables import ACCOUNT_NUMBER_TO_PERSON_CARD, CHEN_CAL, ARIEL_MAX, CHEN_MAX, ARIEL_SALARY_AVG, PRICE_VAAD_BAIT, \
+    PRICE_GAN_TAMAR, PRICE_TSEHARON_NOYA, HAFKADA_GEMEL_CHILDREN
 
 # Define the path to the JSON file
 CASPION_FILE_PATH = os.path.join(os.path.expanduser("~"), "Documents", "caspion", "caspion.json")
 DEFAULT_CATEGORY = 'Other 🗂️'
 
+
+class ExpenseField:
+    NAME = 'Expense'
+    ACCOUNT_NUMBER = 'Account Number'
+    PERSON_CARD = 'Person Card'
+    STATUS = 'Status'
+    PROCESSED_DATE = 'Processed Date'
+    CATEGORY = 'Category'
+    MEMO = 'Memo'
+    CHARGED_AMOUNT = 'Charged Amount'
+    ORIGINAL_AMOUNT = 'Original Amount'
+    DATE = 'Date'
+    CHARGED_CURRENCY = 'Charged Currency'
+    ORIGINAL_CURRENCY = 'Original Currency'
+    PAGE_ID = 'page_id'
+    TYPE = 'Type'
+
+
 STATUS_DICT = {
     'completed': 'Completed'
 }
 
+MODIFIED_NAMES = {
+    "ועד בית": [{ExpenseField.NAME: "העברה מהחשבון", ExpenseField.CHARGED_AMOUNT: PRICE_VAAD_BAIT}],
+    "גן תמר": [{ExpenseField.NAME: "משיכת שיק", ExpenseField.CHARGED_AMOUNT: PRICE_GAN_TAMAR, "math_operation": "approx(5%)"}],
+    "צהרון נויה": [{ExpenseField.NAME: "משיכת שיק", ExpenseField.CHARGED_AMOUNT: PRICE_TSEHARON_NOYA, "math_operation": "approx(5%)"}],
+    'הפקדות קופ"ג ילדים': [{ExpenseField.NAME: "הפקדות קופ", ExpenseField.CHARGED_AMOUNT: HAFKADA_GEMEL_CHILDREN}],
+    'משכורת אריאל': [
+        {ExpenseField.NAME: "משכורת", ExpenseField.CHARGED_AMOUNT: ARIEL_SALARY_AVG, "math_operation": "approx(10%)"}],
+    'חשמל': [{ExpenseField.NAME: "אלקטרה פאוור"}],
+    'חיוב כרטיס אשראי': [{ExpenseField.NAME: "כרטיסי אשראי", "dynamic_operation": 'get_credit_card_name'},
+                         {ExpenseField.NAME: "הרשאה כאל", "dynamic_operation": 'get_credit_card_name'},
+                         {ExpenseField.NAME: "מקס איט", "dynamic_operation": 'get_credit_card_name'}],
+}
+
 ENGLISH_CATEGORY = {
-    "Food & Dining 🍽️": ["מזון", "צריכה", "משקאות", "מסעדות", "קפה", "מסעדה", "ברים", "סופרמרקט", "שופרסל", "רמי לוי", "מעדניה"],
-    "Banking & Finance 💳": ["העברת", "הפקדות", "כספים", "ביטוח", "פיננסים", "שק", "שיק", "העברה", "משכורת", "לאומי", "ביט", "קצבת", "הלוואה", "השקעות"],
-    "Online Shopping 🛒": ["AMAZON", "עלי אקספרס", "איביי", "אמזון"],
-    "Fashion & Apparel 👔": ["ביגוד", "אופנה", "הלבשה", "נעליים", "אקססוריז", "זארה"],
-    "Electronics & Technology 🖥️": ["חשמל", "מחשבים", "סלולר", "טכנולוגיה", "מכשירים"],
-    "Transportation & Auto 🚗": ["תחבורה", "רכבים", "מוסדות", "דלק", "רכבת", "אוטובוס", "מונית"],
-    "Entertainment & Culture 🎭": ["פנאי", "בידור", "ספורט", "בילוי", "קניון", "סרטים", "הופעות", "תיאטרון"],
-    "Utilities & Services 🏭": ["שירותי", "תקשורת", "חשמל", "גז", "אנרגיה", "ארנונה", "מים"],
+    "Insurance & Monthly Fees 🔄": ["גן", "צהרון", "ביטוח", "לאומי", "ועד", "הפקדות", "מים", "מי", "חשמל", "סלולר",
+                                   "סלקום", "פרטנר"],
+    "Food 🍽️": ["מזון", "צריכה", "משקאות", "מסעדות", "קפה", "מסעדה", "ברים", "סופרמרקט", "שופרסל", "רמי לוי", "מעדניה",
+                "מקדונלדס", "ארומה"],
+    "Banking & Finance 💳": ["העברת", "כספים", "פיננסים", "שק", "שיק", "העברה", "ביט", "קצבת", "הלוואה", "השקעות"],
+    "Online Shopping 🛒": ["AMAZON", "עלי אקספרס", "איביי", "אמזון", "GOOGLE", "ALIEXPRESS", "KSP", "PAYPAL"],
+    "Fashion & Apparel 👔": ["ביגוד", "אופנה", "הלבשה", "נעליים", "אקססוריז", "זארה", "קניון", "טרמינל", "פנאי", "טרמינל"],
+    "Transportation & Auto 🚗": ["תחבורה", "רכבים", "מוסדות", "דלק", "רכבת", "אוטובוס", "מונית", "סונול"],
     "Home & Living 🏠": ["עיצוב", "הבית", "ציוד", "ריהוט", "תחזוקה", "שיפוצים"],
-    "Health & Wellness 🏥": ["טיפוח", "יופי", "רפואה", "בריאות", "קופת חולים", "תרופות", "טיפולים"],
+    "Health & Wellness 🏥": ["טיפוח", "יופי", "רפואה", "פארם", "בריאות", "קופת חולים", "תרופות", "טיפולים", "קרוספיט",
+                            "פיט"],
     "Education & Learning 📚": ["חינוך", "קורסים", "לימודים", "ספרים", "הכשרה"],
-    "Children & Family 👨‍👩‍👧‍👦": ["ילדים", "טיקצ׳אק", "צעצועים", "בייבי", "משפחה"],
+    "Children & Family 👨‍👩‍👧‍👦": ["ילדים", "טיק", "צעצועים", "בייבי", "משפחה"],
+    "Income 🏦": [],
     "Other 🗂️": ["שונות"]
 }
 
@@ -48,23 +82,6 @@ CURRENCY_SYMBOLS = {
     '$': 'USD $',
     '€': 'EUR €'
 }
-
-
-class ExpenseField:
-    NAME = 'Name'
-    ACCOUNT_NUMBER = 'Account Number'
-    PERSON_CARD = 'Person Card'
-    STATUS = 'Status'
-    PROCESSED_DATE = 'Processed Date'
-    CATEGORY = 'Category'
-    MEMO = 'Memo'
-    CHARGED_AMOUNT = 'Charged Amount'
-    ORIGINAL_AMOUNT = 'Original Amount'
-    DATE = 'Date'
-    CHARGED_CURRENCY = 'Charged Currency'
-    ORIGINAL_CURRENCY = 'Original Currency'
-    PAGE_ID = 'page_id'
-    TYPE = 'Type'
 
 
 class Expense:
@@ -85,21 +102,27 @@ class Expense:
         self.expense_type = EXPENSE_TYPES.get(expense_type, expense_type)
         self.date = parse_expense_date(date)
         self.processed_date = parse_expense_date(processed_date)
-        self.original_amount = original_amount * -1
+        self.original_amount = original_amount
         self.original_currency = CURRENCY_SYMBOLS.get(original_currency, original_currency)
-        self.charged_amount = charged_amount * -1
+        self.charged_amount = charged_amount
         self.charged_currency = CURRENCY_SYMBOLS.get(charged_currency, charged_currency)
-        self.description = description
+        self.expense_name = description
         self.memo = memo
         self.category = category
         self.status = STATUS_DICT.get(status, status)
         self.account_number = account_number
-        self.person_card = ACCOUNT_NUMBER_TO_PERSON_CARD.get(account_number, account_number)
+        self.person_card = self.get_person_card()
         self.page_id = page_id
+
+    def get_person_card(self):
+        for key, value in ACCOUNT_NUMBER_TO_PERSON_CARD.items():
+            if value in self.expense_name:
+                return value
+        return ACCOUNT_NUMBER_TO_PERSON_CARD.get(self.account_number, self.account_number)
 
     def get_payload(self):
         payload_dict = {
-            ExpenseField.NAME: self.description,
+            ExpenseField.NAME: self.expense_name,
             ExpenseField.PERSON_CARD: self.person_card,
             ExpenseField.STATUS: self.status,
             ExpenseField.PROCESSED_DATE: str(self.processed_date),
@@ -117,8 +140,8 @@ class Expense:
     def add_to_notion(self, index=None, total=None):
         payload = self.get_payload()
         create_page(payload)
-        if index and total:
-            logger.info(f"{index}/{total} - Successfully added expense {self} to Notion.")
+        if index is not None and total is not None:
+            logger.info(f"{index + 1}/{total} - Successfully added expense {self} to Notion.")
         else:
             logger.info(f"Successfully added expense {self} to Notion.")
         return
@@ -150,14 +173,14 @@ class Expense:
             raise ValueError(f"Field '{field}' is not a valid ExpenseField or is not set in the instance.")
 
     def __str__(self):
-        return (f"Expense (name='{self.description}', amount={self.original_amount} {self.original_currency}, "
-                f"category={self.category}, date={self.date}, person_card='{self.person_card}')")
+        return (f"Expense (name='{self.expense_name}', amount={self.original_amount} {self.original_currency}, "
+                f"date={self.date}, person_card='{self.person_card}')")
 
     def __repr__(self):
         return (f"Expense(expense_type={self.expense_type}, date={self.date}, "
                 f"processed_date={self.processed_date}, original_amount={self.original_amount}, "
                 f"original_currency={self.original_currency}, charged_amount={self.charged_amount}, "
-                f"charged_currency={self.charged_currency}, description='{self.description}', "
+                f"charged_currency={self.charged_currency}, description='{self.expense_name}', "
                 f"memo='{self.memo}', category='{self.category}', "
                 f"status='{self.status}', account_number='{self.account_number}', "
                 f"person_card='{self.person_card}', page_id='{self.page_id}')")
@@ -187,39 +210,41 @@ class ExpenseManager:
         return {}
 
     def create_expense_objects(self):
-            expenses_list = []
-            if self.expense_json:
-                for expense in self.expense_json:
-                    category = get_category_name(expense['description'], expense.get('category', ''))
-                    try:
+        expenses_list = []
+        if self.expense_json:
+            for expense in self.expense_json:
+                expense_name = get_name(expense['description'], abs(expense['chargedAmount']))
+                category = get_category_name(expense_name, expense.get('category', ''),
+                                             expense['chargedAmount'])
+                try:
+                    mapped_data = {
+                        'expense_type': expense['type'],
+                        'date': expense['date'],
+                        'processed_date': expense['processedDate'],
+                        'original_amount': abs(expense['originalAmount']),
+                        'original_currency': expense['originalCurrency'],
+                        'charged_amount': abs(expense['chargedAmount']),
+                        'charged_currency': expense.get('chargedCurrency', 'ILS'),
+                        'description': expense_name,
+                        'category': category,
+                        'memo': expense.get('memo', ''),
+                        'status': expense['status'],
+                        'account_number': expense['accountNumber']
+                    }
 
-                        mapped_data = {
-                            'expense_type': expense['type'],
-                            'date': expense['date'],
-                            'processed_date': expense['processedDate'],
-                            'original_amount': expense['originalAmount'],
-                            'original_currency': expense['originalCurrency'],
-                            'charged_amount': expense['chargedAmount'],
-                            'charged_currency': expense.get('chargedCurrency', 'ILS'),
-                            'description': expense['description'],
-                            'category': category,
-                            'memo': expense.get('memo', ''),
-                            'status': expense['status'],
-                            'account_number': expense['accountNumber']
-                        }
-
-                        # Create an instance of Expense
-                        expense = Expense(**mapped_data)
-                        expenses_list.append(expense)
-                    except Exception as e:
-                        logger.error(f"Error creating Expense object {json.loads(expense)}: {e}")
-                        continue
-            expenses_list.sort(key=lambda x: x.date, reverse=True)
-            return expenses_list
+                    # Create an instance of Expense
+                    expense = Expense(**mapped_data)
+                    expenses_list.append(expense)
+                except Exception as e:
+                    logger.error(f"Error creating Expense object {json.loads(expense)}: {e}")
+                    continue
+        expenses_list.sort(key=lambda x: x.date, reverse=True)
+        return expenses_list
 
     def get_existing_by_property(self, property_name, property_value):
         # Get all expenses with a specific property value
-        return [expense for expense in self.existing_expenses_objects if property_value in expense.get_attr(property_name)]
+        return [expense for expense in self.existing_expenses_objects if
+                property_value in expense.get_attr(property_name)]
 
     def get_all_attr(self, field):
         # Get all attribute values for the specified field
@@ -283,7 +308,7 @@ class ExpenseManager:
 
             status = (get_key_for_value(STATUS_DICT, properties[ExpenseField.STATUS]['select']['name'])
                       if ExpenseField.STATUS in properties
-                      else  properties[ExpenseField.STATUS]['select']['name'])
+                      else properties[ExpenseField.STATUS]['select']['name'])
 
             # Extract currencies and map to symbols
             original_currency = (
@@ -306,11 +331,11 @@ class ExpenseManager:
             processed_date = (properties[ExpenseField.PROCESSED_DATE]['date']['start']
                               if properties[ExpenseField.PROCESSED_DATE]['date']
                               else None)
-            original_amount = properties[ExpenseField.ORIGINAL_AMOUNT]['number'] * -1 if \
+            original_amount = properties[ExpenseField.ORIGINAL_AMOUNT]['number'] if \
                 properties[ExpenseField.ORIGINAL_AMOUNT]['number'] else 0
-            charged_amount = properties[ExpenseField.CHARGED_AMOUNT]['number'] * -1 if \
-            properties[ExpenseField.CHARGED_AMOUNT][
-                'number'] else 0
+            charged_amount = properties[ExpenseField.CHARGED_AMOUNT]['number'] if \
+                properties[ExpenseField.CHARGED_AMOUNT][
+                    'number'] else 0
             description = properties[ExpenseField.NAME]['title'][0]['plain_text'] if properties[ExpenseField.NAME][
                 'title'] else ""
             memo = (properties[ExpenseField.MEMO]['rich_text'][0]['plain_text']
@@ -354,8 +379,67 @@ class ExpenseManager:
             return False
 
 
-def get_category_name(description, he_category):
+def get_name(description, price):
+    for name, name_dicts in MODIFIED_NAMES.items():
+        for name_dict in name_dicts:
+            if name_dict[ExpenseField.NAME] in description:
+                operation = name_dict.get("math_operation")
+                dynamic_operation = name_dict.get("dynamic_operation")
+
+                if dynamic_operation:
+                    # Check if the dynamic_operation is a function name
+                    if isinstance(dynamic_operation, str):
+                        try:
+                            # Try to find the function by name and invoke it with "a" and "b" as arguments
+                            name_modifier_function = globals().get(dynamic_operation)
+                            if name_modifier_function:
+                                name = name_modifier_function(name, description, price)
+                                return name
+                        except (AttributeError, TypeError):
+                            # If the function doesn't exist or can't be called, skip this name_dict
+                            logger.error(f"Error calling dynamic_operation function {dynamic_operation} for {description}.")
+                            pass
+
+                if ExpenseField.CHARGED_AMOUNT in name_dict:
+                    expected_amount = name_dict[ExpenseField.CHARGED_AMOUNT]
+
+                    if operation:
+                        if "approx" in operation:
+                            # Approximate range logic
+                            percentage = int(operation.split("(")[1].strip('%)'))  # Get the percentage value
+                            lower_bound = expected_amount * (1 - percentage / 100)
+                            upper_bound = expected_amount * (1 + percentage / 100)
+
+                            if lower_bound <= abs(price) <= upper_bound:
+                                return name
+
+                        elif operation == '>':
+                            # Check if price is greater than expected amount
+                            if abs(price) > expected_amount:
+                                return name
+
+                        elif operation == '<':
+                            # Check if price is less than expected amount
+                            if abs(price) < expected_amount:
+                                return name
+
+                    # If no CHARGED_AMOUNT or operation, return name if description matches
+                    if ExpenseField.CHARGED_AMOUNT not in name_dict or \
+                            (ExpenseField.CHARGED_AMOUNT in name_dict and abs(
+                                int(name_dict[ExpenseField.CHARGED_AMOUNT])) == abs(
+                                price)):
+                        return name
+
+    for not_desired_word in ['בע"מ']:
+        if not_desired_word in description:
+            description = description.replace(not_desired_word, '')
+    return description
+
+
+def get_category_name(description, he_category, price):
     # Split the input name to check each word
+    if price > 0:
+        return 'Income 🏦'
     for items_to_check in [description, he_category]:
         for item_to_check_word in items_to_check.split(' '):
             for category_en, category_list in ENGLISH_CATEGORY.items():
@@ -364,7 +448,21 @@ def get_category_name(description, he_category):
                         return category_en
     return DEFAULT_CATEGORY
 
+
+def get_credit_card_name(name, description, price):
+    if "הרשאה כאל" in description:
+        account_number = CHEN_CAL
+    elif "אשראי" in description:
+        account_number = description.split(" ")[0]
+    else:
+        if price >= 5000:
+            account_number = ARIEL_MAX
+        else:
+            account_number = CHEN_MAX
+
+    name = f"{name} - {ACCOUNT_NUMBER_TO_PERSON_CARD.get(account_number, description)}"
+    return name
+
+
 expense_manager = ExpenseManager()
 expense_manager.add_all_expenses_to_notion(check_before_adding=True)
-
-print(expense_manager.expense_json)

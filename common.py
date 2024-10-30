@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta, date
 from typing import Callable
 
@@ -216,3 +217,4 @@ def parse_expense_date(date_str, include_hour=False):
 
 def get_key_for_value(dict, value):
     return [key for key, val in dict.items() if val == value][0]
+

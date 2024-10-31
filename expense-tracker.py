@@ -1,16 +1,16 @@
 import hashlib
 import json
 import os
+import re
 from collections import Counter
-from datetime import datetime
 
-from common import parse_expense_date, get_key_for_value
+from common import parse_expense_date, get_key_for_value, adjust_month_end_dates
 from logger import logger
 from notion_py.helpers.notion_common import get_db_pages, create_page, delete_page
 from notion_py.helpers.notion_payload import generate_create_page_payload, generate_payload
 from notion_py.notion_globals import expense_tracker_db_id, last_2_months_expense_filter, date_descending_sort
 from variables import ACCOUNT_NUMBER_TO_PERSON_CARD, CHEN_CAL, ARIEL_MAX, CHEN_MAX, ARIEL_SALARY_AVG, PRICE_VAAD_BAIT, \
-    PRICE_GAN_TAMAR, PRICE_TSEHARON_NOYA, HAFKADA_GEMEL_CHILDREN
+    PRICE_GAN_TAMAR, PRICE_TSEHARON_NOYA, HAFKADA_GEMEL_CHILDREN, PRICE_MASHKANTA
 
 # Define the path to the JSON file
 CASPION_FILE_PATH = os.path.join(os.path.expanduser("~"), "Documents", "caspion", "caspion.json")
@@ -32,6 +32,7 @@ class ExpenseField:
     ORIGINAL_CURRENCY = 'Original Currency'
     PAGE_ID = 'page_id'
     TYPE = 'Type'
+    REMAINING_AMOUNT = 'Remaining Amount'
 
 
 STATUS_DICT = {
@@ -40,32 +41,41 @@ STATUS_DICT = {
 
 MODIFIED_NAMES = {
     "ועד בית": [{ExpenseField.NAME: "העברה מהחשבון", ExpenseField.CHARGED_AMOUNT: PRICE_VAAD_BAIT}],
-    "גן תמר": [{ExpenseField.NAME: "משיכת שיק", ExpenseField.CHARGED_AMOUNT: PRICE_GAN_TAMAR, "math_operation": "approx(5%)"}],
-    "צהרון נויה": [{ExpenseField.NAME: "משיכת שיק", ExpenseField.CHARGED_AMOUNT: PRICE_TSEHARON_NOYA, "math_operation": "approx(5%)"}],
+    "גן תמר": [
+        {ExpenseField.NAME: "משיכת שיק", ExpenseField.CHARGED_AMOUNT: PRICE_GAN_TAMAR, "math_operation": "approx(5%)"}],
+    "משכנתא": [
+        {ExpenseField.NAME: "לאומי", ExpenseField.CHARGED_AMOUNT: PRICE_MASHKANTA, "math_operation": "approx(10%)"}],
+    "צהרון נויה": [{ExpenseField.NAME: "משיכת שיק", ExpenseField.CHARGED_AMOUNT: PRICE_TSEHARON_NOYA,
+                    "math_operation": "approx(5%)"}],
     'הפקדות קופ"ג ילדים': [{ExpenseField.NAME: "הפקדות קופ", ExpenseField.CHARGED_AMOUNT: HAFKADA_GEMEL_CHILDREN}],
     'משכורת אריאל': [
         {ExpenseField.NAME: "משכורת", ExpenseField.CHARGED_AMOUNT: ARIEL_SALARY_AVG, "math_operation": "approx(10%)"}],
     'חשמל': [{ExpenseField.NAME: "אלקטרה פאוור"}],
+    'BOOM': [{ExpenseField.NAME: "MOOOB"}],
     'חיוב כרטיס אשראי': [{ExpenseField.NAME: "כרטיסי אשראי", "dynamic_operation": 'get_credit_card_name'},
                          {ExpenseField.NAME: "הרשאה כאל", "dynamic_operation": 'get_credit_card_name'},
                          {ExpenseField.NAME: "מקס איט", "dynamic_operation": 'get_credit_card_name'}],
 }
 
 ENGLISH_CATEGORY = {
-    "Insurance & Monthly Fees 🔄": ["גן", "צהרון", "ביטוח", "לאומי", "ועד", "הפקדות", "מים", "מי", "חשמל", "סלולר",
-                                   "סלקום", "פרטנר", "עיריית", "פזגז"],
+    "Insurance & Monthly Fees 🔄": ["גן", "צהרון", "ביטוח", "לאומי", "ועד", "הפקדות", "מים", "מי חדרה", "חשמל", "סלולר",
+                                   "סלקום", "פרטנר", "עיריית", "פזגז", "פז גז", "משכנתא"],
     "Food 🍽️": ["מזון", "צריכה", "משקאות", "מסעדות", "קפה", "מסעדה", "ברים", "סופרמרקט", "שופרסל", "רמי לוי", "מעדניה",
-                "מקדונלדס", "ארומה", "מסעדה"],
-    "Banking & Finance 💳": ["העברת", "כספים", "פיננסים", "שק", "שיק", "העברה", "ביט", "קצבת", "הלוואה", "השקעות", "BIT", "paybox", "כספומט"],
-    "Online Shopping 🛒": ["AMAZON", "עלי אקספרס", "איביי", "אמזון", "GOOGLE", "ALIEXPRESS", "KSP", "PAYPAL", "AMZN",
-                          "google", "NOTION", "אייבורי", "shein", "lastpass", "marketplace"],
-    "Fashion & Apparel 👔": ["ביגוד", "אופנה", "הלבשה", "נעליים", "אקססוריז", "זארה", "קניון", "טרמינל", "פנאי", "טרמינל"],
-    "Transportation & Auto 🚗": ["תחבורה", "רכבים", "מוסדות", "דלק", "רכבת", "אוטובוס", "מונית", "סונול", 'סד"ש', 'פנגו', 'yellow', 'דור אלון', 'מוטורס', 'מוטורוס'],
-    "Home & Living 🏠": ["עיצוב", "הבית", "ציוד", "ריהוט", "תחזוקה", "שיפוצים", "מועצה דתית", "פנים"],
+                "מקדונלדס", "ארומה", "מסעדה", "רמי לוי", "nespresso"],
+    "Banking & Finance 💳": ["העברת", "כספים", "פיננסים", "שק", "שיק", "העברה", "ביט", "קצבת", "הלוואה", "השקעות",
+                            "BIT", "paybox", "כספומט"],
+    "Shopping 🛒": ["AMAZON", "עלי אקספרס", "איביי", "אמזון", "GOOGLE", "ALIEXPRESS", "KSP", "PAYPAL", "AMZN",
+                   "google", "NOTION", "אייבורי", "shein", "lastpass", "marketplace", "לבידו",
+                   "ביגוד", "אופנה", "הלבשה", "נעליים", "אקססוריז", "זארה", "קניון", "טרמינל", "פנאי",
+                   "טרמינל", "ללין"],
+    "Transportation & Auto 🚗": ["תחבורה", "רכבים", "מוסדות", "דלק", "רכבת", "אוטובוס", "מונית", "סונול", 'סד"ש',
+                                'פנגו', 'yellow', 'דור אלון', 'מוטורס', 'מוטורוס', 'צמיג'],
+    "Home & Living 🏠": ["עיצוב", "הבית", "ציוד", "ריהוט", "תחזוקה", "שיפוצים", "מועצה דתית", "פנים", "דואר", "MOOOB",
+                        "BOOM"],
     "Vacation 🍹": ["חופשה", "air", "trip"],
     "Health & Wellness 🏥": ["טיפוח", "יופי", "רפואה", "פארם", "בריאות", "קופת חולים", "תרופות", "טיפולים", "קרוספיט",
                             "פיט", "מרפקה"],
-    "Education & Learning 📚": ["חינוך", "קורסים", "לימודים", "ספרים", "הכשרה", "סטימצקי"],
+    "Education & Learning 📚": ["חינוך", "קורסים", "לימודים", "ספרים", "הכשרה", "סטימצקי", "לאבלאפ"],
     "Children & Family 👨‍👩‍👧‍👦": ["ילדים", "טיק", "צעצועים", "בייבי", "משפחה"],
     "Income 🏦": [],
     "Other 🗂️": ["שונות"]
@@ -85,6 +95,8 @@ CURRENCY_SYMBOLS = {
     '€': 'EUR €'
 }
 
+EXPENSES_TO_ADJUST_DATE = ["משכנתא", "משכורת אריאל"]
+
 
 class Expense:
     def __init__(self,
@@ -100,19 +112,21 @@ class Expense:
                  category,
                  status,
                  account_number,
+                 remaining_amount=0,
                  page_id=None):
-        self.expense_type = EXPENSE_TYPES.get(expense_type, expense_type)
-        self.date = parse_expense_date(date)
-        self.processed_date = parse_expense_date(processed_date)
+        self.expense_type = expense_type
+        self.date = date
+        self.processed_date = processed_date
         self.original_amount = original_amount
         self.original_currency = CURRENCY_SYMBOLS.get(original_currency, original_currency)
         self.charged_amount = charged_amount
-        self.charged_currency = CURRENCY_SYMBOLS.get(charged_currency, charged_currency)
+        self.charged_currency = charged_currency
         self.expense_name = description
         self.memo = memo
         self.category = category
         self.status = STATUS_DICT.get(status, status)
         self.account_number = account_number
+        self.remaining_amount = remaining_amount
         self.person_card = self.get_person_card()
         self.page_id = page_id
 
@@ -137,6 +151,9 @@ class Expense:
             ExpenseField.ORIGINAL_CURRENCY: self.original_currency,
             ExpenseField.TYPE: self.expense_type
         }
+        if self.remaining_amount > 0:
+            payload_dict["Remaining Amount"] = self.remaining_amount
+
         return generate_create_page_payload(expense_tracker_db_id, payload_dict)
 
     def add_to_notion(self, index=None, total=None):
@@ -157,9 +174,10 @@ class Expense:
         return
 
     def get_attr(self, field):
+
         # Map ExpenseField values to Expense attribute names
         field_map = {
-            ExpenseField.NAME: 'description',
+            ExpenseField.NAME: 'expense_name',
             ExpenseField.ACCOUNT_NUMBER: 'account_number',
             ExpenseField.PERSON_CARD: 'person_card',
             ExpenseField.STATUS: 'status',
@@ -172,6 +190,7 @@ class Expense:
             ExpenseField.DATE: 'date',
             ExpenseField.CHARGED_CURRENCY: 'charged_currency',
             ExpenseField.ORIGINAL_CURRENCY: 'original_currency',
+            ExpenseField.REMAINING_AMOUNT: 'remaining_amount',
             ExpenseField.PAGE_ID: 'page_id'
         }
 
@@ -200,6 +219,8 @@ class Expense:
         return hashlib.md5((str(self)).encode()).hexdigest()
 
     def equals(self, other_expense):
+        if "אפוק" in other_expense.expense_name and "אפוק" in self.expense_name:
+            print("Ariel")
         if not isinstance(other_expense, Expense):
             return False
         return self.hash_code() == other_expense.hash_code()
@@ -219,27 +240,42 @@ class ExpenseManager:
                 return json_file
         return {}
 
-    def create_expense_objects(self):
+    def create_expense_objects_from_json(self):
         expenses_list = []
         if self.expense_json:
             for expense in self.expense_json:
                 expense_name = get_name(expense['description'], abs(expense['chargedAmount']))
                 category = get_category_name(expense_name, expense.get('category', ''),
                                              expense['chargedAmount'])
+                expense_type = EXPENSE_TYPES.get(expense['type'], expense['type'])
+                original_amount = abs(expense['originalAmount'])
+                charged_currency = CURRENCY_SYMBOLS.get(expense.get('chargedCurrency', 'ILS'))
+
+                remaining_credit_dict = get_remaining_credit(expense.get('memo', ''), original_amount, expense_type)
+                updated_memo = parse_payment_string(remaining_credit_dict, expense.get('memo', ''), charged_currency)
+                remaining_amount = remaining_credit_dict.get('remaining_amount', 0) if remaining_credit_dict.get('remaining_amount', 0) > 0 else 0
+
+                date = parse_expense_date(expense['date'])
+                processed_date = parse_expense_date(expense['processedDate'])
+                if expense_name in EXPENSES_TO_ADJUST_DATE:
+                    date = adjust_month_end_dates(date)
+                    processed_date = adjust_month_end_dates(processed_date)
+
                 try:
                     mapped_data = {
-                        'expense_type': expense['type'],
-                        'date': expense['date'],
-                        'processed_date': expense['processedDate'],
-                        'original_amount': abs(expense['originalAmount']),
+                        'expense_type': expense_type,
+                        'date': date,
+                        'processed_date': processed_date,
+                        'original_amount': original_amount,
                         'original_currency': expense['originalCurrency'],
                         'charged_amount': abs(expense['chargedAmount']),
-                        'charged_currency': expense.get('chargedCurrency', 'ILS'),
+                        'charged_currency': charged_currency,
                         'description': expense_name,
                         'category': category,
-                        'memo': expense.get('memo', ''),
+                        'memo': updated_memo,
                         'status': expense['status'],
-                        'account_number': expense['accountNumber']
+                        'account_number': expense['accountNumber'],
+                        'remaining_amount': remaining_amount,
                     }
 
                     # Create an instance of Expense
@@ -249,6 +285,7 @@ class ExpenseManager:
                     logger.error(f"Error creating Expense object {json.loads(expense)}: {e}")
                     continue
         expenses_list.sort(key=lambda x: x.date, reverse=True)
+        logger.info(f"Successfully created {len(expenses_list)} Expense objects from JSON.")
         return expenses_list
 
     def get_existing_by_property(self, property_name, property_value):
@@ -256,26 +293,94 @@ class ExpenseManager:
         return [expense for expense in self.existing_expenses_objects if
                 property_value in expense.get_attr(property_name)]
 
-    def get_all_attr(self, field):
-        # Get all attribute values for the specified field
-        attr_values = [expense.get_attr(field) for expense in self.expenses_objects_to_create]
-        # Use Counter to count occurrences of each attribute value
-        count_dict = Counter(attr_values)
-        # Sort the dictionary by the number of entries (counts) in descending order
-        sorted_count = dict(sorted(count_dict.items(), key=lambda item: item[1], reverse=True))
-        return sorted_count
+    def get_all_attr(
+            self,
+            field: str,
+            value=None,
+            expense_list_name: str = "expenses_objects_to_create"):
+        """
+        Get either all attribute values and their counts for a field,
+        or all expenses that match a specific field value.
+
+        Args:
+            field (str): The field to check
+            value (Any, optional): If provided, returns expenses matching this value
+            expense_list_name (str, optional): Name of the property containing expenses list.
+                                             Defaults to "expenses_objects_to_create"
+
+        Returns:
+            Union[Dict[Any, int], List[Any]]: Either a dictionary of counts or list of matching expenses
+
+        Raises:
+            ValueError: If field is empty or invalid
+            AttributeError: If expenses don't have the specified field
+            AttributeError: If the specified expense_list_name doesn't exist
+        """
+        if not field:
+            raise ValueError("Field parameter cannot be empty")
+
+        try:
+            # Get the expense list dynamically using getattr
+            if not hasattr(self, expense_list_name):
+                raise AttributeError(f"Property '{expense_list_name}' not found")
+
+            expenses = getattr(self, expense_list_name)
+
+            if value is not None:
+                # Return all expenses where field matches value
+                matching_expenses = []
+                for expense in expenses:
+                    try:
+                        if value in expense.get_attr(field):
+                            matching_expenses.append(expense)
+                    except AttributeError:
+                        continue  # Skip expenses that don't have this field
+
+                return matching_expenses
+            else:
+                # Get all valid attribute values
+                attr_values = []
+                for expense in expenses:
+                    try:
+                        attr_value = expense.get_attr(field)
+                        if attr_value is not None:  # Skip None values
+                            attr_values.append(attr_value)
+                    except AttributeError:
+                        continue
+
+                # Count and sort values
+                count_dict = Counter(attr_values)
+                sorted_count = dict(sorted(
+                    count_dict.items(),
+                    key=lambda item: (item[1], str(item[0])),
+                    reverse=True
+                ))
+
+                return sorted_count
+
+        except Exception as e:
+            logger.error(f"Error processing field '{field}' from '{expense_list_name}': {str(e)}")
+            raise
 
     def add_all_expenses_to_notion(self, check_before_adding=True):
         self.expense_json = self.load_data_from_json()
-        self.expenses_objects_to_create = self.create_expense_objects()
-        self.existing_expenses_objects = self.get_all_expenses_from_notion()
+        self.expenses_objects_to_create = self.create_expense_objects_from_json()
+        self.existing_expenses_objects = self.get_expenses_from_notion()
+
+        # epok_to_add = self.get_all_attr(ExpenseField.NAME, value="אפוק")
+        # existing_epok = self.get_all_attr(ExpenseField.NAME, value="אפוק", expense_list_name="existing_expenses_objects")
 
         if check_before_adding:
             expenses_to_add = self.get_notion_that_can_be_added_not_present_in_notion()
         else:
             expenses_to_add = self.expenses_objects_to_create
 
+        if not expenses_to_add:
+            logger.info("No new expenses to add to Notion.")
+            return
+
         expenses_to_add_len = len(expenses_to_add)
+        logger.info(f"{expenses_to_add_len} Expense{'s' if expenses_to_add_len >1 else ''} can be added to Notion.")
         for i, expense in enumerate(expenses_to_add):
             expense.add_to_notion(index=i, total=expenses_to_add_len)
 
@@ -351,11 +456,15 @@ class ExpenseManager:
             processed_date = (properties[ExpenseField.PROCESSED_DATE]['date']['start']
                               if properties[ExpenseField.PROCESSED_DATE]['date']
                               else None)
+
             original_amount = properties[ExpenseField.ORIGINAL_AMOUNT]['number'] if \
                 properties[ExpenseField.ORIGINAL_AMOUNT]['number'] else 0
             charged_amount = properties[ExpenseField.CHARGED_AMOUNT]['number'] if \
                 properties[ExpenseField.CHARGED_AMOUNT][
                     'number'] else 0
+            remaining_amount = properties[ExpenseField.REMAINING_AMOUNT]['number'] if \
+                properties[ExpenseField.REMAINING_AMOUNT]['number'] else 0
+
             description = properties[ExpenseField.NAME]['title'][0]['plain_text'] if properties[ExpenseField.NAME][
                 'title'] else ""
             memo = (properties[ExpenseField.MEMO]['rich_text'][0]['plain_text']
@@ -375,6 +484,7 @@ class ExpenseManager:
                 category=category,
                 status=status,
                 account_number=account_number,
+                remaining_amount=remaining_amount,
                 page_id=page_id
             )
         except Exception as e:
@@ -438,7 +548,8 @@ def get_name(description, price):
                                 return name
                         except (AttributeError, TypeError):
                             # If the function doesn't exist or can't be called, skip this name_dict
-                            logger.error(f"Error calling dynamic_operation function {dynamic_operation} for {description}.")
+                            logger.error(
+                                f"Error calling dynamic_operation function {dynamic_operation} for {description}.")
                             pass
 
                 if ExpenseField.CHARGED_AMOUNT in name_dict:
@@ -464,12 +575,15 @@ def get_name(description, price):
                             if abs(price) < expected_amount:
                                 return name
 
-                    # If no CHARGED_AMOUNT or operation, return name if description matches
-                    if ExpenseField.CHARGED_AMOUNT not in name_dict or \
-                            (ExpenseField.CHARGED_AMOUNT in name_dict and abs(
-                                int(name_dict[ExpenseField.CHARGED_AMOUNT])) == abs(
-                                price)):
-                        return name
+                # If no CHARGED_AMOUNT or operation, return name if description matches
+                if ExpenseField.CHARGED_AMOUNT not in name_dict or \
+                        (ExpenseField.CHARGED_AMOUNT in name_dict and abs(
+                            int(name_dict[ExpenseField.CHARGED_AMOUNT])) == abs(
+                            price)):
+                    if "אלקטרה" in description:
+                        print("")
+
+                    return name
 
     for not_desired_word in ['בע"מ', 'בעמ']:
         if not_desired_word in description:
@@ -505,5 +619,49 @@ def get_credit_card_name(name, description, price):
     return name
 
 
+def get_remaining_credit(memo, price, credit):
+    if credit != EXPENSE_TYPES['installments']:
+        return {}
+
+    # Use regex to extract the payment number and total payments
+    pattern1 = r"תשלום (\d+) מתוך (\d+)"
+    pattern2 = r"(\d+) מתוך (\d+) - סכום העסקה"
+
+    match1 = re.search(pattern1, memo)
+    match2 = re.search(pattern2, memo)
+
+    if match1:
+        payment_number = int(match1.group(1))
+        total_payments = int(match1.group(2))
+    elif match2:
+        payment_number = int(match2.group(1))
+        total_payments = int(match2.group(2))
+    else:
+        return {}
+
+    if payment_number == total_payments:
+        return {"remaining_amount": 0, "payment_number": payment_number, "total_payments": total_payments}
+    else:
+        remaining_amount = price * (total_payments - payment_number) / total_payments
+        return {"remaining_amount": remaining_amount, "payment_number": payment_number, "total_payments": total_payments}
+
+
+def parse_payment_string(remaining_amount_dict, memo, currency):
+    if not remaining_amount_dict:
+        return memo
+
+    if remaining_amount_dict["remaining_amount"] == 0:
+        return f"תשלום אחרון {remaining_amount_dict['payment_number']}/{remaining_amount_dict['total_payments']}"
+    else:
+        currency_sign = currency.split(" ")[-1]
+        return f"תשלום {remaining_amount_dict['payment_number']}/{remaining_amount_dict['total_payments']}, " \
+               f"נשאר לשלם: {currency_sign} {round(remaining_amount_dict['remaining_amount'])}"
+
+
+# parse_payment_str = parse_payment_string("תשלום 1 מתוך 3", "Credit", 1000)
+# print("Ariel")
+
 expense_manager = ExpenseManager()
 expense_manager.add_all_expenses_to_notion(check_before_adding=True)
+
+# expense_manager.remove_duplicates()

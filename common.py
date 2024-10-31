@@ -215,6 +215,28 @@ def parse_expense_date(date_str, include_hour=False):
     return date_obj.date().isoformat()
 
 
+def adjust_month_end_dates(date_iso):
+    date_obj = datetime.fromisoformat(date_iso)
+
+    # Get the last day of the current month
+    if date_obj.month == 12:
+        next_month = datetime(date_obj.year + 1, 1, 1)
+    else:
+        next_month = datetime(date_obj.year, date_obj.month + 1, 1)
+    last_day = (next_month - timedelta(days=1)).day
+
+    # Check if date is within last 3 days of the month
+    if date_obj.day > (last_day - 3):
+        # Adjust to first day of next month
+        if date_obj.month == 12:
+            adjusted_date = datetime(date_obj.year + 1, 1, 1)
+        else:
+            adjusted_date = datetime(date_obj.year, date_obj.month + 1, 1)
+        return adjusted_date.date().isoformat()
+
+    # If not in last 3 days, return original date
+    return date_iso
+
 def get_key_for_value(dict, value):
     return [key for key, val in dict.items() if val == value][0]
 

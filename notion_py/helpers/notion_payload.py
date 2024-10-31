@@ -26,7 +26,7 @@ def generate_create_page_payload(db_id, db_dict):
         NotionPropertyType.DATE: ["Date", "Due", "Processed Date"],
         NotionPropertyType.URL: ["gCal Link"],
         NotionPropertyType.NUMBER: ["Steps", "Steps Goal", "Calories", "Sleep Note", "Activity Calories",
-                                    "Charged Amount", "Original Amount"]
+                                    "Charged Amount", "Original Amount", "Remaining Amount"]
     }
 
     daily_db_payload = {

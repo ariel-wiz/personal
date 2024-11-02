@@ -216,11 +216,13 @@ class Expense:
 
     def hash_code(self):
         # Create a hash code from the name, date, and original amount
-        return hashlib.md5((str(self)).encode()).hexdigest()
+        string_to_hash = f"{self.date}{self.original_amount}{self.charged_amount}{self.charged_currency}" \
+                         f"{self.person_card}"
+        return hashlib.md5(string_to_hash.encode()).hexdigest()
 
     def equals(self, other_expense):
-        if "אפוק" in other_expense.expense_name and "אפוק" in self.expense_name:
-            print("Ariel")
+        # if "אפוק" in other_expense.expense_name and "אפוק" in self.expense_name:
+        #     print("Ariel")
         if not isinstance(other_expense, Expense):
             return False
         return self.hash_code() == other_expense.hash_code()

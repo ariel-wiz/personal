@@ -92,7 +92,7 @@ NOTION_SCRIPTS = [
         name="Garmin Update",
         path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
         arg="--garmin",
-        frequency="daily",
+        frequency=Frequency.DAILY.value,
         python_path="/Users/ariel/PycharmProjects/personal",
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     ),
@@ -100,7 +100,7 @@ NOTION_SCRIPTS = [
         name="Uncheck Done Tasks",
         path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
         arg="--uncheck_done",
-        frequency="saturday",
+        frequency=Frequency.WEEKLY_SATURDAY.value,
         python_path="/Users/ariel/PycharmProjects/personal",
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     ),
@@ -108,7 +108,7 @@ NOTION_SCRIPTS = [
         name="Handle Done Tasks",
         path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
         arg="--handle_done_tasks",
-        frequency="daily",
+        frequency=Frequency.DAILY.value,
         python_path="/Users/ariel/PycharmProjects/personal",
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     ),
@@ -116,7 +116,7 @@ NOTION_SCRIPTS = [
         name="Create Daily Pages",
         path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
         arg="--create_daily_pages",
-        frequency="saturday",
+        frequency=Frequency.WEEKLY_TUESDAY.value,
         python_path="/Users/ariel/PycharmProjects/personal",
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     ),
@@ -124,7 +124,8 @@ NOTION_SCRIPTS = [
         name="Copy Pages",
         path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
         arg="--copy_pages",
-        frequency="15/*",  # Runs on the 15th of every month
+        # frequency="15/*",  # Runs on the 15th of every month
+        frequency=Frequency.WEEKLY_TUESDAY.value,
         python_path="/Users/ariel/PycharmProjects/personal",
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     )

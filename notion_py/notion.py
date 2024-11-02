@@ -363,11 +363,11 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            copy_done_from_daily_to_copied_tasks()
+            create_parashat_hashavua()
             logger.info("End of manual run")
 
     except Exception as e:
-        logger.error(f"An error occured: {e}", exc_info=True)
+        logger.error(f"An error occurred: {e}", exc_info=True)
 
     logger.info("Script completed successfully.")
 
@@ -406,3 +406,4 @@ if __name__ == '__main__':
 
     # Call the main logic with the selected tasks
     main(selected_tasks)
+

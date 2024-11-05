@@ -8,7 +8,7 @@ from common import parse_expense_date, get_key_for_value, adjust_month_end_dates
 from logger import logger
 from notion_py.helpers.notion_common import get_db_pages, create_page, delete_page
 from notion_py.helpers.notion_payload import generate_create_page_payload, generate_payload
-from notion_py.notion_globals import expense_tracker_db_id, last_2_months_expense_filter, date_descending_sort
+from notion_py.notion_globals import expense_tracker_db_id, last_4_months_expense_filter, date_descending_sort
 from variables import ACCOUNT_NUMBER_TO_PERSON_CARD, CHEN_CAL, ARIEL_MAX, CHEN_MAX, ARIEL_SALARY_AVG, PRICE_VAAD_BAIT, \
     PRICE_GAN_TAMAR, PRICE_TSEHARON_NOYA, HAFKADA_GEMEL_CHILDREN, PRICE_MASHKANTA
 
@@ -216,12 +216,14 @@ class Expense:
 
     def hash_code(self):
         # Create a hash code from the name, date, and original amount
-        string_to_hash = f"{self.date}{self.original_amount}{self.charged_amount}{self.charged_currency}" \
-                         f"{self.person_card}"
+        string_to_hash = f"{self.date}{self.original_amount}{self.charged_amount}{self.person_card}"
         return hashlib.md5(string_to_hash.encode()).hexdigest()
 
     def equals(self, other_expense):
-        # if "אפוק" in other_expense.expense_name and "אפוק" in self.expense_name:
+        # if "מילואים" in other_expense.expense_name and "מילואים" in self.expense_name:
+        # if "דמי כרטיס" in other_expense.expense_name and "דמי כרטיס" in self.expense_name:
+        # if "משכנתא" in other_expense.expense_name and "משכנתא" in self.expense_name \
+        #         and self.date == '2024-09-01' and other_expense.date == '2024-09-01':
         #     print("Ariel")
         if not isinstance(other_expense, Expense):
             return False
@@ -392,7 +394,7 @@ class ExpenseManager:
     def get_expenses_from_notion(self, filter_by=None):
         expenses_objects_from_notion = []
         if filter_by is None:
-            payload = generate_payload(last_2_months_expense_filter, date_descending_sort)
+            payload = generate_payload(last_4_months_expense_filter, date_descending_sort)
         else:
             payload = generate_payload(filter_by, date_descending_sort)
         expenses_notion_pages = get_db_pages(expense_tracker_db_id, payload)
@@ -612,7 +614,7 @@ def get_credit_card_name(name, description, price):
     elif "אשראי" in description:
         account_number = description.split(" ")[0]
     else:
-        if price >= 5000:
+        if price >= 3000:
             account_number = ARIEL_MAX
         else:
             account_number = CHEN_MAX

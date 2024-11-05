@@ -4,7 +4,7 @@ from typing import Callable
 
 from logger import logger
 
-TIMEZONE_OFFSET = 3
+TIMEZONE_OFFSET = 2
 
 
 def create_date_range(input_date_str, range_days=7):

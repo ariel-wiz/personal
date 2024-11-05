@@ -55,8 +55,9 @@ class NotionAPIOperation:
     UNCHECK_DONE = "Uncheck Done"
 
 
-class FieldMap:
+class DaySummaryCheckbox:
     exercise = '🏃🏼\xa0Exercise'
+    wake_up_early = '⏰\xa0Wake Up Early'
 
 
 @dataclass
@@ -264,9 +265,9 @@ date_descending_sort = [{
     "direction": "descending"
 }]
 
-last_2_months_expense_filter = {
+last_4_months_expense_filter = {
     "property": "Processed Date",
     "date": {
-        "on_or_after": (today - timedelta(days=62)).isoformat()
+        "on_or_after": (today - timedelta(days=145)).isoformat()
     }
 }

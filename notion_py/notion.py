@@ -17,7 +17,7 @@ from notion_py.helpers.notion_common import create_page_with_db_dict, create_pag
 from variables import Paths
 
 
-# https://developers.notion.com/reference/property-object
+WAKE_UP_HOUR_GOAL = '06:00'
 
 
 def create_trading_page(name_row, description, large_description, example):
@@ -186,13 +186,29 @@ def get_birthdays():
 
 
 def check_exercise_according_to_activity_status(activity_status):
-    if FieldMap.exercise in activity_status:
-        activity = activity_status[FieldMap.exercise]
+    if DaySummaryCheckbox.exercise in activity_status:
+        activity = activity_status[DaySummaryCheckbox.exercise]
         if activity and "Nothing" not in activity:
-            logger.debug(f"Checking {FieldMap.exercise} to true")
-            return {FieldMap.exercise: {
+            logger.debug(f"Checking {DaySummaryCheckbox.exercise} to true")
+            return {DaySummaryCheckbox.exercise: {
                 "checkbox": True
             }}
+    return {}
+
+
+def check_wake_up_early_according_to_sleep_end(sleep_end_dict):
+    if DaySummaryCheckbox.wake_up_early in sleep_end_dict:
+        wake_up_hour = sleep_end_dict[DaySummaryCheckbox.wake_up_early]
+
+        time_obj = datetime.strptime(wake_up_hour, '%H:%M').time()
+        comparison_time = datetime.strptime(WAKE_UP_HOUR_GOAL, '%H:%M').time()
+
+        if time_obj <= comparison_time:
+            logger.debug(f"Checking {DaySummaryCheckbox.wake_up_early} to true")
+            return {DaySummaryCheckbox.wake_up_early: {
+                "checkbox": True
+            }}
+
     return {}
 
 
@@ -327,7 +343,8 @@ def update_garmin_info(update_daily_tasks=True):
             daily_tasks = get_pages_by_date_offset(day_summary_db_id, DateOffset.YESTERDAY)
             if daily_tasks:
                 daily_task_id = daily_tasks[0]["id"]
-                other_fields = check_exercise_according_to_activity_status({FieldMap.exercise: activity_status})
+                other_fields = check_exercise_according_to_activity_status({DaySummaryCheckbox.exercise: activity_status})
+                other_fields.update(check_wake_up_early_according_to_sleep_end({DaySummaryCheckbox.wake_up_early: garmin_dict['sleep_end']}))
                 update_page_with_relation(daily_task_id, garmin_page_id, "Watch Metrics", other_fields)
                 logger.info(f"Successfully updated daily task with Garmin info for {yesterday_date}")
 
@@ -363,7 +380,7 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            create_parashat_hashavua()
+            update_garmin_info()
             logger.info("End of manual run")
 
     except Exception as e:

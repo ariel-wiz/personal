@@ -928,7 +928,7 @@ def get_garmin_info():
     total_activity_calories = 0
     for activity in activity_data:
         activity_name = activity['activityName']
-        if activity_name == 'Walking':
+        if 'Walk' in activity_name:
             continue
         total_activity_duration += activity['duration']
         total_activity_calories += activity['calories']

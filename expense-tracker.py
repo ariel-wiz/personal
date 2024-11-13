@@ -51,7 +51,10 @@ MODIFIED_NAMES = {
     'משכורת אריאל': [
         {ExpenseField.NAME: "משכורת", ExpenseField.CHARGED_AMOUNT: ARIEL_SALARY_AVG, "math_operation": "approx(10%)"}],
     'חשמל': [{ExpenseField.NAME: "אלקטרה פאוור"}],
+    'משכורת חן': [{ExpenseField.NAME: "ספוטניק"}],
     'BOOM': [{ExpenseField.NAME: "MOOOB"}],
+    'ביטוח רכב': [{ExpenseField.NAME: "9 ביטוח"}],
+    'ביטוח בריאות ילדים': [{ExpenseField.NAME: "הפניקס ביטוח"}],
     'חיוב כרטיס אשראי': [{ExpenseField.NAME: "כרטיסי אשראי", "dynamic_operation": 'get_credit_card_name'},
                          {ExpenseField.NAME: "הרשאה כאל", "dynamic_operation": 'get_credit_card_name'},
                          {ExpenseField.NAME: "מקס איט", "dynamic_operation": 'get_credit_card_name'}],
@@ -69,7 +72,7 @@ ENGLISH_CATEGORY = {
                    "ביגוד", "אופנה", "הלבשה", "נעליים", "אקססוריז", "זארה", "קניון", "טרמינל", "פנאי",
                    "טרמינל", "ללין"],
     "Transportation & Auto 🚗": ["תחבורה", "רכבים", "מוסדות", "דלק", "רכבת", "אוטובוס", "מונית", "סונול", 'סד"ש',
-                                'פנגו', 'yellow', 'דור אלון', 'מוטורס', 'מוטורוס', 'צמיג'],
+                                'פנגו', 'yellow', 'דור אלון', 'מוטורס', 'מוטורוס', 'צמיג', 'סדש גלבוע'],
     "Home & Living 🏠": ["עיצוב", "הבית", "ציוד", "ריהוט", "תחזוקה", "שיפוצים", "מועצה דתית", "פנים", "דואר", "MOOOB",
                         "BOOM"],
     "Vacation 🍹": ["חופשה", "air", "trip"],
@@ -202,8 +205,12 @@ class Expense:
             raise ValueError(f"Field '{field}' is not a valid ExpenseField or is not set in the instance.")
 
     def __str__(self):
-        return (f"Expense (name='{self.expense_name}', amount={self.original_amount} {self.original_currency}, "
-                f"date={self.date}, person_card='{self.person_card}')")
+        currency = self.original_currency.split(' ')[-1]
+        amount = f'amount={self.charged_amount} {currency}'
+        if self.remaining_amount != 0:
+            amount = f'{amount} -> remaining_amount={self.remaining_amount} {currency}'
+        return (f"Expense (name='{self.expense_name}', {amount}, "
+                f"date={self.date}, category={self.category}, person_card='{self.person_card}')")
 
     def __repr__(self):
         return (f"Expense(expense_type={self.expense_type}, date={self.date}, "

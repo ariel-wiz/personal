@@ -81,7 +81,12 @@ class ScriptManager:
     def run_all(self):
         for script in self.scripts:
             if script.should_run_today(self.today_date, self.today_weekday):
-                self.run_script(script)
+                try:
+                    self.run_script(script)
+                except Exception as e:
+                    logger.error(f"There was an error in cron when attempting to run {script}: {str(e)}\n"
+                                 f"Running the next script")
+                    continue
             else:
                 logger.info(f" ---- Skipping {script.name}: {script.path} with arguments {script.arg} ----")
 
@@ -150,16 +155,7 @@ def main():
     # Initialize and run script manager
     manager = ScriptManager(NOTION_SCRIPTS)
     manager.run_all()
-
-    # Handle sleep logic
-    if should_sleep():
-        try:
-            subprocess.run(['sudo', 'pmset', 'sleepnow'], check=True)
-            logger.info("Successfully put the Mac to sleep.")
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to put the Mac to sleep: {e}")
-    else:
-        logger.info("Finished running the cron script")
+    logger.info("Finished running the cron script")
 
 
 if __name__ == "__main__":

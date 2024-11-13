@@ -6,12 +6,12 @@ import requests
 
 from common import DateOffset, yesterday, create_date_range, create_day_summary_name, get_date_offset, find_state_items, \
     today
-from logger import logger
+from logger import logger, collect_handler
 from notion_py.helpers.notion_children_blocks import generate_simple_page_content, \
     generate_page_content_page_notion_link
-from notion_py.notion_globals import next_month_filter, date_descending_sort, api_db_id, day_summary_db_id, \
+from notion_py.notion_globals import date_descending_sort, api_db_id, day_summary_db_id, \
     Method, NotionAPIStatus, TaskConfig, daily_tasks_db_id, tasks_db_id, next_filter, first_created_sorts, \
-    default_tasks_filter, default_tasks_sorts, daily_notion_category_filter, on_or_after_today_filter
+    default_tasks_filter, default_tasks_sorts, on_or_after_today_filter
 from notion_py.helpers.notion_payload import generate_payload, generate_create_page_payload, get_relation_payload, \
     get_api_status_payload
 from variables import Keys
@@ -197,13 +197,10 @@ def _update_api_status(status, operation, details=None):
 
         # Prepare the payload to update the status
         update_payload = get_api_status_payload(status, operation)
-
-        # Update the API status page
         update_page(api_status_page_id, update_payload)
 
         if details:
             update_page(api_status_page_id, generate_simple_page_content(details))
-            logger.error(details)
 
         logger.info(f"Updated API status for {operation} to {status}.")
     except Exception as e:
@@ -211,17 +208,21 @@ def _update_api_status(status, operation, details=None):
 
 
 def set_start_api_status(operation):
-    return _update_api_status(NotionAPIStatus.STARTED, operation)
+    message_logs = collect_handler.get_message_logs_and_clear()
+    return _update_api_status(NotionAPIStatus.STARTED, operation, message_logs)
 
 
 def set_success_api_status(operation):
-    return _update_api_status(NotionAPIStatus.SUCCESS, operation)
+    message_logs = collect_handler.get_message_logs_and_clear()
+    return _update_api_status(NotionAPIStatus.SUCCESS, operation, message_logs)
 
 
 def set_error_api_status(operation, details=None):
+    message_logs = collect_handler.get_message_logs_and_clear()
     if details:
         details = f"Notion API Error detail for {operation}: {details}"
-    return _update_api_status(NotionAPIStatus.ERROR, operation, details)
+        message_logs.append(details)
+    return _update_api_status(NotionAPIStatus.ERROR, operation, message_logs)
 
 
 def track_operation(operation):

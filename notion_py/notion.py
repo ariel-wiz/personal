@@ -4,7 +4,7 @@ from garmin import get_garmin_info
 from common import create_tracked_lambda, create_shabbat_dates, yesterday, \
     DateOffset
 from jewish_calendar import JewishCalendarAPI
-from logger import logger
+from logger import logger, collect_handler
 from notion_py.helpers.notion_children_blocks import generate_children_block_for_daily_inspirations, \
     generate_children_block_for_shabbat
 from notion_py.notion_globals import *
@@ -213,6 +213,7 @@ def check_wake_up_early_according_to_sleep_end(sleep_end_dict):
 
 
 def create_parashat_hashavua():
+    logger.info(f"Starting creating parashat hashavua")
     jewish_api = JewishCalendarAPI()
     shabbat_list = jewish_api.get_shabbat_times()
 
@@ -261,7 +262,7 @@ def create_parashat_hashavua():
             "Task": notion_parasha_task_name,
             "Project": Projects.jewish_holidays,
             "Due": shabbat_dates,
-            "Icon": "🕯️"
+            "Icon": "🕯"
         }
 
         shabat_children_block = generate_children_block_for_shabbat(city_list, parasha_summary,
@@ -308,6 +309,7 @@ def update_garmin_info(update_daily_tasks=True):
     if garmin_pages:
         garmin_page_id = garmin_pages[0]["id"]
         logger.info(f"Garmin page for {yesterday_date} already exists with page ID {garmin_page_id}")
+
     else:
         garmin_dict = get_garmin_info()
         if not garmin_dict:
@@ -357,18 +359,33 @@ def uncheck_done_weekly_task_id():
 
 @track_operation(NotionAPIOperation.CREATE_DAILY_PAGES)
 def create_daily_pages():
-    create_daily_summary_pages()
-    create_daily_api_pages()
-    create_parashat_hashavua()
-    copy_recurring_tasks()
-    copy_normal_tasks()
+    functions = [
+        create_daily_summary_pages,
+        create_daily_api_pages,
+        create_parashat_hashavua,
+        copy_recurring_tasks,
+        copy_normal_tasks
+    ]
+    run_functions(functions)
 
 
 @track_operation(NotionAPIOperation.COPY_PAGES)
 def copy_pages_from_other_db_if_needed():
-    copy_birthdays()
-    copy_expenses_and_warranty()
-    copy_insurance()
+    functions = [
+        copy_birthdays,
+        copy_expenses_and_warranty,
+        copy_insurance
+    ]
+    run_functions(functions)
+
+
+def run_functions(functions):
+    # Loop through each function
+    for func in functions:
+        try:
+            func()  # Call the function
+        except Exception as e:
+            print(f"Error in {func.__name__}: {e}")  # Print error with function name
 
 
 def main(selected_tasks):
@@ -380,7 +397,7 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            update_garmin_info()
+            create_daily_pages()
             logger.info("End of manual run")
 
     except Exception as e:

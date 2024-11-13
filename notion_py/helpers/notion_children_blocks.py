@@ -44,18 +44,18 @@ def generate_children_block_for_daily_inspirations(note, author, main_content):
 
 
 def generate_simple_page_content(content):
-    children_block = {"children": [
-        {
+    children_list = []
+    for sentence in content:
+        sentence_block = {
             "object": "block",
             "type": "paragraph",
             "paragraph": {
-                "rich_text": [{"type": "text", "text": {"content": content}}]
+                "rich_text": [{"type": "text", "text": {"content": sentence}}]
             }
         }
-    ]
-    }
+        children_list.append(sentence_block)
 
-    return children_block
+    return {"children": children_list}
 
 
 def generate_page_content_page_notion_link(page_link):
@@ -221,12 +221,6 @@ def generate_children_block_for_shabbat(shabat_cities, parasha_summary, parasha_
 
     # Create link block
     link_block = create_paragraph_block(f"🔗 {parasha_link_name}", parasha_link)
-
-    # # Create columns with toggle and link
-    # columns_block = create_columns([
-    #     [toggle_block],  # First column
-    #     [link_block]  # Second column
-    # ])
 
     # Combine everything
     children_blocks = [toggle_block] + summary_blocks + [link_block]

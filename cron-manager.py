@@ -133,6 +133,14 @@ NOTION_SCRIPTS = [
         frequency=Frequency.WEEKLY_TUESDAY.value,
         python_path="/Users/ariel/PycharmProjects/personal",
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    ),
+    ScriptConfig(
+        name="Get Expenses",
+        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+        arg="--get_expenses",
+        frequency=Frequency.DAILY.value,
+        python_path="/Users/ariel/PycharmProjects/personal",
+        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     )
 ]
 

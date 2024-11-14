@@ -43,7 +43,7 @@ def generate_children_block_for_daily_inspirations(note, author, main_content):
     return {"children": children_block}
 
 
-def generate_simple_page_content(content):
+def generate_simple_page_content(content, add_separator=False):
     children_list = []
     for sentence in content:
         sentence_block = {
@@ -54,7 +54,8 @@ def generate_simple_page_content(content):
             }
         }
         children_list.append(sentence_block)
-
+    if add_separator:
+        children_list.append(create_separator_block())
     return {"children": children_list}
 
 

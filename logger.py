@@ -34,9 +34,12 @@ class CollectLogHandler(logging.Handler):
         """Clear the message logs"""
         self.log_records = []
 
-    def get_message_logs_and_clear(self):
+    def get_all_message_logs_and_clear(self, get_only_info_or_error=False):
         """Get only the message logs"""
-        log_messages = [log['message'] for log in self.log_records]
+        if get_only_info_or_error:
+            log_messages = [log['message'] for log in self.log_records if log['level'] in ['INFO', 'ERROR']]
+        else:
+            log_messages = [log['message'] for log in self.log_records]
         self.clear_message_logs()
         return log_messages
 

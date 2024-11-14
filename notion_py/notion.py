@@ -15,6 +15,7 @@ from notion_py.helpers.notion_common import create_page_with_db_dict, create_pag
     update_page, create_page, get_pages_by_date_offset, recurring_tasks_to_daily, get_daily_tasks, \
     get_daily_tasks_by_date_str, get_tasks, get_page
 from variables import Paths
+from expense_tracker import ExpenseManager
 
 
 WAKE_UP_HOUR_GOAL = '06:00'
@@ -379,6 +380,12 @@ def copy_pages_from_other_db_if_needed():
     run_functions(functions)
 
 
+@track_operation(NotionAPIOperation.GET_EXPENSES)
+def get_expenses_to_notion():
+    expense_manager = ExpenseManager()
+    expense_manager.add_all_expenses_to_notion(check_before_adding=True)
+
+
 def run_functions(functions):
     # Loop through each function
     for func in functions:
@@ -397,7 +404,7 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            create_daily_pages()
+            copy_birthdays()
             logger.info("End of manual run")
 
     except Exception as e:
@@ -425,6 +432,7 @@ if __name__ == '__main__':
         'garmin': update_garmin_info,
         'create_daily_pages': create_daily_pages,
         'copy_pages': copy_pages_from_other_db_if_needed,
+        'get_expenses': get_expenses_to_notion,
     }
 
     # Set up command-line argument parsing

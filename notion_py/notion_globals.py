@@ -53,6 +53,7 @@ class NotionAPIOperation:
     HANDLE_DONE_TASKS = "Handle Done Tasks"
     COPY_PAGES = "Copy Pages"
     UNCHECK_DONE = "Uncheck Done"
+    GET_EXPENSES = "Get Expenses"
 
 
 class DaySummaryCheckbox:

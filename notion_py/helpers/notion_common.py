@@ -200,25 +200,25 @@ def _update_api_status(status, operation, details=None):
         update_page(api_status_page_id, update_payload)
 
         if details:
-            update_page(api_status_page_id, generate_simple_page_content(details))
+            update_page(api_status_page_id, generate_simple_page_content(details, add_separator=True))
 
-        logger.info(f"Updated API status for {operation} to {status}.")
+        logger.debug(f"Updated API status for {operation} to {status}.")
     except Exception as e:
         logger.error(f"Error while attempting to update API status for {operation} to {status}.: {str(e)}")
 
 
 def set_start_api_status(operation):
-    message_logs = collect_handler.get_message_logs_and_clear()
+    message_logs = collect_handler.get_all_message_logs_and_clear(get_only_info_or_error=True)
     return _update_api_status(NotionAPIStatus.STARTED, operation, message_logs)
 
 
 def set_success_api_status(operation):
-    message_logs = collect_handler.get_message_logs_and_clear()
+    message_logs = collect_handler.get_all_message_logs_and_clear(get_only_info_or_error=True)
     return _update_api_status(NotionAPIStatus.SUCCESS, operation, message_logs)
 
 
 def set_error_api_status(operation, details=None):
-    message_logs = collect_handler.get_message_logs_and_clear()
+    message_logs = collect_handler.get_all_message_logs_and_clear()
     if details:
         details = f"Notion API Error detail for {operation}: {details}"
         message_logs.append(details)

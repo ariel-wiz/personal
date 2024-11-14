@@ -296,7 +296,7 @@ class ExpenseManager:
                     logger.error(f"Error creating Expense object {json.loads(expense)}: {e}")
                     continue
         expenses_list.sort(key=lambda x: x.date, reverse=True)
-        logger.info(f"Successfully created {len(expenses_list)} Expense objects from JSON.")
+        logger.debug(f"Successfully created {len(expenses_list)} Expense objects from JSON.")
         return expenses_list
 
     def get_existing_by_property(self, property_name, property_value):
@@ -672,7 +672,7 @@ def parse_payment_string(remaining_amount_dict, memo, currency):
 # parse_payment_str = parse_payment_string("תשלום 1 מתוך 3", "Credit", 1000)
 # print("Ariel")
 
-expense_manager = ExpenseManager()
-expense_manager.add_all_expenses_to_notion(check_before_adding=True)
+# expense_manager = ExpenseManager()
+# expense_manager.add_all_expenses_to_notion(check_before_adding=True)
 
 # expense_manager.remove_duplicates()

@@ -356,6 +356,7 @@ def update_garmin_info(update_daily_tasks=True):
 def uncheck_done_weekly_task_id():
     update_page_payload = uncheck_done_set_today_payload
     update_page(weekly_task_page_id, update_page_payload)
+    update_page(weight_page_id, update_page_payload)
 
 
 @track_operation(NotionAPIOperation.CREATE_DAILY_PAGES)
@@ -404,7 +405,7 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            copy_birthdays()
+            ariel = get_daily_tasks()
             logger.info("End of manual run")
 
     except Exception as e:

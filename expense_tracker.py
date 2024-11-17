@@ -6,9 +6,11 @@ from collections import Counter
 
 from common import parse_expense_date, get_key_for_value, adjust_month_end_dates
 from logger import logger
-from notion_py.helpers.notion_common import get_db_pages, create_page, delete_page
+from notion_py.helpers.notion_common import get_db_pages, create_page, delete_page, update_page_with_relation
 from notion_py.helpers.notion_payload import generate_create_page_payload, generate_payload
-from notion_py.notion_globals import expense_tracker_db_id, last_4_months_expense_filter, date_descending_sort
+from notion_py.notion_globals import expense_tracker_db_id, last_4_months_expense_filter, date_descending_sort, \
+    last_4_months_months_expense_filter, months_expenses_tracker_db_id, current_month_year_filter, \
+    current_months_expense_filter
 from variables import ACCOUNT_NUMBER_TO_PERSON_CARD, CHEN_CAL, ARIEL_MAX, CHEN_MAX, ARIEL_SALARY_AVG, PRICE_VAAD_BAIT, \
     PRICE_GAN_TAMAR, PRICE_TSEHARON_NOYA, HAFKADA_GEMEL_CHILDREN, PRICE_MASHKANTA
 
@@ -33,6 +35,7 @@ class ExpenseField:
     PAGE_ID = 'page_id'
     TYPE = 'Type'
     REMAINING_AMOUNT = 'Remaining Amount'
+    SUB_CATEGORY = 'SubCategory'
 
 
 STATUS_DICT = {
@@ -79,7 +82,7 @@ ENGLISH_CATEGORY = {
     "Health & Wellness 🏥": ["טיפוח", "יופי", "רפואה", "פארם", "בריאות", "קופת חולים", "תרופות", "טיפולים", "קרוספיט",
                             "פיט", "מרפקה"],
     "Education & Learning 📚": ["חינוך", "קורסים", "לימודים", "ספרים", "הכשרה", "סטימצקי", "לאבלאפ"],
-    "Children & Family 👨‍👩‍👧‍👦": ["ילדים", "טיק", "צעצועים", "בייבי", "משפחה"],
+    "Children & Family 👨‍👩‍👧‍👦": ["ילדים", "טיק", "צעצועים", "בייבי", "משפחה", "פארק"],
     "Income 🏦": [],
     "Other 🗂️": ["שונות"]
 }
@@ -101,6 +104,35 @@ CURRENCY_SYMBOLS = {
 EXPENSES_TO_ADJUST_DATE = ["משכנתא", "משכורת אריאל"]
 
 
+class MonthlyExpenses:
+    def __init__(self, month, year, month_date_start, month_date_end):
+        self.month = month
+        self.year = year
+        self.month_date_start = month_date_start
+        self.month_date_end = month_date_end
+        self.expenses = []
+        self.incomes = []
+
+
+    def add_expense(self, expense):
+        self.expenses.append(expense)
+
+    def get_expenses(self):
+        return self.expenses
+
+    def add_income(self, income):
+        self.incomes.append(income)
+
+    def get_incomes(self):
+        return self.incomes
+
+    def __str__(self):
+        return f"MonthlyExpenses(month={self.month}, expenses={self.expenses})"
+
+    def __repr__(self):
+        return f"MonthlyExpenses(month={self.month}, expenses={self.expenses})"
+
+
 class Expense:
     def __init__(self,
                  expense_type,
@@ -116,7 +148,8 @@ class Expense:
                  status,
                  account_number,
                  remaining_amount=0,
-                 page_id=None):
+                 page_id=None,
+                 sub_category=""):
         self.expense_type = expense_type
         self.date = date
         self.processed_date = processed_date
@@ -132,6 +165,7 @@ class Expense:
         self.remaining_amount = remaining_amount
         self.person_card = self.get_person_card()
         self.page_id = page_id
+        self.sub_category = sub_category
 
     def get_person_card(self):
         for key, value in ACCOUNT_NUMBER_TO_PERSON_CARD.items():
@@ -240,6 +274,7 @@ class Expense:
 class ExpenseManager:
     def __init__(self):
         self.expense_json = []
+        self.monthly_expenses = []
         self.expenses_objects_to_create = []
         self.existing_expenses_objects = []
 
@@ -395,6 +430,70 @@ class ExpenseManager:
         for i, expense in enumerate(expenses_to_add):
             expense.add_to_notion(index=i, total=expenses_to_add_len)
 
+    """
+    This function is currently not used as there is a limitation of 100 relations that can be added into a single page 
+    in notion
+    """
+    def update_current_month_expenses(self):
+        monthly_expenses = []
+        monthly_saving = []
+        monthly_incomes = []
+        self.get_current_month_expenses_from_notion()
+        for expense in self.existing_expenses_objects:
+            if "income" in expense.category.lower():
+                monthly_incomes.append(expense)
+            elif "saving" in expense.sub_category.lower():
+                monthly_saving.append(expense)
+            else:
+                monthly_expenses.append(expense)
+
+        monthly_expenses_id = [expense.page_id for expense in monthly_expenses]
+
+        update_page_with_relation(months_expenses_tracker_db_id, monthly_expenses_id, 'Expenses')
+
+    def create_empty_monthly_expenses(self, properties):
+        month = properties['Month']['title'][0]['plain_text']
+        year = properties['Year']['rich_text'][0]['plain_text']
+        month_date_start = properties['Date']['date']['start']
+        month_date_end = properties['Date']['date']['end']
+        return MonthlyExpenses(month, year, month_date_start, month_date_end)
+
+    def get_current_month_expenses_from_notion(self):
+        self.existing_expenses_objects = self.get_expenses_from_notion(current_months_expense_filter)
+        self.monthly_expenses = self.get_monthly_expenses_from_notion(current_month_year_filter)
+
+    def get_monthly_expenses_from_notion(self, filter_by=None):
+        monthly_expenses_from_notion = []
+        if filter_by is None:
+            payload = generate_payload(last_4_months_months_expense_filter, date_descending_sort)
+        else:
+            payload = generate_payload(filter_by, date_descending_sort)
+        months_expenses_notion_pages = get_db_pages(months_expenses_tracker_db_id, payload)
+
+        if not self.existing_expenses_objects:
+            self.existing_expenses_objects = self.get_all_expenses_from_notion()
+
+        for months_expenses_notion_page in months_expenses_notion_pages:
+            monthly_expenses = self.create_empty_monthly_expenses(months_expenses_notion_page['properties'])
+
+            for expense_page_id in months_expenses_notion_page['properties']['Expenses']['relation']:
+                expense_object = self.get_existing_by_property(ExpenseField.PAGE_ID, expense_page_id['id'])
+                if not expense_object:
+                    logger.error(f"Could not find expense object with page_id {expense_page_id['id']}")
+                    continue
+                monthly_expenses.add_expense(expense_object[0])
+
+            for income_page_id in months_expenses_notion_page['properties']['Income']['relation']:
+                income_object = self.get_existing_by_property(ExpenseField.PAGE_ID, income_page_id['id'])
+                if not income_object:
+                    logger.error(f"Could not find income object with page_id {income_page_id['id']}")
+                    continue
+                monthly_expenses.add_income(income_object[0])
+
+            monthly_expenses_from_notion.append(monthly_expenses)
+
+        return monthly_expenses_from_notion
+
     def get_all_expenses_from_notion(self):
         return self.get_expenses_from_notion(filter_by={})
 
@@ -482,6 +581,9 @@ class ExpenseManager:
                     if properties[ExpenseField.MEMO]['rich_text'] and properties[ExpenseField.MEMO]['rich_text']
                     else "")
 
+            sub_category = properties[ExpenseField.SUB_CATEGORY]['formula']['string'] if \
+                properties[ExpenseField.SUB_CATEGORY]['formula'] else ""
+
             return Expense(
                 expense_type=expense_type,
                 date=date,
@@ -496,7 +598,8 @@ class ExpenseManager:
                 status=status,
                 account_number=account_number,
                 remaining_amount=remaining_amount,
-                page_id=page_id
+                page_id=page_id,
+                sub_category=sub_category
             )
         except Exception as e:
             print(f"Error creating Expense object from Notion page: {e}")
@@ -521,6 +624,27 @@ class ExpenseManager:
         for i, page_id in enumerate(expense_with_unique_page_ids):
             delete_page(page_id)
             logger.info(f"{i + 1}/{len(expense_with_unique_page_ids)} - Successfully removed duplicate expense.")
+
+    def add_relation_to_months(self):
+        all_notion_expenses = self.get_all_expenses_from_notion()
+        for expense in all_notion_expenses:
+            for unique_expense in unique_expenses:
+                if expense.equals(unique_expense):
+                    expenses_to_remove.append(expense)
+            unique_expenses.append(expense)
+
+        expense_with_unique_page_ids = set([expense.page_id for expense in expenses_to_remove])
+        if len(expense_with_unique_page_ids) > 0:
+            logger.info(f"Found {len(expense_with_unique_page_ids)} duplicate expenses to remove.")
+        else:
+            logger.info("No duplicate expenses found.")
+            return
+
+        for i, page_id in enumerate(expense_with_unique_page_ids):
+            delete_page(page_id)
+            logger.info(f"{i + 1}/{len(expense_with_unique_page_ids)} - Successfully removed duplicate expense.")
+
+
 
     def get_notion_that_can_be_added_not_present_in_notion(self):
         expenses_not_in_notion = []
@@ -676,3 +800,6 @@ def parse_payment_string(remaining_amount_dict, memo, currency):
 # expense_manager.add_all_expenses_to_notion(check_before_adding=True)
 
 # expense_manager.remove_duplicates()
+
+# expense_manager = ExpenseManager()
+# expense_manager.update_current_month_expenses()

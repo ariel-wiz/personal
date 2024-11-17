@@ -76,15 +76,16 @@ def get_relation_payload(page_id_data_to_import, relation_name, other_params={})
     - page_id_data_to_import: The ID of the page that will be linked as a relation.
     """
 
+    if isinstance(page_id_data_to_import, list):
+        relation_objects = [{"id": rel_id} for rel_id in page_id_data_to_import]
+    else:
+        relation_objects = [{"id": page_id_data_to_import}]
+
     # Payload for updating the relation
     relation_payload = {
         "properties": {
             relation_name: {
-                "relation": [
-                    {
-                        "id": page_id_data_to_import  # Add this page as a relation
-                    }
-                ]
+                "relation": relation_objects
             }
         }
     }

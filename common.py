@@ -12,8 +12,6 @@ def create_date_range(input_date_str, range_days=7):
     input_date = datetime.strptime(input_date_str, '%Y-%m-%d').date()
     today = datetime.now().date()  # Get today's date
 
-    date_list = []
-
     if input_date >= today:
         # If input date is today or in the future, create next 7 days starting from input date
         date_list = [(input_date + timedelta(days=i)).isoformat() for i in range(range_days)]

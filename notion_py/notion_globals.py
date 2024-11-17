@@ -14,12 +14,14 @@ trading_db_id = Keys.trading_db_id
 garmin_db_id = Keys.garmin_db_id
 daily_tasks_db_id = Keys.daily_tasks_db_id
 weekly_task_page_id = Keys.weekly_task_page_id
+weight_page_id = Keys.weight_page_id
 birthday_db_id = Keys.birthday_db_id
 api_db_id = Keys.api_db_id
 daily_inspiration_project_id = Projects.daily_inspiration
 expense_and_warranty_db_id = Keys.expense_and_warranty_db_id
 insurance_db_id = Keys.insurance_db_id
 expense_tracker_db_id = Keys.expense_tracker_db_id
+months_expenses_tracker_db_id = Keys.months_expenses_tracker_db_id
 
 
 class NotionPropertyType:
@@ -272,3 +274,36 @@ last_4_months_expense_filter = {
         "on_or_after": (today - timedelta(days=145)).isoformat()
     }
 }
+
+current_months_expense_filter = {
+    "property": "Processed Date",
+    "date": {
+        "on_or_after": date(datetime.now().year, datetime.now().month, 1).isoformat()
+    }
+}
+
+last_4_months_months_expense_filter = {
+    "property": "Date",
+    "date": {
+        "on_or_after": (today - timedelta(days=145)).isoformat()
+    }
+}
+
+current_month_year_filter = {
+    "and": [
+        {
+            "property": "Month",
+            "rich_text": {
+                "equals": datetime.now().strftime("%B")
+            }
+        },
+        {
+            "property": "Year",
+            "rich_text": {
+                "equals": str(datetime.now().year)
+            }
+        }
+    ]
+}
+
+

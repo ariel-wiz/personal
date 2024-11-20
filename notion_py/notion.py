@@ -13,7 +13,7 @@ from notion_py.helpers.notion_payload import generate_payload, get_trading_paylo
 from notion_py.helpers.notion_common import create_page_with_db_dict, create_page_with_db_dict_and_children_block, \
     update_page_with_relation, get_db_pages, track_operation, create_daily_summary_pages, create_daily_api_pages, \
     update_page, create_page, get_pages_by_date_offset, recurring_tasks_to_daily, get_daily_tasks, \
-    get_daily_tasks_by_date_str, get_tasks, get_page
+    get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url, create_daily_pages_for_db_id
 from variables import Paths
 from expense_tracker import ExpenseManager
 
@@ -57,7 +57,7 @@ def create_daily_stoics(check_date=False):
                 "Task": name,
                 "Project": daily_inspiration_project_id,
                 "Due": str(date),
-                "Icon": "💬"
+                "Icon": generate_icon_url(IconType.CHAT, IconColor.LIGHT_GRAY)
             }
 
             children_block = generate_children_block_for_daily_inspirations(note, author, main_content)
@@ -77,7 +77,7 @@ def copy_birthdays():
         state_property_name="FullBirthdayState",
         daily_filter=daily_birthday_category_filter,
         date_property_name="Next Birthday",
-        icon="🎂",
+        icon=generate_icon_url(IconType.CAKE, IconColor.LIGHT_GRAY),
         project=Projects.birthdays,
         children_block=False
     )
@@ -109,7 +109,7 @@ def copy_expenses_and_warranty():
         state_property_name="WarrantyState",
         daily_filter=daily_notion_category_filter,
         state_suffix="end of warranty",
-        icon="📝",
+        icon=generate_icon_url(IconType.SIGNATURE, IconColor.LIGHT_GRAY),
         project=Projects.notion
     )
 
@@ -123,7 +123,7 @@ def copy_insurance():
         state_property_name="InsuranceState",
         daily_filter=daily_notion_category_filter,
         state_suffix="end of insurance",
-        icon="🤑",
+        icon=generate_icon_url(IconType.CURRENCY, IconColor.LIGHT_GRAY),
         project=Projects.notion
     )
 
@@ -137,7 +137,7 @@ def copy_recurring_tasks():
         state_property_name="DailyState",
         daily_filter=daily_notion_category_filter,
         state_suffix="",
-        icon="🔁",
+        icon=generate_icon_url(IconType.SYNC, IconColor.LIGHT_GRAY),
         project=Projects.notion
     )
 
@@ -151,7 +151,7 @@ def copy_normal_tasks():
         state_property_name="DailyState",
         daily_filter=daily_notion_category_filter,
         state_suffix="",
-        icon="✔️",
+        icon=generate_icon_url(IconType.CHECKLIST, IconColor.LIGHT_GRAY),
         project=Projects.notion
     )
 
@@ -263,7 +263,7 @@ def create_parashat_hashavua():
             "Task": notion_parasha_task_name,
             "Project": Projects.jewish_holidays,
             "Due": shabbat_dates,
-            "Icon": "🕯"
+            "Icon": generate_icon_url(IconType.MENORAH, IconColor.LIGHT_GRAY)
         }
 
         shabat_children_block = generate_children_block_for_shabbat(city_list, parasha_summary,
@@ -332,7 +332,7 @@ def update_garmin_info(update_daily_tasks=True):
             "Calories": garmin_dict['total_calories'],
             "Activity Duration": garmin_dict['total_activity_duration'],
             "Activity Calories": garmin_dict['total_activity_calories'],
-            "Icon": "⌚"
+            "Icon": generate_icon_url(IconType.WATCH, IconColor.BLUE)
         }
 
         response = create_page_with_db_dict(garmin_db_id, formatted_garmin_data)
@@ -405,7 +405,11 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            ariel = get_daily_tasks()
+            # daily_tasks = get_daily_tasks()
+            # all_icons = [task['icon'] for task in daily_tasks]
+            create_daily_pages_for_db_id(api_db_id, icon=generate_icon_url(IconType.SERVER, IconColor.BLUE),
+                                         link_to_day_summary_tasks=True, days_range_to_create=1, name='daily API page')
+
             logger.info("End of manual run")
 
     except Exception as e:

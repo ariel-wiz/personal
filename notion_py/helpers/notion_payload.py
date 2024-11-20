@@ -44,7 +44,10 @@ def generate_create_page_payload(db_id, db_dict):
         key, value = daily_task_element
         for db_item_category_key in list(daily_db_items.keys()):
             if key == "Icon":
-                icon_element = {"type": "emoji", "emoji": value}
+                if len(value) == 1:
+                    icon_element = {"type": "emoji", "emoji": value}
+                else:
+                    icon_element = {"type": "external", "external": {"url": value}}
                 daily_task_payload["icon"] = icon_element
                 break
             elif key in daily_db_items[db_item_category_key]:

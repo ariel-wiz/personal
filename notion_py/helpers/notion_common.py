@@ -11,7 +11,7 @@ from notion_py.helpers.notion_children_blocks import generate_simple_page_conten
     generate_page_content_page_notion_link
 from notion_py.notion_globals import date_descending_sort, api_db_id, day_summary_db_id, \
     Method, NotionAPIStatus, TaskConfig, daily_tasks_db_id, tasks_db_id, next_filter, first_created_sorts, \
-    default_tasks_filter, default_tasks_sorts, on_or_after_today_filter
+    default_tasks_filter, default_tasks_sorts, on_or_after_today_filter, IconType, IconColor
 from notion_py.helpers.notion_payload import generate_payload, generate_create_page_payload, get_relation_payload, \
     get_api_status_payload
 from variables import Keys
@@ -117,14 +117,17 @@ def get_pages_by_date_offset(database_id, offset: int, date_name="Date", filter_
 
 # Daily and tasks functions
 def create_daily_summary_pages():
+    logger.info('Creating daily summary pages')
     create_daily_pages_for_db_id(day_summary_db_id)
 
 
 def create_daily_api_pages():
-    create_daily_pages_for_db_id(api_db_id, "🌐", link_to_day_summary_tasks=True)
+    logger.info('Creating daily API pages')
+    create_daily_pages_for_db_id(api_db_id, icon=generate_icon_url(IconType.SERVER, IconColor.BLUE),
+                                 link_to_day_summary_tasks=True, name='daily API page')
 
 
-def create_daily_pages_for_db_id(db_id, icon=None, link_to_day_summary_tasks=False, days_range_to_create=10):
+def create_daily_pages_for_db_id(db_id, icon=None, link_to_day_summary_tasks=False, days_range_to_create=10, name=""):
     day_summary_payload = generate_payload(on_or_after_today_filter, date_descending_sort)
     response = get_db_pages(db_id, day_summary_payload)
 
@@ -134,7 +137,7 @@ def create_daily_pages_for_db_id(db_id, icon=None, link_to_day_summary_tasks=Fal
     else:
         last_date = response[0]['properties']['Date']['date']['start']
 
-    days_to_create = create_date_range(last_date, days_range_to_create+1)
+    days_to_create = create_date_range(last_date, days_range_to_create + 1)
 
     for day_to_create in days_to_create:
         day_summary_name = create_day_summary_name(day_to_create)
@@ -150,7 +153,7 @@ def create_daily_pages_for_db_id(db_id, icon=None, link_to_day_summary_tasks=Fal
                 created_page_id = response['id']
                 update_page_with_relation(daily_summary_page_id, created_page_id, "API Status Page")
 
-        logger.info(f"Created daily summary for {day_summary_name} with ID {response['id']}")
+        logger.info(f"Created {name if name else 'daily summary'} for {day_summary_name} with ID {response['id']}")
 
 
 def get_tasks(tasks_filter=None, tasks_sort=None, is_daily=False, print_response=False):
@@ -162,9 +165,13 @@ def get_tasks(tasks_filter=None, tasks_sort=None, is_daily=False, print_response
         return get_db_pages(tasks_db_id, get_tasks_payload, print_response, 'tasks')
 
 
-def get_daily_tasks(daily_filter=None, daily_sorts=None, print_response=False):
-    return get_tasks(daily_filter if daily_filter else next_filter, daily_sorts if daily_sorts else first_created_sorts,
-                     is_daily=True, print_response=print_response)
+def get_daily_tasks(daily_filter=None, daily_sorts=None, print_response=False, get_only_properties=False):
+    tasks = get_tasks(daily_filter if daily_filter else next_filter,
+                      daily_sorts if daily_sorts else first_created_sorts,
+                      is_daily=True, print_response=print_response)
+    if get_only_properties:
+        return [task['properties'] for task in tasks]
+    return tasks
 
 
 def get_daily_tasks_by_date_str(date_str, filter_to_add=None):
@@ -444,3 +451,7 @@ def print_notion_response(response, type=''):
             logger.info(get_zahar_nekeva_attributes_str(properties))
         else:
             logger.info(json.dumps(properties, indent=4))
+
+
+def generate_icon_url(icon_type, icon_color):
+    return f'https://www.notion.so/icons/{icon_type}_{icon_color}.svg'

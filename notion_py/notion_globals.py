@@ -76,6 +76,27 @@ class TaskConfig:
     children_block: bool = True
 
 
+class IconType:
+    WATCH = 'watch-analog'
+    MENORAH = 'menorah'
+    CAKE = 'cake'
+    SYNC = 'sync'
+    PHONE_CALL = 'phone-call'
+    CHECKLIST = 'checklist'
+    CURRENCY = 'currency'
+    SIGNATURE = 'signature'
+    CHAT = 'chat'
+    SERVER = 'server'
+
+
+class IconColor:
+    BLUE = 'blue'
+    GRAY = 'gray'
+    LIGHT_GRAY = 'lightgray'
+    YELLOW = 'yellow'
+    PURPLE = 'purple'
+
+
 default_tasks_filter = {
     "and": [
         {"and": [

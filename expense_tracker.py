@@ -36,6 +36,7 @@ class ExpenseField:
     TYPE = 'Type'
     REMAINING_AMOUNT = 'Remaining Amount'
     SUB_CATEGORY = 'SubCategory'
+    ORIGINAL_NAME = 'Original Name'
 
 
 STATUS_DICT = {
@@ -113,7 +114,6 @@ class MonthlyExpenses:
         self.expenses = []
         self.incomes = []
 
-
     def add_expense(self, expense):
         self.expenses.append(expense)
 
@@ -149,7 +149,8 @@ class Expense:
                  account_number,
                  remaining_amount=0,
                  page_id=None,
-                 sub_category=""):
+                 sub_category="",
+                 original_name=""):
         self.expense_type = expense_type
         self.date = date
         self.processed_date = processed_date
@@ -166,6 +167,7 @@ class Expense:
         self.person_card = self.get_person_card()
         self.page_id = page_id
         self.sub_category = sub_category
+        self.original_name = original_name
 
     def get_person_card(self):
         for key, value in ACCOUNT_NUMBER_TO_PERSON_CARD.items():
@@ -186,7 +188,8 @@ class Expense:
             ExpenseField.DATE: str(self.date),
             ExpenseField.CHARGED_CURRENCY: self.charged_currency,
             ExpenseField.ORIGINAL_CURRENCY: self.original_currency,
-            ExpenseField.TYPE: self.expense_type
+            ExpenseField.TYPE: self.expense_type,
+            ExpenseField.ORIGINAL_NAME: self.original_name
         }
         if self.remaining_amount > 0:
             payload_dict["Remaining Amount"] = self.remaining_amount
@@ -290,6 +293,7 @@ class ExpenseManager:
         expenses_list = []
         if self.expense_json:
             for expense in self.expense_json:
+                original_name = expense['description']
                 expense_name = get_name(expense['description'], abs(expense['chargedAmount']))
                 category = get_category_name(expense_name, expense.get('category', ''),
                                              expense['chargedAmount'])
@@ -299,7 +303,8 @@ class ExpenseManager:
 
                 remaining_credit_dict = get_remaining_credit(expense.get('memo', ''), original_amount, expense_type)
                 updated_memo = parse_payment_string(remaining_credit_dict, expense.get('memo', ''), charged_currency)
-                remaining_amount = remaining_credit_dict.get('remaining_amount', 0) if remaining_credit_dict.get('remaining_amount', 0) > 0 else 0
+                remaining_amount = remaining_credit_dict.get('remaining_amount', 0) if remaining_credit_dict.get(
+                    'remaining_amount', 0) > 0 else 0
 
                 date = parse_expense_date(expense['date'])
                 processed_date = parse_expense_date(expense['processedDate'])
@@ -322,6 +327,7 @@ class ExpenseManager:
                         'status': expense['status'],
                         'account_number': expense['accountNumber'],
                         'remaining_amount': remaining_amount,
+                        'original_name': original_name
                     }
 
                     # Create an instance of Expense
@@ -426,7 +432,7 @@ class ExpenseManager:
             return
 
         expenses_to_add_len = len(expenses_to_add)
-        logger.info(f"{expenses_to_add_len} Expense{'s' if expenses_to_add_len >1 else ''} can be added to Notion.")
+        logger.info(f"{expenses_to_add_len} Expense{'s' if expenses_to_add_len > 1 else ''} can be added to Notion.")
         for i, expense in enumerate(expenses_to_add):
             expense.add_to_notion(index=i, total=expenses_to_add_len)
 
@@ -434,6 +440,7 @@ class ExpenseManager:
     This function is currently not used as there is a limitation of 100 relations that can be added into a single page 
     in notion
     """
+
     def update_current_month_expenses(self):
         monthly_expenses = []
         monthly_saving = []
@@ -584,6 +591,10 @@ class ExpenseManager:
             sub_category = properties[ExpenseField.SUB_CATEGORY]['formula']['string'] if \
                 properties[ExpenseField.SUB_CATEGORY]['formula'] else ""
 
+            original_name = (properties[ExpenseField.ORIGINAL_NAME]['rich_text'][0]['plain_text']
+                             if properties[ExpenseField.ORIGINAL_NAME]['rich_text'] and
+                                properties[ExpenseField.ORIGINAL_NAME]['rich_text'] else "")
+
             return Expense(
                 expense_type=expense_type,
                 date=date,
@@ -599,7 +610,8 @@ class ExpenseManager:
                 account_number=account_number,
                 remaining_amount=remaining_amount,
                 page_id=page_id,
-                sub_category=sub_category
+                sub_category=sub_category,
+                original_name=original_name
             )
         except Exception as e:
             print(f"Error creating Expense object from Notion page: {e}")
@@ -643,8 +655,6 @@ class ExpenseManager:
         for i, page_id in enumerate(expense_with_unique_page_ids):
             delete_page(page_id)
             logger.info(f"{i + 1}/{len(expense_with_unique_page_ids)} - Successfully removed duplicate expense.")
-
-
 
     def get_notion_that_can_be_added_not_present_in_notion(self):
         expenses_not_in_notion = []
@@ -715,8 +725,8 @@ def get_name(description, price):
                         (ExpenseField.CHARGED_AMOUNT in name_dict and abs(
                             int(name_dict[ExpenseField.CHARGED_AMOUNT])) == abs(
                             price)):
-                    if "אלקטרה" in description:
-                        print("")
+                    # if "אלקטרה" in description:
+                    #     print("")
 
                     return name
 
@@ -778,7 +788,8 @@ def get_remaining_credit(memo, price, credit):
         return {"remaining_amount": 0, "payment_number": payment_number, "total_payments": total_payments}
     else:
         remaining_amount = price * (total_payments - payment_number) / total_payments
-        return {"remaining_amount": remaining_amount, "payment_number": payment_number, "total_payments": total_payments}
+        return {"remaining_amount": remaining_amount, "payment_number": payment_number,
+                "total_payments": total_payments}
 
 
 def parse_payment_string(remaining_amount_dict, memo, currency):
@@ -791,7 +802,6 @@ def parse_payment_string(remaining_amount_dict, memo, currency):
         currency_sign = currency.split(" ")[-1]
         return f"תשלום {remaining_amount_dict['payment_number']}/{remaining_amount_dict['total_payments']}, " \
                f"נשאר לשלם: {currency_sign} {round(remaining_amount_dict['remaining_amount'])}"
-
 
 # parse_payment_str = parse_payment_string("תשלום 1 מתוך 3", "Credit", 1000)
 # print("Ariel")

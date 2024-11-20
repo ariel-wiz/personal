@@ -1,19 +1,21 @@
 import argparse
+import random
+
 from epub import read_epub
 from garmin import get_garmin_info
 from common import create_tracked_lambda, create_shabbat_dates, yesterday, \
     DateOffset
 from jewish_calendar import JewishCalendarAPI
-from logger import logger, collect_handler
+from logger import logger
 from notion_py.helpers.notion_children_blocks import generate_children_block_for_daily_inspirations, \
     generate_children_block_for_shabbat
 from notion_py.notion_globals import *
 from notion_py.helpers.notion_payload import generate_payload, get_trading_payload, uncheck_done_set_today_payload, \
-    check_done_payload
+    check_done_payload, uncheck_copied_to_daily_payload, check_copied_to_daily_payload
 from notion_py.helpers.notion_common import create_page_with_db_dict, create_page_with_db_dict_and_children_block, \
     update_page_with_relation, get_db_pages, track_operation, create_daily_summary_pages, create_daily_api_pages, \
-    update_page, create_page, get_pages_by_date_offset, recurring_tasks_to_daily, get_daily_tasks, \
-    get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url, create_daily_pages_for_db_id
+    update_page, create_page, get_pages_by_date_offset, copy_pages_to_daily, get_daily_tasks, \
+    get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url
 from variables import Paths
 from expense_tracker import ExpenseManager
 
@@ -82,7 +84,7 @@ def copy_birthdays():
         children_block=False
     )
 
-    recurring_tasks_to_daily(birthday_config)
+    copy_pages_to_daily(birthday_config)
 
 
 def get_birthday_daily_tasks():
@@ -90,6 +92,14 @@ def get_birthday_daily_tasks():
         "property": "Due",
         "direction": "ascending"
     }])
+
+
+def get_book_summaries(get_books_not_copied=True):
+    if get_books_not_copied:
+        book_summaries_payload = generate_payload(book_summaries_not_copied_to_daily_filter)
+    else:
+        book_summaries_payload = {}
+    return get_db_pages(book_summaries_db_id, book_summaries_payload)
 
 
 def get_expenses_and_warranties():
@@ -100,6 +110,32 @@ def get_expenses_and_warranties():
 def get_insurances():
     insurances_payload = generate_payload(insurances_filter)
     return get_db_pages(insurance_db_id, insurances_payload)
+
+
+def copy_book_summary():
+    book_summaries = get_book_summaries(get_books_not_copied=True)
+    if not book_summaries:
+        logger.info("All the books were copied - Resetting 'Copied to Daily' property to False")
+        uncheck_copied_to_daily_book_summaries()
+        book_summaries = get_book_summaries(get_books_not_copied=True)
+
+    book_summary_to_copy = random.choice(book_summaries)
+    book_summary_to_copy_page_id = book_summary_to_copy["id"]
+    book_summary_to_copy_state_name = book_summary_to_copy["properties"]["State"]["formula"]["string"]
+
+    book_summary_config = TaskConfig(
+        name=book_summary_to_copy_state_name,
+        get_pages_func=None,
+        state_property_name="State",
+        daily_filter=daily_notion_category_filter,
+        state_suffix="",
+        icon=generate_icon_url(IconType.BOOK),
+        project=Projects.notion,
+        page_id=book_summary_to_copy_page_id
+    )
+
+    copy_pages_to_daily(book_summary_config)
+    check_copied_to_daily_book_summaries(book_summary_to_copy_page_id)
 
 
 def copy_expenses_and_warranty():
@@ -113,7 +149,7 @@ def copy_expenses_and_warranty():
         project=Projects.notion
     )
 
-    recurring_tasks_to_daily(expense_warranty_config)
+    copy_pages_to_daily(expense_warranty_config)
 
 
 def copy_insurance():
@@ -127,7 +163,7 @@ def copy_insurance():
         project=Projects.notion
     )
 
-    recurring_tasks_to_daily(insurance_config)
+    copy_pages_to_daily(insurance_config)
 
 
 def copy_recurring_tasks():
@@ -141,7 +177,7 @@ def copy_recurring_tasks():
         project=Projects.notion
     )
 
-    recurring_tasks_to_daily(insurance_config)
+    copy_pages_to_daily(insurance_config)
 
 
 def copy_normal_tasks():
@@ -155,7 +191,7 @@ def copy_normal_tasks():
         project=Projects.notion
     )
 
-    recurring_tasks_to_daily(insurance_config)
+    copy_pages_to_daily(insurance_config)
 
 
 def get_trading():
@@ -299,6 +335,20 @@ def copy_done_from_daily_to_copied_tasks():
             logger.error(f"Could not Update the status to done for the children of {daily_page_name}: {e}")
             continue
 
+def uncheck_copied_to_daily_book_summaries():
+    book_summaries = get_book_summaries(get_books_not_copied=False)
+    if not book_summaries:
+        logger.info("No book summaries were found to uncheck")
+        return
+
+    for book_summary in book_summaries:
+        book_summary_id = book_summary["id"]
+        update_page(book_summary_id, uncheck_copied_to_daily_payload)
+
+
+def check_copied_to_daily_book_summaries(book_summary_page_id):
+    update_page(book_summary_page_id, check_copied_to_daily_payload)
+
 
 @track_operation(NotionAPIOperation.GARMIN)
 def update_garmin_info(update_daily_tasks=True):
@@ -405,10 +455,7 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            # daily_tasks = get_daily_tasks()
-            # all_icons = [task['icon'] for task in daily_tasks]
-            create_daily_pages_for_db_id(api_db_id, icon=generate_icon_url(IconType.SERVER, IconColor.BLUE),
-                                         link_to_day_summary_tasks=True, days_range_to_create=1, name='daily API page')
+            copy_book_summary()
 
             logger.info("End of manual run")
 
@@ -438,6 +485,7 @@ if __name__ == '__main__':
         'create_daily_pages': create_daily_pages,
         'copy_pages': copy_pages_from_other_db_if_needed,
         'get_expenses': get_expenses_to_notion,
+        'copy_book_summary': copy_book_summary,
     }
 
     # Set up command-line argument parsing

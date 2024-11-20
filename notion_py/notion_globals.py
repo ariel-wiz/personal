@@ -22,6 +22,7 @@ expense_and_warranty_db_id = Keys.expense_and_warranty_db_id
 insurance_db_id = Keys.insurance_db_id
 expense_tracker_db_id = Keys.expense_tracker_db_id
 months_expenses_tracker_db_id = Keys.months_expenses_tracker_db_id
+book_summaries_db_id = Keys.book_summaries_db_id
 
 
 class NotionPropertyType:
@@ -74,6 +75,7 @@ class TaskConfig:
     icon: str = "📝"
     project: str = Projects.notion
     children_block: bool = True
+    page_id: str = ""
 
 
 class IconType:
@@ -87,6 +89,7 @@ class IconType:
     SIGNATURE = 'signature'
     CHAT = 'chat'
     SERVER = 'server'
+    BOOK = 'book'
 
 
 class IconColor:
@@ -327,4 +330,9 @@ current_month_year_filter = {
     ]
 }
 
-
+book_summaries_not_copied_to_daily_filter = {
+    "property": "Copied to Daily",
+    "checkbox": {
+        "equals": False
+    }
+}

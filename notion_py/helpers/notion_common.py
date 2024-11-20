@@ -336,87 +336,114 @@ def update_page_with_relation(page_id_add_relation, page_id_data_to_import, rela
     logger.info("Relation added successfully!")
 
 
-def recurring_tasks_to_daily(config: TaskConfig) -> None:
+def copy_pages_to_daily(config: TaskConfig) -> None:
     """
-    Generic function to copy tasks from a source database to daily tasks.
+    Copy tasks from source database or specific page to daily tasks.
+    Handles both single page copying and bulk copying scenarios.
 
     Args:
-        config: TaskConfig object containing all necessary configuration
+        config: TaskConfig object containing copying configuration
     """
-    # Get source pages
+    if config.page_id:
+        _copy_single_page(config)
+        return
+
+    if not config.get_pages_func:
+        logger.info(f"No get_pages_func provided and no page_id specified for {config.name}")
+        return
+
+    _copy_multiple_pages(config)
+
+
+def _copy_single_page(config: TaskConfig) -> None:
+    """Handle copying a single page based on page_id"""
+    try:
+        task_dict = {
+            "Task": config.name,
+            "Project": config.project,
+            "Due": today.isoformat(),
+            "Icon": config.icon
+        }
+
+        response = _create_page_with_config(task_dict, config)
+        logger.info(f"Successfully created a daily {config.name} task with ID {response['id']}")
+
+    except Exception as e:
+        logger.error(f"Failed to create a daily {config.name} task - error {str(e)}")
+
+
+def _copy_multiple_pages(config: TaskConfig) -> None:
+    """Handle copying multiple pages from source database"""
     source_pages = config.get_pages_func()
     if not source_pages:
         logger.info(f"No {config.name} to update")
         return
 
-    # Get existing daily tasks using the filter
-    daily_tasks = get_daily_tasks(config.daily_filter)
-    existing_task_names = [
-        task['properties']['Task']['title'][0]['plain_text']
-        for task in daily_tasks
-    ]
-
-    success_task_count = 0
-    error_task_count = 0
+    existing_task_names = _get_existing_task_names(config.daily_filter)
+    success_count, error_count = 0, 0
 
     for source_page in source_pages:
         state = source_page['properties'][config.state_property_name]['formula']['string']
 
+        if _is_page_exists(state, existing_task_names, config.state_suffix):
+            logger.info(f"Page for '{state}' already exists")
+            continue
+
         try:
-            # Check for existing pages
-            if config.state_suffix:
-                existing_page = find_state_items(
-                    existing_task_names,
-                    state,
-                    config.state_suffix
-                )
-            else:
-                existing_page = state in existing_task_names
-
-            if existing_page:
-                logger.info(f"Page for '{state}' already exists")
-                continue
-
-            # Get due date if configured
-            due_date = (
-                source_page['properties'][config.date_property_name]['formula']['date']['start']
-                if config.date_property_name
-                else today.isoformat()
-            )
-
-            # Create the task
             task_dict = {
                 "Task": state,
                 "Project": config.project,
-                "Due": due_date,
+                "Due": _get_due_date(source_page, config),
                 "Icon": config.icon
             }
 
-            # Create page with or without children block
-            if config.children_block:
-                children_block = generate_page_content_page_notion_link(source_page['id'])
-                response = create_page_with_db_dict_and_children_block(
-                    daily_tasks_db_id,
-                    task_dict,
-                    children_block
-                )
-            else:
-                response = create_page_with_db_dict(daily_tasks_db_id, task_dict)
-
+            response = _create_page_with_config(task_dict, config, source_page.get('id'))
             logger.info(f"Successfully created a daily {config.name} task for {state} with ID {response['id']}")
-            success_task_count += 1
+            success_count += 1
 
         except Exception as e:
             logger.error(f"Failed to create a daily {config.name} task for {state} - error {str(e)}")
-            error_task_count += 1
-            continue
+            error_count += 1
 
-    if success_task_count > 0 and error_task_count > 0:
-        logger.info(f"Successfully copied {success_task_count} tasks. Errors: {error_task_count}")
-    elif success_task_count > 0:
-        logger.info(f"Successfully copied {success_task_count} tasks")
-    elif error_task_count > 0:
-        logger.info(f"Failed to create daily {config.name} tasks - Errors: {error_task_count}")
+    _log_copy_results(config.name, success_count, error_count)
+
+
+def _create_page_with_config(task_dict: dict, config: TaskConfig, page_id: str = None) -> dict:
+    """Create a page with or without children block based on config"""
+    if config.children_block:
+        children_block = generate_page_content_page_notion_link(page_id or config.page_id)
+        return create_page_with_db_dict_and_children_block(daily_tasks_db_id, task_dict, children_block)
+    return create_page_with_db_dict(daily_tasks_db_id, task_dict)
+
+
+def _get_existing_task_names(daily_filter: dict) -> list:
+    """Get list of existing task names"""
+    daily_tasks = get_daily_tasks(daily_filter)
+    return [task['properties']['Task']['title'][0]['plain_text'] for task in daily_tasks]
+
+
+def _is_page_exists(state: str, existing_names: list, suffix: str) -> bool:
+    """Check if page already exists"""
+    if suffix:
+        return bool(find_state_items(existing_names, state, suffix))
+    return state in existing_names
+
+
+def _get_due_date(source_page: dict, config: TaskConfig) -> str:
+    """Get due date from source page or default to today"""
+    if config.date_property_name:
+        return source_page['properties'][config.date_property_name]['formula']['date']['start']
+    return today.isoformat()
+
+
+def _log_copy_results(name: str, success_count: int, error_count: int) -> None:
+    """Log results of copy operation"""
+    if success_count > 0 and error_count > 0:
+        logger.info(f"Successfully copied {success_count} tasks. Errors: {error_count}")
+    elif success_count > 0:
+        logger.info(f"Successfully copied {success_count} tasks")
+    elif error_count > 0:
+        logger.info(f"Failed to create daily {name} tasks - Errors: {error_count}")
 
 
 # Format responses
@@ -453,5 +480,7 @@ def print_notion_response(response, type=''):
             logger.info(json.dumps(properties, indent=4))
 
 
-def generate_icon_url(icon_type, icon_color):
+def generate_icon_url(icon_type, icon_color=IconColor.LIGHT_GRAY):
     return f'https://www.notion.so/icons/{icon_type}_{icon_color}.svg'
+
+

@@ -18,7 +18,8 @@ def generate_create_page_payload(db_id, db_dict):
 
     daily_db_items = {
         NotionPropertyType.TITLE: ["Name", "Task", "Day", "Expense"],
-        NotionPropertyType.TEXT: ["Sleep Start", "Sleep End", "Sleep Duration", "Activity Duration", "Memo"],
+        NotionPropertyType.TEXT: ["Sleep Start", "Sleep End", "Sleep Duration", "Activity Duration", "Memo",
+                                  "Original Name"],
         NotionPropertyType.SELECT_ID: ["Project"],
         NotionPropertyType.SELECT_NAME: ["Sleep Feedback", "Person Card", "Status", "Type", "Original Currency",
                                          "Charged Currency", "Category"],
@@ -185,6 +186,22 @@ def get_trading_payload(db_id, name_row, description, large_description, example
     return trading_payload
 
 
+uncheck_copied_to_daily_payload = {
+    "properties": {
+        "Copied to Daily": {
+            "checkbox": False
+        }
+    }
+}
+
+check_copied_to_daily_payload = {
+    "properties": {
+        "Copied to Daily": {
+            "checkbox": True
+        }
+    }
+}
+
 uncheck_done_set_today_payload = {
     "properties": {
         "Done": {
@@ -204,4 +221,3 @@ check_done_payload = {
         }
     }
 }
-

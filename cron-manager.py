@@ -4,7 +4,7 @@ import sys
 from datetime import datetime
 from enum import Enum
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Union
 from logger import logger
 
 
@@ -17,6 +17,7 @@ class Frequency(Enum):
     WEEKLY_WEDNESDAY = "wednesday"
     WEEKLY_THURSDAY = "thursday"
     WEEKLY_FRIDAY = "friday"
+    FIRST_AND_FIFTEENTH = ["1/*", "15/*"]
 
 
 @dataclass
@@ -24,11 +25,16 @@ class ScriptConfig:
     name: str  # Descriptive name for the script
     path: str  # Full path to the script
     arg: str  # Command line argument
-    frequency: str  # Can be: Frequency enum value or "DD/*" format for monthly
+    frequency: Union[str, List[str]]
     python_path: Optional[str] = None  # Optional custom PYTHONPATH
     working_dir: Optional[str] = None  # Optional working directory
 
     def should_run_today(self, today_date: str, today_weekday: str) -> bool:
+        if isinstance(self.frequency, list):
+            # Handle list of monthly dates (e.g. ["1/*", "15/*"])
+            day_of_month = today_date.split('/')[0]
+            return any(day_of_month == date.split('/')[0] for date in self.frequency)
+
         # Handle monthly frequency (DD/* format)
         if '/*' in self.frequency:
             day_of_month = self.frequency.split('/')[0]
@@ -82,7 +88,8 @@ class ScriptManager:
         for script in self.scripts:
             if script.should_run_today(self.today_date, self.today_weekday):
                 try:
-                    self.run_script(script)
+                    # self.run_script(script)
+                    logger.info(f" ---- Running {script.name}: {script.path} with arguments {script.arg} ----")
                 except Exception as e:
                     logger.error(f"There was an error in cron when attempting to run {script}: {str(e)}\n"
                                  f"Running the next script")
@@ -139,6 +146,14 @@ NOTION_SCRIPTS = [
         path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
         arg="--get_expenses",
         frequency=Frequency.DAILY.value,
+        python_path="/Users/ariel/PycharmProjects/personal",
+        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    ),
+    ScriptConfig(
+        name="Copy Book Summaries",
+        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+        arg="--copy_book_summary",
+        frequency=Frequency.FIRST_AND_FIFTEENTH.value,
         python_path="/Users/ariel/PycharmProjects/personal",
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     )

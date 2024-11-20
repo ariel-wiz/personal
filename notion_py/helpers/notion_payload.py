@@ -23,7 +23,7 @@ def generate_create_page_payload(db_id, db_dict):
         NotionPropertyType.SELECT_ID: ["Project"],
         NotionPropertyType.SELECT_NAME: ["Sleep Feedback", "Person Card", "Status", "Type", "Original Currency",
                                          "Charged Currency", "Category"],
-        NotionPropertyType.MULTI_SELECT: [],
+        NotionPropertyType.MULTI_SELECT: ["Activities"],
         NotionPropertyType.DATE: ["Date", "Due", "Processed Date"],
         NotionPropertyType.URL: ["gCal Link"],
         NotionPropertyType.NUMBER: ["Steps", "Steps Goal", "Calories", "Sleep Note", "Activity Calories",

@@ -382,6 +382,7 @@ def update_garmin_info(update_daily_tasks=True):
             "Calories": garmin_dict['total_calories'],
             "Activity Duration": garmin_dict['total_activity_duration'],
             "Activity Calories": garmin_dict['total_activity_calories'],
+            "Activities": garmin_dict['activity_names'],
             "Icon": generate_icon_url(IconType.WATCH, IconColor.BLUE)
         }
 
@@ -455,7 +456,7 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            copy_book_summary()
+            get_garmin_info(2)
 
             logger.info("End of manual run")
 

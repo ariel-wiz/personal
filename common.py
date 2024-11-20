@@ -72,7 +72,7 @@ def add_hours_to_time(time_str):
     input_time = datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%S.%f')
 
     # Add 3 hours using timedelta
-    adjusted_time = input_time + timedelta(hours=3)
+    adjusted_time = input_time + timedelta(hours=2)
 
     # Return the adjusted time in hh:mm format
     return adjusted_time.strftime('%H:%M')

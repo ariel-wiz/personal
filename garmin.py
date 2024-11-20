@@ -6,7 +6,7 @@ export EMAIL=<your garmin email>
 export PASSWORD=<your garmin password>
 
 """
-import datetime
+from datetime import datetime, timedelta, date
 import json
 import os
 import sys
@@ -33,9 +33,9 @@ tokenstore_base64 = os.getenv("GARMINTOKENS_BASE64") or "~/.garminconnect_base64
 api = None
 
 # Example selections and settings
-today = datetime.date.today()
-yesterday = today - datetime.timedelta(days=1)
-startdate = today - datetime.timedelta(days=7)  # Select past week
+today = date.today()
+yesterday = today - timedelta(days=1)
+startdate = today - timedelta(days=7)  # Select past week
 start = 0
 limit = 100
 start_badge = 1  # Badge related calls calls start counting at 1
@@ -884,69 +884,82 @@ def switch(api, i):
         print("Could not login to Garmin Connect, try again later.")
 
 
-def get_notion_values():
-    sleep_data = api.get_sleep_data(yesterday.isoformat())
-    sleep_start = sleep_data['dailySleepDTO']['sleepStartTimestampGMT']
-    sleep_end = sleep_data['dailySleepDTO']['sleepEndTimestampGMT']
-    sleep_feedback_overall = sleep_data['dailySleepDTO']['sleepScore']['overall']
+def get_garmin_info(days_ago: int = 1) -> dict:
+    """
+    Get Garmin info for a specific day.
+    Args:
+        days_ago: Number of days ago to get data for (default: 1 for yesterday)
+    Returns:
+        dict: Garmin data including sleep, activity and steps info
+    """
+    target_date = datetime.now().date() - timedelta(days=days_ago)
 
-    user_summary_data = api.get_user_summary(yesterday.isoformat())
-    steps = user_summary_data['totalSteps']
-    daily_step_goal = user_summary_data['dailyStepGoal']
-    total_calories = user_summary_data['totalKilocalories']
-
-    activity_data = api.get_activities_by_date(yesterday.isoformat(), today.isoformat())
-    total_activity_duration = 0
-    total_activity_calories = 0
-    for activity in activity_data:
-        activity_name = activity['activityName']
-        if activity_name == 'Walking':
-            continue
-        total_activity_duration += activity['duration']
-        total_activity_calories += activity['calories']
-
-
-def get_garmin_info():
     api = init_api()
-    sleep_data = api.get_sleep_data(yesterday.isoformat())
-    if not sleep_data.get('sleepMovement'):  # It means the data is empty
+    sleep_info = _get_sleep_info(api, target_date)
+    if not sleep_info:
         return {}
 
-    sleep_start = add_hours_to_time(sleep_data['sleepLevels'][0]['startGMT'])
-    sleep_end = add_hours_to_time(sleep_data['sleepLevels'][-1]['endGMT'])
-    sleep_duration = seconds_to_hours_minutes(sleep_data['dailySleepDTO']['sleepTimeSeconds'])
-    sleep_feedback_overall = sleep_data['dailySleepDTO']['sleepScores']['overall']['qualifierKey']
-    sleep_feedback_note = sleep_data['dailySleepDTO']['sleepScores']['overall']['value']
+    activity_info = _get_activity_info(api, target_date)
+    user_info = _get_user_info(api, target_date)
 
-    user_summary_data = api.get_user_summary(yesterday.isoformat())
-    steps = user_summary_data['totalSteps']
-    daily_steps_goal = user_summary_data['dailyStepGoal']
-    total_calories = user_summary_data['totalKilocalories']
-
-    activity_data = api.get_activities_by_date(day_before_yesterday.isoformat(), yesterday.isoformat())
-    total_activity_duration = 0
-    total_activity_calories = 0
-    for activity in activity_data:
-        activity_name = activity['activityName']
-        if 'Walk' in activity_name:
-            continue
-        total_activity_duration += activity['duration']
-        total_activity_calories += activity['calories']
+    if user_info.get('total_calories', 3000) < 2000:
+        err_message = f"Error with the data - calories: {user_info.get('total_calories', 3000)} is not a correct value"
+        logger.error(err_message)
+        raise Exception(err_message)
 
     return {
-        "date": yesterday.isoformat(),
-        "sleep_start": sleep_start,
-        "sleep_end": sleep_end,
-        "sleep_duration": sleep_duration,
-        "sleep_feedback_overall": sleep_feedback_overall,
-        "steps": steps,
-        "daily_steps_goal": daily_steps_goal,
-        "total_calories": total_calories,
-        "total_activity_duration": seconds_to_hours_minutes(total_activity_duration),
-        "total_activity_calories": total_activity_calories,
-        "sleep_feedback_note": sleep_feedback_note
+        "date": target_date.isoformat(),
+        **sleep_info,
+        **activity_info,
+        **user_info
     }
 
+
+def _get_sleep_info(api, date) -> dict:
+    """Extract sleep-related data from Garmin API"""
+    sleep_data = api.get_sleep_data(date.isoformat())
+    if not sleep_data.get('sleepMovement'):
+        return {}
+
+    return {
+        "sleep_start": add_hours_to_time(sleep_data['sleepLevels'][0]['startGMT']),
+        "sleep_end": add_hours_to_time(sleep_data['sleepLevels'][-1]['endGMT']),
+        "sleep_duration": seconds_to_hours_minutes(sleep_data['dailySleepDTO']['sleepTimeSeconds']),
+        "sleep_feedback_overall": sleep_data['dailySleepDTO']['sleepScores']['overall']['qualifierKey'],
+        "sleep_feedback_note": sleep_data['dailySleepDTO']['sleepScores']['overall']['value']
+    }
+
+
+def _get_user_info(api, date) -> dict:
+    """Extract user summary data from Garmin API"""
+    user_data = api.get_user_summary(date.isoformat())
+    return {
+        "steps": user_data['totalSteps'],
+        "daily_steps_goal": user_data['dailyStepGoal'],
+        "total_calories": user_data['totalKilocalories']
+    }
+
+
+def _get_activity_info(api, date) -> dict:
+    """Extract activity data from Garmin API"""
+    day_before = date - timedelta(days=1)
+    activities = api.get_activities_by_date(day_before.isoformat(), date.isoformat())
+
+    total_duration = 0
+    total_calories = 0
+    activity_names = []
+
+    for activity in activities:
+        total_duration += activity['duration']
+        total_calories += activity['calories']
+        if activity['activityName'] not in activity_names and activity['activityName'] not in ["Strength"]:
+            activity_names.append(activity['activityName'])
+
+    return {
+        "total_activity_duration": seconds_to_hours_minutes(total_duration),
+        "total_activity_calories": total_calories,
+        "activity_names": activity_names
+    }
 
 # Main program loop
 # Display header and login

@@ -456,7 +456,7 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            get_garmin_info(2)
+            get_garmin_info(1)
 
             logger.info("End of manual run")
 

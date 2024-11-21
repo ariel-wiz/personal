@@ -88,8 +88,8 @@ class ScriptManager:
         for script in self.scripts:
             if script.should_run_today(self.today_date, self.today_weekday):
                 try:
-                    # self.run_script(script)
                     logger.info(f" ---- Running {script.name}: {script.path} with arguments {script.arg} ----")
+                    self.run_script(script)
                 except Exception as e:
                     logger.error(f"There was an error in cron when attempting to run {script}: {str(e)}\n"
                                  f"Running the next script")

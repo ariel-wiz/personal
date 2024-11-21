@@ -942,8 +942,7 @@ def _get_user_info(api, date) -> dict:
 
 def _get_activity_info(api, date) -> dict:
     """Extract activity data from Garmin API"""
-    day_before = date - timedelta(days=1)
-    activities = api.get_activities_by_date(day_before.isoformat(), date.isoformat())
+    activities = api.get_activities_by_date(date.isoformat(), date.isoformat())
 
     total_duration = 0
     total_calories = 0

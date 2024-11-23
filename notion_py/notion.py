@@ -4,6 +4,7 @@ import random
 from epub import read_epub
 from common import create_tracked_lambda, create_shabbat_dates, yesterday, \
     DateOffset
+from expense.notion_expense_service import NotionExpenseService
 from garmin.garmin_manager import GarminManager
 from jewish_calendar import JewishCalendarAPI
 from logger import logger
@@ -17,7 +18,6 @@ from notion_py.helpers.notion_common import create_page_with_db_dict, create_pag
     update_page, create_page, get_pages_by_date_offset, copy_pages_to_daily, get_daily_tasks, \
     get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url
 from variables import Paths
-from expense_tracker import ExpenseManager
 
 
 def create_trading_page(name_row, description, large_description, example):
@@ -358,8 +358,9 @@ def copy_pages_from_other_db_if_needed():
 
 @track_operation(NotionAPIOperation.GET_EXPENSES)
 def get_expenses_to_notion():
-    expense_manager = ExpenseManager()
-    expense_manager.add_all_expenses_to_notion(check_before_adding=True)
+    expense_service = NotionExpenseService(expense_tracker_db_id, months_expenses_tracker_db_id)
+    expense_service.add_all_expenses_to_notion()
+    expense_service.update_current_month_expenses()
 
 
 def run_functions(functions):

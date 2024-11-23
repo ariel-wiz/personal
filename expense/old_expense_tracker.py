@@ -533,30 +533,87 @@ class ExpenseManager:
 
         return month_expenses
 
+    def check_duplicate_expense_relations(self, monthly_expense: MonthlyExpenses):
+        """
+        Checks if any expense appears in multiple relation columns in the monthly database.
+
+        Args:
+            monthly_expense (MonthlyExpenses): Monthly expense object containing relations
+
+        Returns:
+            list[dict]: List of dictionaries containing duplicate expense information
+                        Each dict has keys: 'expense', 'columns' (list of column names)
+        """
+        # Track expenses and their columns
+        expense_locations = {}
+        duplicates = []
+        monthly_relations = monthly_expense.get_existing_relations()
+        month_id = f"{monthly_expense.month}-{monthly_expense.year}"
+
+        # Check each category/relation column
+        for relation_name in monthly_relations:
+            # Get expenses in this column
+            expenses = monthly_expense.get_expenses(relation_name)
+            if not expenses:
+                continue
+
+            # Check each expense in the column
+            for expense in expenses:
+                expense_id = expense.page_id
+
+                if expense_id in expense_locations:
+                    # Found a duplicate! Add to duplicates list
+                    existing_info = expense_locations[expense_id]
+                    if not existing_info.get('reported', False):  # Avoid reporting same duplicate multiple times
+                        duplicate_info = {
+                            'expense': expense,
+                            'columns': [existing_info['column'], relation_name],
+                            'month_id': month_id
+                        }
+                        duplicates.append(duplicate_info)
+
+                        # Log the duplicate
+                        logger.warning(
+                            f"Duplicate expense found in {month_id}:\n"
+                            f"  Expense: {expense}\n"
+                            f"  Found in columns: '{existing_info['column']}' and '{relation_name}'"
+                        )
+
+                        # Mark as reported to avoid duplicate reporting
+                        existing_info['reported'] = True
+                else:
+                    # First time seeing this expense
+                    expense_locations[expense_id] = {
+                        'expense': expense,
+                        'column': relation_name,
+                        'reported': False
+                    }
+        if not duplicates:
+            logger.info(f"No duplicate expenses found in {monthly_expense.month}-{monthly_expense.year}")
+
+        return duplicates
+
     def _group_expenses_by_category(self, expenses_list, monthly_expense: MonthlyExpenses):
         """
-        Groups expenses by category and subcategory, only including subcategories
-        that exist in monthly expense relations.
+        Groups expenses by category and subcategory. If an expense has a subcategory
+        that exists in monthly expense relations, it is only added to that subcategory.
+        Otherwise, it is added to its main category.
 
         Args:
             expenses_list (list): List of expenses to group
             monthly_expense (MonthlyExpenses): Monthly expense object containing valid relations
 
         Returns:
-            dict: Dictionary with category keys and lists of expenses as values
+            dict: Dictionary with category/subcategory keys and lists of expenses as values
         """
         category_expenses = {}
         monthly_relations = monthly_expense.get_existing_relations()
 
         for expense in expenses_list:
-            # Handle main category
-            category = expense.category
-            if category not in category_expenses:
-                category_expenses[category] = []
-            category_expenses[category].append(expense)
-
-            # Handle subcategory only if it exists in monthly relations
+            # First check if there's a valid subcategory
             sub_category = expense.sub_category
+            added_to_subcategory = False
+
             if sub_category:
                 sub_category_without_emoji = remove_emojis(sub_category).strip()
                 matching_relations = [rel for rel in monthly_relations
@@ -566,6 +623,14 @@ class ExpenseManager:
                     if sub_category not in category_expenses:
                         category_expenses[sub_category] = []
                     category_expenses[sub_category].append(expense)
+                    added_to_subcategory = True
+
+            # Only add to main category if not added to a subcategory
+            if not added_to_subcategory:
+                category = expense.category
+                if category not in category_expenses:
+                    category_expenses[category] = []
+                category_expenses[category].append(expense)
 
         return category_expenses
 
@@ -875,65 +940,42 @@ class ExpenseManager:
             return False
 
 
-def get_name(description, price):
+def get_name(description: str, price: float) -> str:
+    """Get standardized name for expense based on description and price"""
     for name, name_dicts in MODIFIED_NAMES.items():
         for name_dict in name_dicts:
             if name_dict[ExpenseField.NAME] in description:
                 operation = name_dict.get("math_operation")
                 dynamic_operation = name_dict.get("dynamic_operation")
 
-                if dynamic_operation:
-                    # Check if the dynamic_operation is a function name
-                    if isinstance(dynamic_operation, str):
-                        try:
-                            # Try to find the function by name and invoke it with "a" and "b" as arguments
-                            name_modifier_function = globals().get(dynamic_operation)
-                            if name_modifier_function:
-                                name = name_modifier_function(name, description, price)
-                                return name
-                        except (AttributeError, TypeError):
-                            # If the function doesn't exist or can't be called, skip this name_dict
-                            logger.error(
-                                f"Error calling dynamic_operation function {dynamic_operation} for {description}.")
-                            pass
+                if dynamic_operation and isinstance(dynamic_operation, str):
+                    try:
+                        name_modifier_function = globals().get(dynamic_operation)
+                        if name_modifier_function:
+                            return name_modifier_function(name, description, price)
+                    except (AttributeError, TypeError) as e:
+                        logger.error(f"Error calling dynamic_operation function {dynamic_operation} for {description}: {e}")
+                        continue
 
                 if ExpenseField.CHARGED_AMOUNT in name_dict:
                     expected_amount = name_dict[ExpenseField.CHARGED_AMOUNT]
 
-                    if operation:
-                        if "approx" in operation:
-                            # Approximate range logic
-                            percentage = int(operation.split("(")[1].strip('%)'))  # Get the percentage value
-                            lower_bound = expected_amount * (1 - percentage / 100)
-                            upper_bound = expected_amount * (1 + percentage / 100)
+                    if operation and "approx" in operation:
+                        percentage = int(operation.split("(")[1].strip('%)'))
+                        lower_bound = expected_amount * (1 - percentage / 100)
+                        upper_bound = expected_amount * (1 + percentage / 100)
 
-                            if lower_bound <= abs(price) <= upper_bound:
-                                return name
+                        if lower_bound <= abs(price) <= upper_bound:
+                            return name
 
-                        elif operation == '>':
-                            # Check if price is greater than expected amount
-                            if abs(price) > expected_amount:
-                                return name
+                    if ExpenseField.CHARGED_AMOUNT not in name_dict or \
+                            abs(float(name_dict[ExpenseField.CHARGED_AMOUNT])) == abs(price):
+                        return name
 
-                        elif operation == '<':
-                            # Check if price is less than expected amount
-                            if abs(price) < expected_amount:
-                                return name
-
-                # If no CHARGED_AMOUNT or operation, return name if description matches
-                if ExpenseField.CHARGED_AMOUNT not in name_dict or \
-                        (ExpenseField.CHARGED_AMOUNT in name_dict and abs(
-                            int(name_dict[ExpenseField.CHARGED_AMOUNT])) == abs(
-                            price)):
-                    # if "אלקטרה" in description:
-                    #     print("")
-
-                    return name
-
+    # Clean up description
     for not_desired_word in ['בע"מ', 'בעמ']:
-        if not_desired_word in description:
-            description = description.replace(not_desired_word, '')
-    return description
+        description = description.replace(not_desired_word, '')
+    return description.strip()
 
 
 def get_category_name(description, he_category, price):
@@ -1013,4 +1055,4 @@ def parse_payment_string(remaining_amount_dict, memo, currency):
 # expense_manager.remove_duplicates()
 
 # expense_manager = ExpenseManager()
-# expense_manager.update_historical_monthly_pages()
+# expense_manager.check_duplicate_expense_relations(expense_manager.get_current_month_expenses())

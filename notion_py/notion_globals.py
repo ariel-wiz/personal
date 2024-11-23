@@ -89,6 +89,7 @@ class IconType:
     SIGNATURE = 'signature'
     CHAT = 'chat'
     SERVER = 'server'
+    SUN = 'sun'
     BOOK = 'book'
 
 

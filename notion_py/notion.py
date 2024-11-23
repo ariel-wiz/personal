@@ -2,9 +2,9 @@ import argparse
 import random
 
 from epub import read_epub
-from garmin import get_garmin_info
 from common import create_tracked_lambda, create_shabbat_dates, yesterday, \
     DateOffset
+from garmin.garmin_manager import GarminManager
 from jewish_calendar import JewishCalendarAPI
 from logger import logger
 from notion_py.helpers.notion_children_blocks import generate_children_block_for_daily_inspirations, \
@@ -18,9 +18,6 @@ from notion_py.helpers.notion_common import create_page_with_db_dict, create_pag
     get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url
 from variables import Paths
 from expense_tracker import ExpenseManager
-
-
-WAKE_UP_HOUR_GOAL = '06:00'
 
 
 def create_trading_page(name_row, description, large_description, example):
@@ -112,6 +109,7 @@ def get_insurances():
     return get_db_pages(insurance_db_id, insurances_payload)
 
 
+@track_operation(NotionAPIOperation.COPY_PAGES)
 def copy_book_summary():
     book_summaries = get_book_summaries(get_books_not_copied=True)
     if not book_summaries:
@@ -222,33 +220,6 @@ def get_birthdays():
     return get_db_pages(birthday_db_id, birthday_payload)
 
 
-def check_exercise_according_to_activity_status(activity_status):
-    if DaySummaryCheckbox.exercise in activity_status:
-        activity = activity_status[DaySummaryCheckbox.exercise]
-        if activity and "Nothing" not in activity:
-            logger.debug(f"Checking {DaySummaryCheckbox.exercise} to true")
-            return {DaySummaryCheckbox.exercise: {
-                "checkbox": True
-            }}
-    return {}
-
-
-def check_wake_up_early_according_to_sleep_end(sleep_end_dict):
-    if DaySummaryCheckbox.wake_up_early in sleep_end_dict:
-        wake_up_hour = sleep_end_dict[DaySummaryCheckbox.wake_up_early]
-
-        time_obj = datetime.strptime(wake_up_hour, '%H:%M').time()
-        comparison_time = datetime.strptime(WAKE_UP_HOUR_GOAL, '%H:%M').time()
-
-        if time_obj <= comparison_time:
-            logger.debug(f"Checking {DaySummaryCheckbox.wake_up_early} to true")
-            return {DaySummaryCheckbox.wake_up_early: {
-                "checkbox": True
-            }}
-
-    return {}
-
-
 def create_parashat_hashavua():
     logger.info(f"Starting creating parashat hashavua")
     jewish_api = JewishCalendarAPI()
@@ -352,55 +323,8 @@ def check_copied_to_daily_book_summaries(book_summary_page_id):
 
 @track_operation(NotionAPIOperation.GARMIN)
 def update_garmin_info(update_daily_tasks=True):
-    yesterday_date = yesterday.strftime('%d-%m-%Y')
-    logger.info(f"Updating Garmin info for {yesterday_date}")
-
-    # Checking if the page exists already
-    garmin_pages = get_pages_by_date_offset(garmin_db_id, DateOffset.YESTERDAY)
-    if garmin_pages:
-        garmin_page_id = garmin_pages[0]["id"]
-        logger.info(f"Garmin page for {yesterday_date} already exists with page ID {garmin_page_id}")
-
-    else:
-        garmin_dict = get_garmin_info()
-        if not garmin_dict:
-            logger.info(f"No Garmin data found for {yesterday_date}")
-            return
-
-        logger.debug(garmin_dict)
-
-        formatted_garmin_data = {
-            "Name": yesterday_date,
-            "Date": yesterday.isoformat(),
-            "Sleep Start": garmin_dict['sleep_start'],
-            "Sleep End": garmin_dict['sleep_end'],
-            "Sleep Feedback": garmin_dict['sleep_feedback_overall'],
-            "Sleep Note": garmin_dict['sleep_feedback_note'],
-            "Sleep Duration": garmin_dict['sleep_duration'],
-            "Steps": garmin_dict['steps'],
-            "Steps Goal": garmin_dict['daily_steps_goal'],
-            "Calories": garmin_dict['total_calories'],
-            "Activity Duration": garmin_dict['total_activity_duration'],
-            "Activity Calories": garmin_dict['total_activity_calories'],
-            "Activities": garmin_dict['activity_names'],
-            "Icon": generate_icon_url(IconType.WATCH, IconColor.BLUE)
-        }
-
-        response = create_page_with_db_dict(garmin_db_id, formatted_garmin_data)
-
-        logger.info(f"Successfully created Garmin info for {yesterday_date}")
-
-        if update_daily_tasks:
-            garmin_page_id = response['id']
-            activity_status = response["properties"]["Activity Status"]["formula"]["string"]
-
-            daily_tasks = get_pages_by_date_offset(day_summary_db_id, DateOffset.YESTERDAY)
-            if daily_tasks:
-                daily_task_id = daily_tasks[0]["id"]
-                other_fields = check_exercise_according_to_activity_status({DaySummaryCheckbox.exercise: activity_status})
-                other_fields.update(check_wake_up_early_according_to_sleep_end({DaySummaryCheckbox.wake_up_early: garmin_dict['sleep_end']}))
-                update_page_with_relation(daily_task_id, garmin_page_id, "Watch Metrics", other_fields)
-                logger.info(f"Successfully updated daily task with Garmin info for {yesterday_date}")
+    garmin_manager = GarminManager(garmin_db_id, day_summary_db_id)
+    garmin_manager.update_garmin_info(update_daily_tasks, fill_history=True)
 
 
 @track_operation(NotionAPIOperation.UNCHECK_DONE)
@@ -456,7 +380,7 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            get_garmin_info(1)
+            update_garmin_info()
 
             logger.info("End of manual run")
 

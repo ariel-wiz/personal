@@ -17,7 +17,7 @@ class Frequency(Enum):
     WEEKLY_WEDNESDAY = "wednesday"
     WEEKLY_THURSDAY = "thursday"
     WEEKLY_FRIDAY = "friday"
-    FIRST_AND_FIFTEENTH = ["1/*", "15/*"]
+    TWICE_A_MONTH = ["7/*", "22/*"]
 
 
 @dataclass
@@ -153,7 +153,7 @@ NOTION_SCRIPTS = [
         name="Copy Book Summaries",
         path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
         arg="--copy_book_summary",
-        frequency=Frequency.FIRST_AND_FIFTEENTH.value,
+        frequency=Frequency.TWICE_A_MONTH.value,
         python_path="/Users/ariel/PycharmProjects/personal",
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     )

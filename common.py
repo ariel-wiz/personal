@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime, timedelta, date
 from typing import Callable
 
@@ -56,7 +57,7 @@ def create_day_summary_name(date_str):
     input_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
     # Format the date as '17 October'
-    formatted_date = input_date.strftime('%A %d %B')
+    formatted_date = input_date.strftime('%A %d/%m')
     return formatted_date
 
 
@@ -142,10 +143,12 @@ def should_the_date_change(property):
 
 def create_tracked_lambda(func: Callable, *default_args, **default_kwargs):
     """Helper function to create a trackable lambda function"""
+
     def wrapped(*args, should_track=False, **kwargs):
         combined_args = args if args else default_args
         combined_kwargs = {**default_kwargs, **kwargs}
         return func(*combined_args, should_track=should_track, **combined_kwargs)
+
     return wrapped
 
 
@@ -235,7 +238,32 @@ def adjust_month_end_dates(date_iso):
     # If not in last 3 days, return original date
     return date_iso
 
+
 def get_key_for_value(dict, value):
     return [key for key, val in dict.items() if val == value][0]
 
+
+def remove_emojis(text):
+    # Emoji Unicode ranges
+    emoji_pattern = re.compile(
+        "[\U0001F600-\U0001F64F"  # emoticons
+        "\U0001F300-\U0001F5FF"  # symbols & pictographs
+        "\U0001F680-\U0001F6FF"  # transport & map symbols
+        "\U0001F700-\U0001F77F"  # alchemical symbols
+        "\U0001F780-\U0001F7FF"  # geometric shapes extended
+        "\U0001F800-\U0001F8FF"  # supplemental arrows-c
+        "\U0001F900-\U0001F9FF"  # supplemental symbols and pictographs
+        "\U0001FA00-\U0001FA6F"  # chess symbols
+        "\U0001FA70-\U0001FAFF"  # symbols and pictographs extended-a
+        "\U00002702-\U000027B0"  # dingbats
+        "\U000024C2-\U0001F251"  # enclosed characters
+        "]+",
+        flags=re.UNICODE,
+    )
+    # Remove emojis
+    text_no_emojis = emoji_pattern.sub('', text)
+    # Remove zero-width joiners and other invisible characters
+    text_cleaned = re.sub(r'[\u200d]', '', text_no_emojis)
+    # Strip whitespace
+    return text_cleaned.strip()
 

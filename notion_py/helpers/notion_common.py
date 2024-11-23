@@ -118,7 +118,7 @@ def get_pages_by_date_offset(database_id, offset: int, date_name="Date", filter_
 # Daily and tasks functions
 def create_daily_summary_pages():
     logger.info('Creating daily summary pages')
-    create_daily_pages_for_db_id(day_summary_db_id)
+    create_daily_pages_for_db_id(day_summary_db_id, icon=generate_icon_url(IconType.SUN, IconColor.YELLOW))
 
 
 def create_daily_api_pages():
@@ -329,11 +329,14 @@ def create_page_with_db_dict_and_children_block(db_id, db_dict, children_block):
     return create_page(generated_payload)
 
 
-def update_page_with_relation(page_id_add_relation, page_id_data_to_import, relation_name, other_params={}):
+def update_page_with_relation(page_id_add_relation, page_id_data_to_import, relation_name, other_params={}, name=""):
     relation_payload = get_relation_payload(page_id_data_to_import, relation_name, other_params)
     update_page(page_id_add_relation, relation_payload)
 
-    logger.info("Relation added successfully!")
+    if name:
+        logger.info(f"Relation added successfully for {name}")
+    else:
+        logger.info("Relation added successfully!")
 
 
 def copy_pages_to_daily(config: TaskConfig) -> None:

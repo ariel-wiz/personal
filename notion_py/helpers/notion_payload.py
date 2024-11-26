@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from common import replace_none_with_list_or_string, today
+from common import replace_none_with_list_or_string, today, get_next_sunday
 from notion_py.notion_globals import NotionPropertyType
 
 
@@ -13,9 +13,20 @@ def generate_payload(filter=None, sorts=None):
     return new_payload
 
 
-def generate_create_page_payload(db_id, db_dict):
-    daily_task_payload = {"parent": {"database_id": db_id}, "properties": {}}  # Initialize the payload
+def generate_create_page_payload(db_id, db_dict, property_overrides=None):
+    """
+    Generate Notion page creation payload with flexible property types.
 
+    Args:
+        db_id: Database ID
+        db_dict: Dictionary of values
+        property_overrides: Dictionary to override default property types
+            e.g. {"Category": NotionPropertyType.TITLE}
+    """
+    daily_task_payload = {"parent": {"database_id": db_id}, "properties": {}}
+    property_overrides = property_overrides or {}
+
+    # Default property type mappings
     daily_db_items = {
         NotionPropertyType.TITLE: ["Name", "Task", "Day", "Expense", 'Month'],
         NotionPropertyType.TEXT: ["Sleep Start", "Sleep End", "Sleep Duration", "Activity Duration", "Memo",
@@ -30,6 +41,7 @@ def generate_create_page_payload(db_id, db_dict):
                                     "Charged Amount", "Original Amount", "Remaining Amount"]
     }
 
+    # Property type payload templates
     daily_db_payload = {
         NotionPropertyType.TITLE: {"title": [{"text": {"content": None}}]},
         NotionPropertyType.TEXT: {"rich_text": [{"text": {"content": None}}]},
@@ -43,25 +55,33 @@ def generate_create_page_payload(db_id, db_dict):
 
     for daily_task_element in db_dict.items():
         key, value = daily_task_element
-        for db_item_category_key in list(daily_db_items.keys()):
-            if key == "Icon":
-                if len(value) == 1:
-                    icon_element = {"type": "emoji", "emoji": value}
-                else:
-                    icon_element = {"type": "external", "external": {"url": value}}
-                daily_task_payload["icon"] = icon_element
-                break
-            elif key in daily_db_items[db_item_category_key]:
-                if db_item_category_key == NotionPropertyType.DATE and isinstance(value, list) and len(
-                        value) == 2:  # Start date and end date
-                    start_date = value[0]
-                    end_date = value[1]
+
+        # Check if there's an override for this property
+        if key in property_overrides:
+            property_type = property_overrides[key]
+            payload_element = replace_none_with_list_or_string(daily_db_payload[property_type], value)
+            daily_task_payload["properties"][key] = payload_element
+            continue
+
+        # Handle Icon specially
+        if key == "Icon":
+            if len(value) == 1:
+                icon_element = {"type": "emoji", "emoji": value}
+            else:
+                icon_element = {"type": "external", "external": {"url": value}}
+            daily_task_payload["icon"] = icon_element
+            continue
+
+        # Regular property processing
+        for db_item_category_key, fields in daily_db_items.items():
+            if key in fields:
+                if db_item_category_key == NotionPropertyType.DATE and isinstance(value, list) and len(value) == 2:
+                    start_date, end_date = value
                     payload_element = replace_none_with_list_or_string(daily_db_payload[db_item_category_key],
                                                                        start_date)
                     payload_element["date"]["end"] = end_date
                 elif db_item_category_key == NotionPropertyType.MULTI_SELECT:
-                    if isinstance(value, str):
-                        value = [value]
+                    value = [value] if isinstance(value, str) else value
                     payload_element = {"multi_select": [{"name": v} for v in value]}
                 else:
                     payload_element = replace_none_with_list_or_string(daily_db_payload[db_item_category_key], value)
@@ -209,7 +229,7 @@ uncheck_done_set_today_payload = {
         },
         "Due": {
             "date": {
-                "start": (today + timedelta(days=1)).isoformat()
+                "start": get_next_sunday().isoformat()
             }
         }
     }

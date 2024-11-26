@@ -23,6 +23,7 @@ insurance_db_id = Keys.insurance_db_id
 expense_tracker_db_id = Keys.expense_tracker_db_id
 months_expenses_tracker_db_id = Keys.months_expenses_tracker_db_id
 book_summaries_db_id = Keys.book_summaries_db_id
+current_month_category_expense_db = Keys.current_month_category_expense_db
 
 
 class NotionPropertyType:

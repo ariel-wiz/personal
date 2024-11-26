@@ -1,9 +1,8 @@
 import logging
-
-import logging
 from typing import List
 import atexit
 
+logger_level = logging.DEBUG
 
 class CollectLogHandler(logging.Handler):
     def __init__(self):
@@ -44,15 +43,14 @@ class CollectLogHandler(logging.Handler):
         return log_messages
 
 
-
 def setup_logger():
     # Create a custom logger
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logger_level)
 
     # Create a console handler
     ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
+    ch.setLevel(logger_level)
 
     # Create a custom formatter
     formatter = logging.Formatter(

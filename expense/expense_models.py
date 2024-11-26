@@ -1,12 +1,18 @@
 """
 Core data models for expense tracking system.
 """
-
+import copy
 from dataclasses import dataclass
 from datetime import datetime
 import hashlib
 from typing import Optional, List, Dict
-from variables import ACCOUNT_NUMBER_TO_PERSON_CARD
+
+from expense.expense_constants import ENGLISH_CATEGORY, ENGLISH_SUB_CATEGORIES
+from logger import logger
+from notion_py.helpers.notion_common import _invoke_notion_api, create_page_with_db_dict, create_db
+from notion_py.helpers.notion_payload import generate_create_page_payload
+from notion_py.notion_globals import Method, NotionPropertyType
+from variables import ACCOUNT_NUMBER_TO_PERSON_CARD, Keys
 
 
 class ExpenseField:
@@ -32,35 +38,155 @@ class ExpenseField:
 
 @dataclass
 class MonthlyExpense:
-    """Represents monthly expense records"""
-    id: str
-    month: str
-    year: str
-    month_date_start: str
-    month_date_end: str
+    """
+    Represents and manages monthly expense records and database structure in Notion.
+    Combines expense tracking with database creation capabilities.
+    """
+    id: str  # Notion database/page ID
+    month: str  # Month name
+    year: str  # Year as string
+    month_date_start: str  # ISO date string
+    month_date_end: str  # ISO date string
+    parent_page_id: Optional[str] = None  # Parent page ID for database creation
+    expense_tracker_db_id: Optional[str] = None  # Source expense tracker database ID
     category_expenses_dict: Dict[str, List['Expense']] = None
+    category_and_subcategory_expenses_dict: Dict[str, List['Expense']] = None
     existing_relations: List[str] = None
 
     def __post_init__(self):
+        """Initialize collections if None"""
         self.category_expenses_dict = self.category_expenses_dict or {}
         self.existing_relations = self.existing_relations or []
+        self.categories = list(ENGLISH_CATEGORY.keys())
+        self.sub_categories = ENGLISH_SUB_CATEGORIES
 
-    def add_expense(self, expense: 'Expense', category: str):
+    # Expense Management Methods
+    def add_expense(self, expense: 'Expense', category: str) -> None:
+        """Add an expense to a category"""
         if category not in self.category_expenses_dict:
             self.category_expenses_dict[category] = []
         self.category_expenses_dict[category].append(expense)
 
     def get_expenses(self, category: Optional[str] = None) -> Optional[List['Expense']]:
+        """Get expenses for a category or None"""
         return self.category_expenses_dict.get(category) if category else None
 
     def get_categories(self) -> List[str]:
+        """Get list of expense categories"""
         return list(self.category_expenses_dict.keys())
 
-    def update_existing_relations(self, relation_list: List[str]):
+    def update_existing_relations(self, relation_list: List[str]) -> None:
+        """Update list of existing Notion relations"""
         self.existing_relations.extend(relation_list)
 
     def get_existing_relations(self) -> List[str]:
+        """Get list of existing Notion relations"""
         return self.existing_relations
+
+    # Database Creation Methods
+    def create_monthly_database_with_pages(self) -> Dict[str, str]:
+        """Creates a new monthly expense database in Notion with category pages"""
+        if not self.parent_page_id or not self.expense_tracker_db_id:
+            raise ValueError("parent_page_id and expense_tracker_db_id must be set for database creation")
+
+        try:
+            # Create main database
+            database_id = self.create_monthly_database()
+
+            # Create category pages
+            category_page_ids = self.create_category_pages(database_id)
+
+            result = {
+                "database_id": database_id,
+                "category_page_ids": category_page_ids
+            }
+
+            logger.info("Successfully created monthly expense structure")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error setting up monthly expenses: {str(e)}")
+            raise
+
+    def create_monthly_database(self) -> str:
+        """Creates a new monthly expense database in Notion"""
+        current_date = datetime.now()
+        db_title = f"{current_date.strftime('%B')}-{current_date.year}"
+
+        # Define database properties
+        db_properties = {
+            "Category": {
+                "type": "title",
+                "title": {}
+            },
+            "Expenses": {
+                "type": "relation",
+                "relation": {
+                    "database_id": self.expense_tracker_db_id,
+                    "single_property": {}
+                }
+            },
+            "Target": {
+                "type": "number",
+                "number": {
+                    "format": "number"
+                }
+            }
+        }
+
+        response = create_db(
+            page_id_to_create_the_db_in=self.parent_page_id,
+            db_title=db_title,
+            properties_payload=db_properties
+        )
+
+        return response['id']
+
+    def create_category_pages(self, database_id: str) -> List[str]:
+        """Creates pages for each expense category"""
+        page_ids = []
+
+        all_categories = copy.deepcopy(self.categories)
+        all_categories.extend(self.sub_categories)
+        all_categories.reverse()
+
+        for category in all_categories:
+            try:
+                page_data = {
+                    "Category": category
+                }
+
+                # Pass the overrides when creating the page
+                response = create_page_with_db_dict(
+                    database_id,
+                    page_data,
+                    property_overrides={"Category": NotionPropertyType.TITLE}
+                )
+                page_ids.append(response['id'])
+                logger.info(f"Created category page for: {category}")
+
+            except Exception as e:
+                logger.error(f"Error creating category page for {category}: {str(e)}")
+                continue
+
+        return page_ids
+
+
+    @classmethod
+    def create_new(cls, parent_page_id: str, expense_tracker_db_id: str) -> 'MonthlyExpense':
+        """
+        Factory method to create a new MonthlyExpense instance with database creation capabilities
+        """
+        current_date = datetime.now()
+        return cls(
+            id="",  # Will be set after database creation
+            month=current_date.strftime('%B'),
+            year=str(current_date.year),
+            month_date_start=current_date.replace(day=1).date().isoformat(),
+            month_date_end=current_date.replace(day=1, month=current_date.month + 1).date().isoformat(),
+            parent_page_id=parent_page_id,
+            expense_tracker_db_id=expense_tracker_db_id
+        )
 
 
 class Expense:
@@ -90,7 +216,7 @@ class Expense:
         self.original_currency = original_currency
         self.charged_amount = charged_amount
         self.charged_currency = charged_currency
-        self.expense_name = description
+        self.name = description
         self.memo = memo
         self.category = category
         self.status = status
@@ -129,14 +255,14 @@ class Expense:
 
     def get_person_card(self) -> str:
         for key, value in ACCOUNT_NUMBER_TO_PERSON_CARD.items():
-            if value in self.expense_name:
+            if value in self.name:
                 return value
         return ACCOUNT_NUMBER_TO_PERSON_CARD.get(self.account_number, self.account_number)
 
     def get_payload(self) -> dict:
         """Generate Notion API payload for the expense"""
         payload_dict = {
-            ExpenseField.NAME: self.expense_name,
+            ExpenseField.NAME: self.name,
             ExpenseField.PERSON_CARD: self.person_card,
             ExpenseField.STATUS: self.status,
             ExpenseField.PROCESSED_DATE: str(self.processed_date),
@@ -171,5 +297,7 @@ class Expense:
         amount = f'amount={self.charged_amount} {currency}'
         if self.remaining_amount != 0:
             amount = f'{amount} -> remaining_amount={self.remaining_amount} {currency}'
-        return (f"Expense (name='{self.expense_name}', {amount}, "
+        return (f"Expense (name='{self.name}', {amount}, "
                 f"date={self.date}, category={self.category}, person_card='{self.person_card}')")
+
+

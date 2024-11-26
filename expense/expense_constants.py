@@ -35,6 +35,8 @@ CURRENCY_SYMBOLS = {
     '€': 'EUR €'
 }
 
+ENGLISH_SUB_CATEGORIES = ["Saving 💰", "Insurance 🛡️", "Subscriptions 🔄", "Credit Card 💳", "Expenses 💸"]
+
 # Categories with their keywords
 ENGLISH_CATEGORY: Dict[str, List[str]] = {
     "Insurance & Monthly Fees 🔄": [

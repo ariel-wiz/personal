@@ -4,7 +4,9 @@ import random
 from epub import read_epub
 from common import create_tracked_lambda, create_shabbat_dates, yesterday, \
     DateOffset
+from expense.expense_models import MonthlyExpense
 from expense.notion_expense_service import NotionExpenseService
+from garmin.garmin_api import get_garmin_info
 from garmin.garmin_manager import GarminManager
 from jewish_calendar import JewishCalendarAPI
 from logger import logger
@@ -16,7 +18,7 @@ from notion_py.helpers.notion_payload import generate_payload, get_trading_paylo
 from notion_py.helpers.notion_common import create_page_with_db_dict, create_page_with_db_dict_and_children_block, \
     update_page_with_relation, get_db_pages, track_operation, create_daily_summary_pages, create_daily_api_pages, \
     update_page, create_page, get_pages_by_date_offset, copy_pages_to_daily, get_daily_tasks, \
-    get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url
+    get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url, duplicate_db
 from variables import Paths
 
 
@@ -360,7 +362,6 @@ def copy_pages_from_other_db_if_needed():
 def get_expenses_to_notion():
     expense_service = NotionExpenseService(expense_tracker_db_id, months_expenses_tracker_db_id)
     expense_service.add_all_expenses_to_notion()
-    expense_service.update_current_month_expenses()
 
 
 def run_functions(functions):
@@ -381,8 +382,11 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            update_garmin_info()
-
+            # monthly_expense_category = MonthlyExpense(parent_page_id=Keys().monthly_expenses_page_id,
+            #                                                   expense_tracker_db_id=Keys().expense_tracker_db_id)
+            # monthly_expense_category.create_monthly_database_with_pages()
+            # duplicate_db('148afca4f807808a82dfe0997b9f38cb', 'ariel-duplicate', Keys().monthly_expenses_page_id)
+            get_expenses_to_notion()
             logger.info("End of manual run")
 
     except Exception as e:

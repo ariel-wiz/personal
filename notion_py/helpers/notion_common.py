@@ -24,6 +24,31 @@ headers = {
 
 
 # Fundamental operations
+def create_page(create_payload, print_response=False):
+    create_url = f"https://api.notion.com/v1/pages"
+    return _invoke_notion_api(create_url, create_payload, method=Method.POST, print_response=print_response)
+
+
+def get_page(page_id, get_children=False, print_response=False):
+    page_id = page_id.strip().replace("-", "")
+    get_url = f"https://api.notion.com/v1/pages/{page_id}"
+    if get_children:
+        get_url = f"https://api.notion.com/v1/blocks/{page_id}/children"
+    return _invoke_notion_api(get_url, method=Method.GET, print_response=print_response)
+
+
+def get_db_info(db_id, print_response=False, print_response_type=''):
+    get_db_url = f"https://api.notion.com/v1/databases/{db_id}"
+    return _invoke_notion_api(get_db_url, method=Method.GET, print_response=print_response,
+                              print_response_type=print_response_type)
+
+
+def get_db_pages(db_id, get_db_payload={}, print_response=False, print_response_type=''):
+    get_db_url = f"https://api.notion.com/v1/databases/{db_id}/query"
+    return _invoke_notion_api(get_db_url, get_db_payload, method=Method.POST, print_response=print_response,
+                              print_response_type=print_response_type)
+
+
 def update_page(page_id, update_payload, print_response=False):
     has_properties = 'properties' in update_payload
     has_children = 'children' in update_payload
@@ -48,29 +73,121 @@ def update_page(page_id, update_payload, print_response=False):
     )
 
 
-def create_page(create_payload, print_response=False):
-    create_url = f"https://api.notion.com/v1/pages"
-    return _invoke_notion_api(create_url, create_payload, method=Method.POST, print_response=print_response)
-
-
-def get_page(page_id, get_children=False, print_response=False):
-    page_id = page_id.strip().replace("-", "")
-    get_url = f"https://api.notion.com/v1/pages/{page_id}"
-    if get_children:
-        get_url = f"https://api.notion.com/v1/blocks/{page_id}/children"
-    return _invoke_notion_api(get_url, method=Method.GET, print_response=print_response)
-
-
-def get_db_pages(db_id, get_db_payload={}, print_response=False, print_response_type=''):
-    get_db_url = f"https://api.notion.com/v1/databases/{db_id}/query"
-    return _invoke_notion_api(get_db_url, get_db_payload, method=Method.POST, print_response=print_response,
-                              print_response_type=print_response_type)
-
-
 def delete_page(page_id):
     page_id = page_id.strip().replace("-", "")
     archived_payload = {"archived": True}
     return update_page(page_id, archived_payload)
+
+
+def create_db(page_id_to_create_the_db_in, db_title, properties_payload={}, print_response=False):
+    """
+    Creates a new database in Notion.
+
+    Args:
+        page_id_to_create_the_db_in: Parent page ID where the DB will be created
+        db_title: Title of the database
+        properties_payload: Dictionary containing database properties configuration
+        print_response: Whether to print the API response
+
+    Returns:
+        Response from Notion API containing the new database ID
+    """
+    create_db_url = "https://api.notion.com/v1/databases"
+
+    # Create base payload with parent and title
+    database_payload = {
+        "parent": {
+            "type": "page_id",
+            "page_id": page_id_to_create_the_db_in
+        },
+        "title": [
+            {
+                "type": "text",
+                "text": {
+                    "content": db_title
+                }
+            }
+        ]
+    }
+
+    # Generate properties payload if db_dict is provided
+    if properties_payload:
+        database_payload["properties"] = properties_payload
+
+    return _invoke_notion_api(create_db_url, database_payload, Method.POST, print_response=print_response)
+
+
+def duplicate_db(db_id_to_copy: str, new_db_name: str, page_id_to_copy: str, print_response: bool = False) -> str:
+    """
+    Duplicates a Notion database with its properties structure and all its pages.
+
+    Args:
+        db_id_to_copy: ID of the source database to copy
+        new_db_name: Name for the new database
+        page_id_to_copy: Parent page ID where the new DB will be created
+        print_response: Whether to print API responses
+
+    Returns:
+        str: ID of the newly created database
+    """
+    try:
+        # Get source database schema
+        source_db = get_db_info(db_id_to_copy, print_response=print_response)
+
+        # Create new database with same properties
+        new_db_response = create_db(
+            page_id_to_create_the_db_in=page_id_to_copy,
+            db_title=new_db_name,
+            properties_payload=source_db["properties"],
+            print_response=print_response
+        )
+
+        new_db_id = new_db_response['id']
+        logger.info(f"Created new database with ID: {new_db_id}")
+
+        # Get all pages from source database
+        source_pages = get_db_pages(db_id_to_copy, print_response=print_response)
+
+        # Copy each page to the new database
+        for page in source_pages:
+            try:
+                # Extract properties from source page
+                properties = page['properties']
+
+                # Create new page payload
+                new_page_payload = {
+                    "parent": {"database_id": new_db_id},
+                    "properties": properties
+                }
+
+                # Copy icon if exists
+                if "icon" in page:
+                    new_page_payload["icon"] = page["icon"]
+
+                # Create the new page
+                create_page(new_page_payload, print_response=print_response)
+                logger.debug(f"Duplicated page with title: {_get_page_title(properties)}")
+
+            except Exception as e:
+                logger.error(f"Error duplicating page: {str(e)}")
+                continue
+
+        logger.info(f"Successfully duplicated database with {len(source_pages)} pages")
+        return new_db_id
+
+    except Exception as e:
+        logger.error(f"Error duplicating database: {str(e)}")
+        raise
+
+
+def _get_page_title(properties: dict) -> str:
+    """Helper function to extract page title from properties"""
+    for prop in properties.values():
+        if prop.get('type') == 'title':
+            title_content = prop.get('title', [])
+            if title_content and len(title_content) > 0:
+                return title_content[0].get('plain_text', 'Untitled')
+    return 'Untitled'
 
 
 def get_pages_by_date_offset(database_id, offset: int, date_name="Date", filter_to_add={}):
@@ -107,11 +224,11 @@ def get_pages_by_date_offset(database_id, offset: int, date_name="Date", filter_
 
     # Return the list of page IDs
     if len(response) == 0:
-        logger.info(f"No pages found for date {target_date_str} in Notion.")
+        logger.debug(f"No pages found for date {target_date_str} in Notion.")
     elif len(response) > 1:
-        logger.info(f"Found multiple pages for date {target_date_str} in Notion.")
+        logger.debug(f"Found multiple pages for date {target_date_str} in Notion.")
     else:
-        logger.info(f"Successfully found pages for date {target_date_str} in Notion!")
+        logger.debug(f"Successfully found pages for date {target_date_str} in Notion!")
     return response
 
 
@@ -317,8 +434,8 @@ def _query_notion_api(url, payload={}, method=None, start_cursor=None, print_res
         raise Exception(error_message)
 
 
-def create_page_with_db_dict(db_id, db_dict):
-    generated_payload = generate_create_page_payload(db_id, db_dict)
+def create_page_with_db_dict(db_id, db_dict, property_overrides=None):
+    generated_payload = generate_create_page_payload(db_id, db_dict, property_overrides)
     return create_page(generated_payload)
 
 
@@ -485,5 +602,3 @@ def print_notion_response(response, type=''):
 
 def generate_icon_url(icon_type, icon_color=IconColor.LIGHT_GRAY):
     return f'https://www.notion.so/icons/{icon_type}_{icon_color}.svg'
-
-

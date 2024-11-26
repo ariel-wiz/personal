@@ -267,3 +267,14 @@ def remove_emojis(text):
     # Strip whitespace
     return text_cleaned.strip()
 
+
+def get_next_sunday():
+    """Get the next Sunday's date (or today if today is Sunday)"""
+    current_date = today
+    # 6 represents Sunday in datetime's weekday() (0 = Monday, 6 = Sunday)
+    if current_date.weekday() == 6:
+        return current_date
+
+    # Calculate days until next Sunday
+    days_until_sunday = (6 - current_date.weekday()) % 7
+    return current_date + timedelta(days=days_until_sunday)

@@ -10,7 +10,6 @@ from typing import Optional, List, Dict
 from expense.expense_constants import ENGLISH_CATEGORY, ENGLISH_SUB_CATEGORIES
 from logger import logger
 from notion_py.helpers.notion_common import _invoke_notion_api, create_page_with_db_dict, create_db, generate_icon_url
-from notion_py.helpers.notion_payload import generate_create_page_payload
 from notion_py.notion_globals import Method, NotionPropertyType, IconType, IconColor
 from variables import ACCOUNT_NUMBER_TO_PERSON_CARD, Keys
 

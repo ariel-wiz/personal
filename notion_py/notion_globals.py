@@ -23,7 +23,7 @@ insurance_db_id = Keys.insurance_db_id
 expense_tracker_db_id = Keys.expense_tracker_db_id
 months_expenses_tracker_db_id = Keys.months_expenses_tracker_db_id
 book_summaries_db_id = Keys.book_summaries_db_id
-current_month_category_expense_db = Keys.current_month_category_expense_db
+monthly_category_expense_db = Keys.monthly_category_expense_db
 
 
 class NotionPropertyType:
@@ -92,6 +92,23 @@ class IconType:
     SERVER = 'server'
     SUN = 'sun'
     BOOK = 'book'
+    REPEAT = 'repeat'
+    DINING = 'dining'
+    CASH_REGISTER = 'cash-register'
+    SHOPPING_CART = 'shopping-cart'
+    CAR = 'car'
+    HOME = 'home'
+    DRINK = 'drink'
+    FIRST_AID_KIT = 'first-aid-kit'
+    GRADEBOOK = 'gradebook'
+    PEOPLE = 'people'
+    LIBRARY = 'library'
+    TABS = 'tabs'
+    ATM = 'atm'
+    VERIFIED = 'verified'
+    HISTORY = 'history'
+    CREDIT_CARD = 'credit-card'
+    ARROW_RIGHT_LINE = 'arrow-right-line'
 
 
 class IconColor:
@@ -100,6 +117,11 @@ class IconColor:
     LIGHT_GRAY = 'lightgray'
     YELLOW = 'yellow'
     PURPLE = 'purple'
+    ORANGE = 'orange'
+    GREEN = 'green'
+    RED = 'red'
+    BROWN = 'brown'
+    PINK = 'pink'
 
 
 default_tasks_filter = {

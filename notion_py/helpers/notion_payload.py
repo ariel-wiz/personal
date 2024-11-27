@@ -38,7 +38,7 @@ def generate_create_page_payload(db_id, db_dict, property_overrides=None):
         NotionPropertyType.DATE: ["Date", "Due", "Processed Date"],
         NotionPropertyType.URL: ["gCal Link"],
         NotionPropertyType.NUMBER: ["Steps", "Steps Goal", "Calories", "Sleep Note", "Activity Calories",
-                                    "Charged Amount", "Original Amount", "Remaining Amount"]
+                                    "Charged Amount", "Original Amount", "Remaining Amount", "4 Months Average"]
     }
 
     # Property type payload templates

@@ -79,10 +79,10 @@ class GarminManager:
             return
 
         daily_task_id = daily_tasks[0]["id"]
-        activity_status = garmin_dict.get("activity_status", "")
+        activity_names = garmin_dict.get("activity_names", "")
 
-        other_fields = self.check_exercise_according_to_activity_status({
-            DaySummaryCheckbox.exercise: activity_status
+        other_fields = self.check_exercise_according_to_activity_names({
+            DaySummaryCheckbox.exercise: activity_names
         })
         other_fields.update(self.check_wake_up_early_according_to_sleep_end({
             DaySummaryCheckbox.wake_up_early: garmin_dict['sleep_end']
@@ -186,21 +186,20 @@ class GarminManager:
 
         return {}
 
-    def check_exercise_according_to_activity_status(self, activity_status):
+    def check_exercise_according_to_activity_names(self, activity_names):
         """
         Checks if exercise should be marked based on activity status.
 
         Args:
-            activity_status (dict): Dictionary containing activity status
+            activity_names (dict): Dictionary containing activity status
 
         Returns:
             dict: Checkbox update dictionary if exercise was done, empty dict otherwise
         """
-        if DaySummaryCheckbox.exercise in activity_status:
-            activity = activity_status[DaySummaryCheckbox.exercise]
-            if activity and "Nothing" not in activity:
-                logger.debug(f"Checking {DaySummaryCheckbox.exercise} to true")
-                return {DaySummaryCheckbox.exercise: {
-                    "checkbox": True
-                }}
+        activity_names.pop("Walking")
+        if len(activity_names) > 0:
+            logger.debug(f"Checking {DaySummaryCheckbox.exercise} to true")
+            return {DaySummaryCheckbox.exercise: {
+                "checkbox": True
+            }}
         return {}

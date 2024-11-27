@@ -3,15 +3,15 @@ Core data models for expense tracking system.
 """
 import copy
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
 from typing import Optional, List, Dict
 
 from expense.expense_constants import ENGLISH_CATEGORY, ENGLISH_SUB_CATEGORIES
 from logger import logger
-from notion_py.helpers.notion_common import _invoke_notion_api, create_page_with_db_dict, create_db
+from notion_py.helpers.notion_common import _invoke_notion_api, create_page_with_db_dict, create_db, generate_icon_url
 from notion_py.helpers.notion_payload import generate_create_page_payload
-from notion_py.notion_globals import Method, NotionPropertyType
+from notion_py.notion_globals import Method, NotionPropertyType, IconType, IconColor
 from variables import ACCOUNT_NUMBER_TO_PERSON_CARD, Keys
 
 
@@ -111,13 +111,29 @@ class MonthlyExpense:
     def create_monthly_database(self) -> str:
         """Creates a new monthly expense database in Notion"""
         current_date = datetime.now()
+        month_formatted = current_date.strftime("%m/%y")  # Format: MM/YY
         db_title = f"{current_date.strftime('%B')}-{current_date.year}"
+
+        # Calculate first and last day of the month
+        first_day = current_date.replace(day=1)
+        if first_day.month == 12:
+            last_day = first_day.replace(year=first_day.year + 1, month=1, day=1) - timedelta(days=1)
+        else:
+            last_day = first_day.replace(month=first_day.month + 1, day=1) - timedelta(days=1)
 
         # Define database properties
         db_properties = {
             "Category": {
                 "type": "title",
                 "title": {}
+            },
+            "Month": {
+                "type": "rich_text",
+                "rich_text": {}
+            },
+            "Date": {
+                "type": "date",
+                "date": {}
             },
             "Expenses": {
                 "type": "relation",
@@ -145,32 +161,65 @@ class MonthlyExpense:
     def create_category_pages(self, database_id: str) -> List[str]:
         """Creates pages for each expense category"""
         page_ids = []
+        current_date = datetime.now()
+        month_formatted = current_date.strftime("%m/%y")  # Format: MM/YY
 
-        all_categories = copy.deepcopy(self.categories)
-        all_categories.extend(self.sub_categories)
-        all_categories.reverse()
+        # Calculate first and last day of the month for the Date range
+        first_day = current_date.replace(day=1)
+        if first_day.month == 12:
+            last_day = first_day.replace(year=first_day.year + 1, month=1, day=1) - timedelta(days=1)
+        else:
+            last_day = first_day.replace(month=first_day.month + 1, day=1) - timedelta(days=1)
 
-        for category in all_categories:
+        all_categories = [
+            {"Insurance & Monthly Fees": generate_icon_url(IconType.REPEAT, IconColor.GRAY)},
+            {"Food": generate_icon_url(IconType.DINING, IconColor.BROWN)},
+            {"Banking & Finance": generate_icon_url(IconType.CASH_REGISTER, IconColor.YELLOW)},
+            {"Shopping": generate_icon_url(IconType.SHOPPING_CART, IconColor.PINK)},
+            {"Transportation & Auto": generate_icon_url(IconType.CAR, IconColor.ORANGE)},
+            {"Home & Living": generate_icon_url(IconType.HOME, IconColor.PURPLE)},
+            {"Vacation": generate_icon_url(IconType.DRINK, IconColor.RED)},
+            {"Health & Wellness": generate_icon_url(IconType.FIRST_AID_KIT, IconColor.RED)},
+            {"Education & Learning": generate_icon_url(IconType.GRADEBOOK, IconColor.ORANGE)},
+            {"Children & Family": generate_icon_url(IconType.PEOPLE, IconColor.BLUE)},
+            {"Other": generate_icon_url(IconType.TABS, IconColor.GREEN)},
+            {"Insurance": generate_icon_url(IconType.VERIFIED, IconColor.BROWN)},
+            {"Subscriptions": generate_icon_url(IconType.HISTORY, IconColor.LIGHT_GRAY)},
+            {"Saving": generate_icon_url(IconType.ATM, IconColor.YELLOW)},
+            {"Credit Card": generate_icon_url(IconType.CREDIT_CARD, IconColor.ORANGE)},
+            {"Income": generate_icon_url(IconType.LIBRARY, IconColor.BLUE)},
+            {"Expenses": generate_icon_url(IconType.ARROW_RIGHT_LINE, IconColor.GRAY)}
+        ]
+
+        for category_dict in all_categories:
             try:
+                category, icon_url = list(category_dict.items())[0]
                 page_data = {
-                    "Category": category
+                    "Category": category,
+                    "Month": month_formatted,
+                    "Date": [first_day.isoformat(), last_day.isoformat()],
+                    "Icon": icon_url
                 }
 
-                # Pass the overrides when creating the page
+                # Create the page with the proper property types
+                property_overrides = {
+                    "Category": NotionPropertyType.TITLE,
+                    "Month": NotionPropertyType.TEXT
+                }
+
                 response = create_page_with_db_dict(
                     database_id,
                     page_data,
-                    property_overrides={"Category": NotionPropertyType.TITLE}
+                    property_overrides=property_overrides
                 )
                 page_ids.append(response['id'])
                 logger.info(f"Created category page for: {category}")
 
             except Exception as e:
-                logger.error(f"Error creating category page for {category}: {str(e)}")
+                logger.error(f"Error creating category page for {category_dict}: {str(e)}")
                 continue
 
         return page_ids
-
 
     @classmethod
     def create_new(cls, parent_page_id: str, expense_tracker_db_id: str) -> 'MonthlyExpense':

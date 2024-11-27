@@ -360,7 +360,8 @@ def copy_pages_from_other_db_if_needed():
 
 @track_operation(NotionAPIOperation.GET_EXPENSES)
 def get_expenses_to_notion():
-    expense_service = NotionExpenseService(expense_tracker_db_id, months_expenses_tracker_db_id)
+    expense_service = NotionExpenseService(expense_tracker_db_id, months_expenses_tracker_db_id,
+                                           monthly_category_expense_db_id=monthly_category_expense_db)
     expense_service.add_all_expenses_to_notion()
 
 
@@ -382,10 +383,10 @@ def main(selected_tasks):
                     task_function(should_track=True)
         else:
             # Manually call the functions here
-            # monthly_expense_category = MonthlyExpense(parent_page_id=Keys().monthly_expenses_page_id,
-            #                                                   expense_tracker_db_id=Keys().expense_tracker_db_id)
-            # monthly_expense_category.create_monthly_database_with_pages()
-            # duplicate_db('148afca4f807808a82dfe0997b9f38cb', 'ariel-duplicate', Keys().monthly_expenses_page_id)
+
+            # expense_service = NotionExpenseService(expense_tracker_db_id, Keys().current_month_category_expense_db)
+            # expense_service.backfill_monthly_expenses(months_back=4)  # Process last 4 months
+
             get_expenses_to_notion()
             logger.info("End of manual run")
 

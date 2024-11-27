@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from time import strptime
 
 from common import DateOffset, today, yesterday, day_before_yesterday
@@ -46,7 +46,7 @@ class GarminManager:
     def _create_garmin_data_dict(self, date, garmin_dict):
         """Creates formatted Garmin data dictionary for Notion"""
         return {
-            "Name": date.strftime('%d-%m-%Y'),
+            "Name": date.strftime('%A %d/%m'),
             "Date": date.isoformat(),
             "Sleep Start": garmin_dict['sleep_start'],
             "Sleep End": garmin_dict['sleep_end'],
@@ -58,6 +58,7 @@ class GarminManager:
             "Calories": garmin_dict['total_calories'],
             "Activity Duration": garmin_dict['total_activity_duration'],
             "Activity Calories": garmin_dict['total_activity_calories'],
+            "Activities": garmin_dict['activity_names'],
             "Icon": generate_icon_url(IconType.WATCH, IconColor.BLUE)
         }
 
@@ -97,13 +98,16 @@ class GarminManager:
 
     def process_single_date(self, target_date, update_daily_tasks=True):
         """Process Garmin data for a single date"""
-        formatted_date = target_date.strftime('%d-%m-%Y')
+        formatted_date = target_date.strftime('%A %d/%m')
         logger.info(f"Processing Garmin data for {formatted_date}")
 
         with DateManager() as dm:
             dm.set_dates_for_target(target_date)
 
-            garmin_dict = get_garmin_info()
+            # Calculate days_ago based on target_date
+            days_ago = (datetime.now().date() - target_date).days
+            garmin_dict = get_garmin_info(days_ago=days_ago)
+
             if not garmin_dict:
                 logger.info(f"No Garmin data found for {formatted_date}")
                 return False

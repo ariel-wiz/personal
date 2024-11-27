@@ -25,6 +25,10 @@ from garminconnect import (
 from common import add_hours_to_time, seconds_to_hours_minutes, day_before_yesterday
 from logger import logger
 
+import garth.http
+garth.http.USER_AGENT = {"User-Agent": "GCM-iOS-5.7.2.1",}
+
+
 # Load environment variables if defined
 email = os.getenv("EMAIL")
 password = os.getenv("PASSWORD")
@@ -880,7 +884,7 @@ def get_garmin_info(days_ago: int = 1) -> dict:
     """
     Get Garmin info for a specific day.
     Args:
-        days_ago: Number of days ago to get data for (default: 1 for yesterday)
+        days_ago: Number of days ago to get data for
     Returns:
         dict: Garmin data including sleep, activity and steps info
     """
@@ -905,7 +909,6 @@ def get_garmin_info(days_ago: int = 1) -> dict:
         **activity_info,
         **user_info
     }
-
 
 def _get_sleep_info(api, date) -> dict:
     """Extract sleep-related data from Garmin API"""

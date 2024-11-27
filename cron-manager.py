@@ -100,63 +100,63 @@ class ScriptManager:
 
 # Configuration
 NOTION_SCRIPTS = [
+    ScriptConfig(
+        name="Garmin Update",
+        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+        arg="--garmin",
+        frequency=Frequency.DAILY.value,
+        python_path="/Users/ariel/PycharmProjects/personal",
+        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    ),
     # ScriptConfig(
-    #     name="Garmin Update",
+    #     name="Uncheck Done Tasks",
     #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-    #     arg="--garmin",
+    #     arg="--uncheck_done",
+    #     frequency=Frequency.WEEKLY_SATURDAY.value,
+    #     python_path="/Users/ariel/PycharmProjects/personal",
+    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    # ),
+    # ScriptConfig(
+    #     name="Handle Done Tasks",
+    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+    #     arg="--handle_done_tasks",
     #     frequency=Frequency.DAILY.value,
     #     python_path="/Users/ariel/PycharmProjects/personal",
     #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     # ),
-    ScriptConfig(
-        name="Uncheck Done Tasks",
-        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--uncheck_done",
-        frequency=Frequency.WEEKLY_SATURDAY.value,
-        python_path="/Users/ariel/PycharmProjects/personal",
-        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    ),
-    ScriptConfig(
-        name="Handle Done Tasks",
-        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--handle_done_tasks",
-        frequency=Frequency.DAILY.value,
-        python_path="/Users/ariel/PycharmProjects/personal",
-        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    ),
-    ScriptConfig(
-        name="Create Daily Pages",
-        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--create_daily_pages",
-        frequency=Frequency.WEEKLY_TUESDAY.value,
-        python_path="/Users/ariel/PycharmProjects/personal",
-        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    ),
-    ScriptConfig(
-        name="Copy Pages",
-        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--copy_pages",
-        # frequency="15/*",  # Runs on the 15th of every month
-        frequency=Frequency.WEEKLY_TUESDAY.value,
-        python_path="/Users/ariel/PycharmProjects/personal",
-        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    ),
-    ScriptConfig(
-        name="Get Expenses",
-        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--get_expenses",
-        frequency=Frequency.DAILY.value,
-        python_path="/Users/ariel/PycharmProjects/personal",
-        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    ),
-    ScriptConfig(
-        name="Copy Book Summaries",
-        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--copy_book_summary",
-        frequency=Frequency.TWICE_A_MONTH.value,
-        python_path="/Users/ariel/PycharmProjects/personal",
-        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    )
+    # ScriptConfig(
+    #     name="Create Daily Pages",
+    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+    #     arg="--create_daily_pages",
+    #     frequency=Frequency.WEEKLY_TUESDAY.value,
+    #     python_path="/Users/ariel/PycharmProjects/personal",
+    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    # ),
+    # ScriptConfig(
+    #     name="Copy Pages",
+    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+    #     arg="--copy_pages",
+    #     # frequency="15/*",  # Runs on the 15th of every month
+    #     frequency=Frequency.WEEKLY_TUESDAY.value,
+    #     python_path="/Users/ariel/PycharmProjects/personal",
+    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    # ),
+    # ScriptConfig(
+    #     name="Get Expenses",
+    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+    #     arg="--get_expenses",
+    #     frequency=Frequency.DAILY.value,
+    #     python_path="/Users/ariel/PycharmProjects/personal",
+    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    # ),
+    # ScriptConfig(
+    #     name="Copy Book Summaries",
+    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+    #     arg="--copy_book_summary",
+    #     frequency=Frequency.TWICE_A_MONTH.value,
+    #     python_path="/Users/ariel/PycharmProjects/personal",
+    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    # )
 ]
 
 

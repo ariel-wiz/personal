@@ -598,11 +598,11 @@ class NotionExpenseService:
             update_page(page_id, relation_payload)
             expense_count = len(expense_ids)
             if expense_count > 0:
-                logger.info(f"Updated {expense_count} expenses for category {category}")
+                logger.info(f"Updated {expense_count} expenses for category {category.title()}")
             else:
-                logger.info(f"Cleared expenses for category {category}")
+                logger.info(f"Cleared expenses for category {category.title()}")
         except Exception as e:
-            logger.error(f"Error updating category page {category}: {str(e)}")
+            logger.error(f"Error updating category page {category.title()}: {str(e)}")
             raise
 
     def update_monthly_pages(self, monthly_pages: List[Dict], month_expenses: List[Expense]):

@@ -171,7 +171,7 @@ class MonthlyExpense:
             last_day = first_day.replace(month=first_day.month + 1, day=1) - timedelta(days=1)
 
         all_categories = [
-            {"Insurance & Monthly Fees": generate_icon_url(IconType.REPEAT, IconColor.GRAY)},
+            {"Insurance & Monthly Fees": generate_icon_url(IconType.REPEAT, IconColor.PURPLE)},
             {"Food": generate_icon_url(IconType.DINING, IconColor.BROWN)},
             {"Banking & Finance": generate_icon_url(IconType.CASH_REGISTER, IconColor.YELLOW)},
             {"Shopping": generate_icon_url(IconType.SHOPPING_CART, IconColor.PINK)},

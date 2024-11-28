@@ -223,7 +223,7 @@ def calculate_category_sums(expenses) -> DefaultDict[str, float]:
 def get_category_definitions() -> List[Dict]:
     """Returns list of category definitions with icons"""
     return [
-        {"Insurance & Monthly Fees": generate_icon_url(IconType.REPEAT, IconColor.GRAY)},
+        {"Insurance & Monthly Fees": generate_icon_url(IconType.REPEAT, IconColor.PURPLE)},
         {"Food": generate_icon_url(IconType.DINING, IconColor.BROWN)},
         {"Banking & Finance": generate_icon_url(IconType.CASH_REGISTER, IconColor.YELLOW)},
         {"Shopping": generate_icon_url(IconType.SHOPPING_CART, IconColor.PINK)},

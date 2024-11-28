@@ -81,9 +81,7 @@ class GarminManager:
         daily_task_id = daily_tasks[0]["id"]
         activity_names = garmin_dict.get("activity_names", "")
 
-        other_fields = self.check_exercise_according_to_activity_names({
-            DaySummaryCheckbox.exercise: activity_names
-        })
+        other_fields = self.check_exercise_according_to_activity_names(activity_names)
         other_fields.update(self.check_wake_up_early_according_to_sleep_end({
             DaySummaryCheckbox.wake_up_early: garmin_dict['sleep_end']
         }))
@@ -196,8 +194,8 @@ class GarminManager:
         Returns:
             dict: Checkbox update dictionary if exercise was done, empty dict otherwise
         """
-        activity_names.pop("Walking")
-        if len(activity_names) > 0:
+        activity_names_without_walking = [name for name in activity_names if name != "Walking"]
+        if len(activity_names_without_walking) > 0:
             logger.debug(f"Checking {DaySummaryCheckbox.exercise} to true")
             return {DaySummaryCheckbox.exercise: {
                 "checkbox": True

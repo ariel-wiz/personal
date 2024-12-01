@@ -2,11 +2,8 @@ import argparse
 import random
 
 from epub import read_epub
-from common import create_tracked_lambda, create_shabbat_dates, yesterday, \
-    DateOffset
-from expense.expense_models import MonthlyExpense
+from common import create_tracked_lambda, create_shabbat_dates
 from expense.notion_expense_service import NotionExpenseService
-from garmin.garmin_api import get_garmin_info
 from garmin.garmin_manager import GarminManager
 from jewish_calendar import JewishCalendarAPI
 from logger import logger
@@ -15,10 +12,10 @@ from notion_py.helpers.notion_children_blocks import generate_children_block_for
 from notion_py.notion_globals import *
 from notion_py.helpers.notion_payload import generate_payload, get_trading_payload, uncheck_done_set_today_payload, \
     check_done_payload, uncheck_copied_to_daily_payload, check_copied_to_daily_payload
-from notion_py.helpers.notion_common import create_page_with_db_dict, create_page_with_db_dict_and_children_block, \
-    update_page_with_relation, get_db_pages, track_operation, create_daily_summary_pages, create_daily_api_pages, \
-    update_page, create_page, get_pages_by_date_offset, copy_pages_to_daily, get_daily_tasks, \
-    get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url, duplicate_db
+from notion_py.helpers.notion_common import create_page_with_db_dict_and_children_block, \
+    get_db_pages, track_operation, create_daily_summary_pages, create_daily_api_pages, \
+    update_page, create_page, copy_pages_to_daily, get_daily_tasks, \
+    get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url
 from variables import Paths
 
 
@@ -308,6 +305,7 @@ def copy_done_from_daily_to_copied_tasks():
             logger.error(f"Could not Update the status to done for the children of {daily_page_name}: {e}")
             continue
 
+
 def uncheck_copied_to_daily_book_summaries():
     book_summaries = get_book_summaries(get_books_not_copied=False)
     if not book_summaries:
@@ -431,4 +429,3 @@ if __name__ == '__main__':
 
     # Call the main logic with the selected tasks
     main(selected_tasks)
-

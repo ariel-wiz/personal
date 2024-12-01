@@ -23,6 +23,38 @@ headers = {
 }
 
 
+def create_notion_id_mapping():
+    """Create mapping of Notion IDs to their descriptive names from Keys class"""
+    id_mapping = {}
+
+    # Get all attributes from Keys class
+    for attr_name, attr_value in vars(Keys).items():
+        # Skip private attributes
+        if attr_name.startswith('_'):
+            continue
+
+        # Only process string values (IDs)
+        if not isinstance(attr_value, str):
+            continue
+
+        # Format the name based on the attribute name
+        if attr_name.endswith('_db_id'):
+            # Convert tasks_db_id -> Tasks DB
+            name = attr_name[:-6].replace('_', ' ').title() + ' DB'
+        elif attr_name.endswith('_page_id'):
+            # Convert day_summary_page_id -> Day Summary Page
+            name = attr_name[:-8].replace('_', ' ').title() + ' Page'
+        else:
+            continue
+
+        id_mapping[attr_value] = name
+
+    return id_mapping
+
+
+_notion_id_mapping = create_notion_id_mapping()
+
+
 # Fundamental operations
 def create_page(create_payload, print_response=False):
     create_url = f"https://api.notion.com/v1/pages"
@@ -376,6 +408,9 @@ def _invoke_notion_api(query_url, query_payload={}, method=Method.GET, print_res
     results = []
     start_cursor = None
 
+    resource_name = get_notion_id_mapping_from_url(query_url)
+    logger.debug(f"Invoking API for {resource_name}")
+
     while True:
         response_data = _query_notion_api(query_url, query_payload, method, start_cursor=start_cursor,
                                           print_response=False)
@@ -391,7 +426,10 @@ def _invoke_notion_api(query_url, query_payload={}, method=Method.GET, print_res
             # Break if there's no next cursor
             if not start_cursor:
                 break
-            logger.debug(f"Handling pagination with cursor {start_cursor}...")
+            if resource_name:
+                logger.debug(f"Handling pagination for {resource_name} with cursor {start_cursor}...")
+            else:
+                logger.debug(f"Handling pagination with cursor {start_cursor}...")
         else:
             break
 
@@ -602,3 +640,15 @@ def print_notion_response(response, type=''):
 
 def generate_icon_url(icon_type, icon_color=IconColor.LIGHT_GRAY):
     return f'https://www.notion.so/icons/{icon_type}_{icon_color}.svg'
+
+
+def get_notion_id_mapping_from_url(query_url: str) -> str:
+    """Extract Notion ID from URL by finding numeric ID or UUID in path"""
+    path_components = query_url.split('/')
+
+    for component in path_components:
+        # Check if component is numeric or UUID (32 chars without hyphens)
+        if component.isdigit() or len(component.replace('-', '')) == 32:
+            return _notion_id_mapping.get(component, 'Notion resource')
+
+    return 'Resource Name'  # Default if no ID found

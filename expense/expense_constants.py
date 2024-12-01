@@ -82,7 +82,7 @@ ENGLISH_CATEGORY: Dict[str, List[str]] = {
 }
 
 # Special expenses requiring date adjustment
-EXPENSES_TO_ADJUST_DATE = ["משכנתא", "משכורת אריאל"]
+EXPENSES_TO_ADJUST_DATE = ["משכנתא", "משכורת אריאל", "אור פיט"]
 
 # Modified names mapping
 MODIFIED_NAMES = {

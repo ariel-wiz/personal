@@ -6,7 +6,7 @@ import json
 import os
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 
 from dateutil.relativedelta import relativedelta
 
@@ -24,7 +24,8 @@ from expense.expense_helpers import (
     prepare_page_data, generate_target_dates, get_category_definitions, calculate_category_sums,
     group_expenses_by_category_or_subcategory, determine_target_category, calculate_date_range, calculate_average,
     log_monthly_total, get_amount_from_page, get_date_info, get_property_overrides, log_creation_completion,
-    load_data_from_json, group_expenses_by_category, get_target_date, find_expenses_page, extract_monthly_totals
+    load_data_from_json, group_expenses_by_category, get_target_date, find_expenses_page, extract_monthly_totals,
+    extract_targets_from_pages
 )
 from notion_py.helpers.notion_common import (
     get_db_pages, generate_payload, update_page_with_relation, delete_page, create_page_with_db_dict, update_page,
@@ -55,16 +56,13 @@ def _get_expenses_for_month(monthly_expense: MonthlyExpense, expenses_list: List
 
 
 class NotionExpenseService:
-    def __init__(self, expense_tracker_db_id, months_expenses_tracker_db_id, monthly_category_expense_db_id):
+    def __init__(self, expense_tracker_db_id, monthly_category_expense_db_id):
         """Initialize the Notion expense service"""
         self.expense_tracker_db_id = expense_tracker_db_id
-        self.months_expenses_tracker_db_id = months_expenses_tracker_db_id
         self.monthly_category_expense_db_id = monthly_category_expense_db_id
         self.expense_json = []
-        self.monthly_expenses: List[MonthlyExpense] = []
         self.expenses_objects_to_create: List[Expense] = []
         self.existing_expenses_objects: List[Expense] = []
-        self.current_month_expenses: Optional[MonthlyExpense] = None
 
     def create_expense_objects_from_json(self) -> List[Expense]:
         """Convert JSON data to Expense objects"""
@@ -267,59 +265,10 @@ class NotionExpenseService:
             original_name=original_name
         )
 
-    def get_monthly_expenses_from_notion(self, filter_by: Optional[Dict] = None) -> List[MonthlyExpense]:
-        """Get monthly expenses from Notion"""
-        monthly_expenses_list = []
-
-        if filter_by is None:
-            payload = generate_payload(last_4_months_months_expense_filter)
-        else:
-            payload = generate_payload(filter_by)
-
-        months_expenses_notion_pages = get_db_pages(self.months_expenses_tracker_db_id, payload)
-
-        if not self.existing_expenses_objects:
-            self.existing_expenses_objects = self.get_all_expenses_from_notion()
-
-        for page in months_expenses_notion_pages:
-            try:
-                monthly_expense = self.create_empty_monthly_expenses_object(page)
-                monthly_expense.update_existing_relations(
-                    [column for column in page['properties']
-                     if page['properties'][column]['type'] == 'relation']
-                )
-
-                for relation in monthly_expense.get_existing_relations():
-                    for expense_ref in page['properties'][relation]['relation']:
-                        expense_object = self.get_existing_expense_by_property(
-                            ExpenseField.PAGE_ID,
-                            expense_ref['id']
-                        )
-                        if expense_object:
-                            monthly_expense.add_expense(expense_object[0], expense_object[0].category)
-
-                monthly_expenses_list.append(monthly_expense)
-
-            except Exception as e:
-                logger.error(f"Error processing monthly expense page: {str(e)}")
-                continue
-
-        return monthly_expenses_list
-
     def get_existing_expense_by_property(self, property_name: str, property_value: str) -> List[Expense]:
         """Find expenses matching a property value"""
         return [expense for expense in self.existing_expenses_objects
                 if property_value in expense.get_attr(property_name)]
-
-    def create_empty_monthly_expenses_object(self, notion_page: Dict) -> MonthlyExpense:
-        """Create empty MonthlyExpense object from Notion page"""
-        return MonthlyExpense(
-            id=notion_page['id'],
-            month=notion_page['properties']['Month']['title'][0]['plain_text'],
-            year=notion_page['properties']['Year']['rich_text'][0]['plain_text'],
-            month_date_start=notion_page['properties']['Date']['date']['start'],
-            month_date_end=notion_page['properties']['Date']['date']['end']
-        )
 
     def get_notion_that_can_be_added_not_present_in_notion(self) -> List[Expense]:
         """Get expenses that can be added to Notion"""
@@ -473,69 +422,6 @@ class NotionExpenseService:
             logger.error(error_msg)
             raise NotionUpdateError(error_msg) from e
 
-    def _update_monthly_expenses(self, monthly_expense: MonthlyExpense, expenses_list: List[Expense]):
-        """Update expense relations for a monthly expense page"""
-        try:
-            grouped_expenses = self._group_and_map_expenses(monthly_expense, expenses_list)
-            self._update_expense_relations(monthly_expense, grouped_expenses)
-            logger.debug(
-                f"Successfully updated monthly expenses for {monthly_expense.month} {monthly_expense.year}"
-            )
-        except Exception as e:
-            logger.error(f"Failed to update monthly expenses: {str(e)}")
-
-    def _group_and_map_expenses(self, monthly_expense: MonthlyExpense, expenses_list: List[Expense]) -> Dict[
-        str, List[Expense]]:
-        """Groups expenses and creates category mapping"""
-        monthly_expense.category_and_subcategory_expenses_dict = group_expenses_by_category_or_subcategory(
-            expenses_list)
-        return self._map_expenses_to_relations(
-            monthly_expense.category_and_subcategory_expenses_dict,
-            monthly_expense.get_existing_relations()
-        )
-
-    def _map_expenses_to_relations(self, category_expenses: Dict[str, List[Expense]], monthly_categories: List[str]) -> \
-            Dict[str, List[Expense]]:
-        """Maps expense categories to their corresponding relations"""
-        category_mapping = create_category_mapping(monthly_categories)
-        mapped_expenses = {}
-
-        for category, expenses in category_expenses.items():
-            matching_relation = find_matching_relation(category, category_mapping)
-            if matching_relation:
-                mapped_expenses[matching_relation] = expenses
-            else:
-                logger.warning(f"Category {category} not found in monthly expenses. "
-                               f"Available categories: {', '.join(monthly_categories)}")
-
-        return mapped_expenses
-
-    def _update_expense_relations(self, monthly_expense: MonthlyExpense, mapped_expenses: Dict[str, List[Expense]]):
-        """Updates expense relations in Notion"""
-        for relation, expenses in mapped_expenses.items():
-            try:
-                expense_ids = [exp.page_id for exp in expenses]
-                self._update_single_relation(
-                    monthly_expense.id,
-                    expense_ids,
-                    relation,
-                    monthly_expense
-                )
-            except Exception as e:
-                logger.error(f"Error updating relation for {relation}: {str(e)}")
-                continue
-
-    def _update_single_relation(self, page_id: str, expense_ids: List[str], relation: str,
-                                monthly_expense: MonthlyExpense):
-        """Updates a single relation in Notion"""
-        update_page_with_relation(
-            page_id,
-            expense_ids,
-            relation,
-            name=f"monthly expense with category: {relation}"
-        )
-        month_id = f"{monthly_expense.month}-{monthly_expense.year}"
-        logger.info(f"Updated {relation} for {month_id}")
 
     def _get_current_month_pages(self) -> list:
         """Get pages from the monthly database for current month/year"""
@@ -575,47 +461,33 @@ class NotionExpenseService:
 
         return mapping
 
-    def _update_category_page(self, category: str, expenses: list, page_id: str) -> None:
-        """
-        Update a single category page with its expenses.
-
-        Args:
-            category: Original category name with proper case and emojis
-            expenses: List of expense objects to link
-            page_id: Notion page ID for the category
-        """
-        expense_ids = [exp.page_id for exp in expenses if exp.page_id]
-
-        relation_payload = {
-            "properties": {
-                "Expenses": {
-                    "relation": [{"id": page_id} for page_id in expense_ids]
-                }
-            }
-        }
-
+    def update_monthly_pages(self, monthly_pages: List[Dict], month_expenses: List[Expense]) -> Dict[str, float]:
+        """Updates monthly category pages with their respective expense relations and totals"""
         try:
-            update_page(page_id, relation_payload)
-            expense_count = len(expense_ids)
-            if expense_count > 0:
-                logger.info(f"Updated {expense_count} expenses for category {category.title()}")
-            else:
-                logger.info(f"Cleared expenses for category {category.title()}")
-        except Exception as e:
-            logger.error(f"Error updating category page {category.title()}: {str(e)}")
-            raise
-
-    def update_monthly_pages(self, monthly_pages: List[Dict], month_expenses: List[Expense]):
-        """Updates monthly category pages with their respective expense relations and averages."""
-        try:
-            target_date = get_target_date(month_expenses)
             expenses_by_category = group_expenses_by_category(month_expenses)
+            category_totals = {}
 
             for category, expenses in expenses_by_category.items():
-                self._update_category_page(category, expenses, monthly_pages, target_date)
+                try:
+                    category_page = find_matching_category_page(category, monthly_pages)
+                    if category_page:
+                        expense_ids = [exp.page_id for exp in expenses if exp.page_id]
+                        self._update_category_page(category, expense_ids, category_page['id'])
+
+                        # Calculate total for this category
+                        total = sum(exp.charged_amount for exp in expenses)
+                        category_totals[category] = total
+                        logger.debug(f"Updated category {category} with {len(expense_ids)} expenses, total: {total}")
+
+                except Exception as e:
+                    logger.error(f"Error updating category {category}: {str(e)}")
+                    continue
+
+            return category_totals
 
         except Exception as e:
             logger.error(f"Failed to update monthly pages: {str(e)}")
+            return {}
 
     def _create_relation_payload(self, expense_ids: List[str], category: str,
                                  target_date: datetime, existing_average: Optional[float]) -> Dict:
@@ -637,53 +509,53 @@ class NotionExpenseService:
 
         return payload
 
-    def _update_category_page(self, category: str, expenses: List[Expense],
-                              monthly_pages: List[Dict], target_date: datetime):
-        """Updates a single category page with expenses and averages"""
+    def _update_category_page(self, category: str, expense_ids: List[str], page_id: str,
+                              target_date: Optional[datetime] = None):
+        """
+        Updates a single category page with expenses and averages.
+
+        Args:
+            category: Category name
+            expense_ids: List of expense IDs to link
+            page_id: Notion page ID for the category
+            target_date: Optional date for calculating averages
+        """
         try:
-            # Find matching page
-            category_page = find_matching_category_page(category, monthly_pages)
-            if not category_page:
-                return
+            # Create base payload for updating relations
+            payload = {
+                "properties": {
+                    "Expenses": {
+                        "relation": [{"id": expense_id} for expense_id in expense_ids]
+                    }
+                }
+            }
 
-            # Get expense IDs and check existing average
-            expense_ids = [exp.page_id for exp in expenses if exp.page_id]
-            existing_average = category_page['properties'].get('4 Months Average', {}).get('number')
-
-            # Create and submit update
-            payload = self._create_relation_payload(
-                expense_ids,
-                category,
-                target_date,
-                existing_average
-            )
-
-            update_page(category_page['id'], payload)
-            logger.info(f"Updated {len(expense_ids)} expenses for category {category}")
+            update_page(page_id, payload)
+            expense_count = len(expense_ids)
+            if expense_count > 0:
+                logger.info(f"Updated {expense_count} expenses for category {category}")
+            else:
+                logger.info(f"Cleared expenses for category {category}")
 
         except Exception as e:
-            logger.error(f"Error updating category {category}: {str(e)}")
+            logger.error(f"Error updating category page {category}: {str(e)}")
+            raise
 
-    def process_monthly_expenses(self, month_date: datetime, existing_expenses: Optional[List[Expense]] = None) -> Dict[
-        str, float]:
-        """
-        Core function to process expenses for a specific month.
-        """
+    def process_monthly_expenses(self, target_date: datetime, existing_expenses: Optional[List[Expense]] = None) -> \
+    Dict[str, float]:
+        """Process monthly expenses for categories"""
         try:
-            monthly_pages = self._get_or_create_monthly_pages(month_date)
-            month_expenses = self._get_filtered_month_expenses(month_date, existing_expenses)
+            monthly_pages = self._get_or_create_monthly_pages(target_date)
+            month_expenses = self._get_filtered_month_expenses(target_date, existing_expenses)
 
             if not month_expenses:
-                logger.info(f"No expenses found for {month_date.strftime('%B %Y')}")
+                logger.info(f"No expenses found for {target_date.strftime('%B %Y')}")
                 return {}
 
-            total_expenses = self.calculate_and_update_total_expenses(monthly_pages, month_expenses)
-            self.update_monthly_pages(monthly_pages, month_expenses)
-
-            return total_expenses
+            return self.update_monthly_pages(monthly_pages, month_expenses)
 
         except Exception as e:
-            error_msg = f"Error processing monthly expenses for {month_date.strftime('%B %Y')}: {str(e)}"
+            error_msg = f"Error processing monthly expenses for {target_date.strftime('%B %Y')}: {str(e)}"
             logger.error(error_msg)
             raise NotionUpdateError(error_msg) from e
 
@@ -711,16 +583,28 @@ class NotionExpenseService:
         }
         return get_db_pages(self.monthly_category_expense_db_id, generate_payload(filter_payload))
 
-    def _get_filtered_month_expenses(self, month_date: datetime, existing_expenses: Optional[List[Expense]] = None) -> \
-            List[Expense]:
+    def _get_filtered_month_expenses(self, target_date: datetime, existing_expenses: Optional[List[Expense]] = None) -> \
+    List[Expense]:
         """Gets and filters expenses for the specified month"""
-        month_start = month_date.replace(day=1).date()
+        month_start = target_date.replace(day=1).date()
         expenses = existing_expenses or self.get_expenses_from_notion(filter_by=current_months_expense_filter)
 
-        return [
-            exp for exp in expenses
-            if datetime.strptime(exp.date, '%Y-%m-%d').date().replace(day=1) == month_start
-        ]
+        logger.debug(f"Target date: {target_date}, Month start: {month_start}")
+        logger.debug(f"Total expenses before filtering: {len(expenses)}")
+
+        filtered_expenses = []
+        for exp in expenses:
+            exp_date = datetime.strptime(exp.date, '%Y-%m-%d').date()
+            exp_month_start = exp_date.replace(day=1)
+
+            if exp_month_start == month_start:
+                filtered_expenses.append(exp)
+
+        logger.debug(f"Found {len(filtered_expenses)} expenses for {target_date.strftime('%B %Y')}")
+        for exp in filtered_expenses:
+            logger.debug(f"Filtered expense: {exp.date} - {exp.name} - {exp.charged_amount}")
+
+        return filtered_expenses
 
     def calculate_and_update_total_expenses(self, monthly_pages: List[Dict], expenses: List[Expense]) -> Dict[
         str, float]:
@@ -809,10 +693,17 @@ class NotionExpenseService:
     def update_current_month_expenses(self):
         """Updates the current month's expense relations and category pages."""
         try:
-            if not self._initialize_current_month():
+            # Always get fresh expenses for current month
+            current_expenses = self.get_expenses_from_notion(
+                filter_by=current_months_expense_filter
+            )
+
+            if not current_expenses:
+                logger.info("No expenses found for current month")
                 return
 
-            self.process_monthly_expenses(datetime.now(), self.existing_expenses_objects)
+            # Process with fresh expenses data
+            self.process_monthly_expenses(datetime.now(), current_expenses)
 
         except Exception as e:
             error_msg = f"Error updating current month expenses: {str(e)}"
@@ -820,22 +711,21 @@ class NotionExpenseService:
             raise NotionUpdateError(error_msg) from e
 
     def _initialize_current_month(self) -> bool:
-        """Initialize current month data if not already done"""
-        if not self.current_month_expenses:
-            self.current_month_expenses = self.get_current_month_expenses()
-            if not self.current_month_expenses:
-                logger.error("Failed to get or create current month expenses")
-                return False
-
-        if not self.existing_expenses_objects:
-            self.existing_expenses_objects = self.get_expenses_from_notion(
-                filter_by=current_months_expense_filter
-            )
+        """Initialize current month data if not already done."""
+        try:
             if not self.existing_expenses_objects:
-                logger.info("No expenses found for current month")
-                return False
+                self.existing_expenses_objects = self.get_expenses_from_notion(
+                    filter_by=current_months_expense_filter
+                )
+                if not self.existing_expenses_objects:
+                    logger.info("No expenses found for current month")
+                    return True
 
-        return True
+            return True
+
+        except Exception as e:
+            logger.error(f"Error initializing current month: {str(e)}")
+            return False
 
     def _get_current_month_expenses(self) -> list:
         """Get expenses for the current month"""
@@ -850,32 +740,38 @@ class NotionExpenseService:
 
         return month_expenses
 
-    def get_current_month_expenses(self) -> MonthlyExpense:
+    def get_current_month_expenses(self) -> Optional[MonthlyExpense]:
         """
         Returns the MonthlyExpense object for the current month, creating it if necessary.
-
-        Returns:
-            MonthlyExpense: Object representing current month's expenses
         """
-        # Get current month's expenses
-        self.existing_expenses_objects = self.get_expenses_from_notion(
-            current_months_expense_filter)
+        try:
+            # Get current month's expenses
+            self.existing_expenses_objects = self.get_expenses_from_notion(
+                current_months_expense_filter)
 
-        # Get or create current month's page
-        monthly_pages = self.get_monthly_expenses_from_notion(
-            current_month_year_filter)
+            # Get or create current month's page
+            monthly_pages = self.get_monthly_expenses_from_notion(
+                current_month_year_filter)
 
-        if not monthly_pages:
-            # Create new month page if it doesn't exist
-            month_page = self.create_month_page_if_not_exists()
-            monthly_expense = self.create_empty_monthly_expenses_object(month_page)
-        else:
-            monthly_expense = monthly_pages[0]
+            if not monthly_pages:
+                # Create new month page if it doesn't exist
+                month_page = self.create_month_page_if_not_exists()
+                if not month_page:
+                    logger.error("Failed to create new month page")
+                    return None
 
-        # Cache the current month expenses
-        self.current_month_expenses = monthly_expense
+                monthly_expense = self.create_empty_monthly_expenses_object(month_page)
+            else:
+                monthly_expense = monthly_pages[0]
 
-        return monthly_expense
+            # Cache the current month expenses
+            self.current_month_expenses = monthly_expense
+            return monthly_expense
+
+        except Exception as e:
+            logger.error(f"Error getting current month expenses: {str(e)}")
+            logger.exception("Detailed error traceback:")
+            return None
 
     def update_historical_monthly_pages(self, months_back: int = 4):
         """Update monthly balance pages for historical expenses"""
@@ -908,42 +804,62 @@ class NotionExpenseService:
         target_date = target_date or datetime.now()
         date_info = get_date_info(target_date)
 
-        existing_page = self._check_existing_pages(date_info)
+        # Get tuple of (existing_page, previous_targets)
+        check_result = self._check_existing_monthly_category_pages(date_info)
+        existing_page, _ = check_result  # Unpack tuple but we only need existing_page here
+
         if existing_page:
             return existing_page
 
         return self._create_category_pages(date_info)
 
-    def _check_existing_pages(self, date_info: Dict) -> Optional[Dict]:
-        """Checks if pages already exist for the month"""
-        filter_payload = {
-            "and": [
-                {
-                    "property": "Month",
-                    "rich_text": {
-                        "equals": date_info['month_formatted']
-                    }
-                }
-            ]
-        }
+    def _check_existing_monthly_category_pages(self, date_info: Dict) -> Tuple[Optional[Dict], Dict[str, float]]:
+        """
+        Checks if pages already exist for the month and extracts targets from previous month.
 
-        existing_pages = get_db_pages(self.monthly_category_expense_db_id,
-                                      generate_payload(filter_payload))
+        Returns:
+            Tuple[Optional[Dict], Dict[str, float]]: Tuple containing:
+                - The existing page if found, None otherwise
+                - Dictionary of targets from previous month
+        """
+        sort = [{
+            "property": "Last edited time",
+            "direction": "descending"
+        }]
+
+        all_pages = get_db_pages(self.monthly_category_expense_db_id,
+                                 generate_payload(sorts=sort))
+
+        # Extract targets from previous month's pages
+        targets = extract_targets_from_pages(all_pages, date_info['month_formatted'])
+
+        # Check for existing pages for current month
+        existing_pages = [
+            page for page in all_pages
+            if page['properties']['Month']['rich_text'][0]['plain_text'] == date_info['month_formatted']
+        ]
 
         if existing_pages:
             logger.info(f"Monthly expense page for {date_info['month_name']} {date_info['year']} already exists")
-            return existing_pages[0]
+            return existing_pages[0], targets
 
-        return None
+        return None, targets
 
     def _create_category_pages(self, date_info: Dict) -> Optional[Dict]:
-        """Creates pages for all categories with averages"""
+        """Creates pages for all categories with averages and targets"""
         categories = get_category_definitions()
         created_pages = []
 
+        # Get existing pages to check for targets
+        check_result = self._check_existing_monthly_category_pages(date_info)
+        existing_page, previous_targets = check_result  # Properly unpack the tuple
+
+        if existing_page:
+            return existing_page
+
         for category_dict in categories:
             try:
-                page = self._create_single_category_page(category_dict, date_info)
+                page = self._create_single_category_page(category_dict, date_info, previous_targets)
                 if page:
                     created_pages.append(page)
             except Exception as e:
@@ -954,14 +870,24 @@ class NotionExpenseService:
         log_creation_completion(date_info, created_pages)
         return created_pages[0] if created_pages else None
 
-    def _create_single_category_page(self, category_dict: Dict, date_info: Dict) -> Optional[Dict]:
-        """Creates a single category page with its average"""
+    def _create_single_category_page(self, category_dict: Dict, date_info: Dict,
+                                     previous_targets: Dict[str, float]) -> Optional[Dict]:
+        """Creates a single category page with its average and target"""
         category, icon_url = list(category_dict.items())[0]
 
         # Calculate average for the category
         average = self.get_month_average(category, date_info['target_date'])
 
+        # Get target from previous month if exists
+        target = previous_targets.get(category)
+
+        # Prepare page data
         page_data = prepare_page_data(category, icon_url, date_info, average)
+
+        # Add target if exists
+        if target is not None:
+            page_data["Target"] = target
+
         property_overrides = get_property_overrides()
 
         response = create_page_with_db_dict(
@@ -970,7 +896,13 @@ class NotionExpenseService:
             property_overrides=property_overrides
         )
 
-        logger.info(f"Created category page for {category} with average: {average}")
+        logger_msg = f"Created category page for {category}"
+        if average is not None:
+            logger_msg += f" with average: {average}"
+        if target is not None:
+            logger_msg += f" and target: {target}"
+        logger.info(logger_msg)
+
         return response
 
     class NotionUpdateError(Exception):

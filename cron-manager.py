@@ -108,55 +108,55 @@ NOTION_SCRIPTS = [
         python_path="/Users/ariel/PycharmProjects/personal",
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     ),
-    # ScriptConfig(
-    #     name="Uncheck Done Tasks",
-    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-    #     arg="--uncheck_done",
-    #     frequency=Frequency.WEEKLY_SATURDAY.value,
-    #     python_path="/Users/ariel/PycharmProjects/personal",
-    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    # ),
-    # ScriptConfig(
-    #     name="Handle Done Tasks",
-    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-    #     arg="--handle_done_tasks",
-    #     frequency=Frequency.DAILY.value,
-    #     python_path="/Users/ariel/PycharmProjects/personal",
-    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    # ),
-    # ScriptConfig(
-    #     name="Create Daily Pages",
-    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-    #     arg="--create_daily_pages",
-    #     frequency=Frequency.WEEKLY_TUESDAY.value,
-    #     python_path="/Users/ariel/PycharmProjects/personal",
-    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    # ),
-    # ScriptConfig(
-    #     name="Copy Pages",
-    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-    #     arg="--copy_pages",
-    #     # frequency="15/*",  # Runs on the 15th of every month
-    #     frequency=Frequency.WEEKLY_TUESDAY.value,
-    #     python_path="/Users/ariel/PycharmProjects/personal",
-    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    # ),
-    # ScriptConfig(
-    #     name="Get Expenses",
-    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-    #     arg="--get_expenses",
-    #     frequency=Frequency.DAILY.value,
-    #     python_path="/Users/ariel/PycharmProjects/personal",
-    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    # ),
-    # ScriptConfig(
-    #     name="Copy Book Summaries",
-    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-    #     arg="--copy_book_summary",
-    #     frequency=Frequency.TWICE_A_MONTH.value,
-    #     python_path="/Users/ariel/PycharmProjects/personal",
-    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    # )
+    ScriptConfig(
+        name="Uncheck Done Tasks",
+        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+        arg="--uncheck_done",
+        frequency=Frequency.WEEKLY_SATURDAY.value,
+        python_path="/Users/ariel/PycharmProjects/personal",
+        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    ),
+    ScriptConfig(
+        name="Handle Done Tasks",
+        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+        arg="--handle_done_tasks",
+        frequency=Frequency.DAILY.value,
+        python_path="/Users/ariel/PycharmProjects/personal",
+        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    ),
+    ScriptConfig(
+        name="Create Daily Pages",
+        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+        arg="--create_daily_pages",
+        frequency=Frequency.WEEKLY_TUESDAY.value,
+        python_path="/Users/ariel/PycharmProjects/personal",
+        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    ),
+    ScriptConfig(
+        name="Copy Pages",
+        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+        arg="--copy_pages",
+        # frequency="15/*",  # Runs on the 15th of every month
+        frequency=Frequency.WEEKLY_TUESDAY.value,
+        python_path="/Users/ariel/PycharmProjects/personal",
+        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    ),
+    ScriptConfig(
+        name="Get Expenses",
+        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+        arg="--get_expenses",
+        frequency=Frequency.DAILY.value,
+        python_path="/Users/ariel/PycharmProjects/personal",
+        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    ),
+    ScriptConfig(
+        name="Copy Book Summaries",
+        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+        arg="--copy_book_summary",
+        frequency=Frequency.TWICE_A_MONTH.value,
+        python_path="/Users/ariel/PycharmProjects/personal",
+        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    )
 ]
 
 
@@ -166,24 +166,25 @@ def should_sleep() -> bool:
 
 
 def main():
-    with open("/Users/ariel/Documents/cron-files/daily-run.log", "a") as f:
-        f.write(f"Script started at {datetime.now()}\n")
+    try:
+        with open("/Users/ariel/Documents/cron-files/daily-run.log", "a") as f:
+            f.write(f"Script started at {datetime.now()}\n")
 
-    date = datetime.now().strftime("%d/%m")
-    logger.info(f"\n\n\n++++++++++++++++++++++++ Starting the cron script {date} ++++++++++++++++++++++++\n"
-                f"\tPYTHONPATH: {os.environ.get('PYTHONPATH')}\n"
-                f"\tUsing Python executable: {sys.executable}\n"
-                f"\tos.environ are: {os.environ}")
+        date = datetime.now().strftime("%d/%m")
+        logger.info(f"\n\n\n++++++++++++++++++++++++ Starting the cron script {date} ++++++++++++++++++++++++\n"
+                    f"\tPYTHONPATH: {os.environ.get('PYTHONPATH')}\n"
+                    f"\tUsing Python executable: {sys.executable}\n"
+                    f"\tos.environ are: {os.environ}")
 
-    # Initialize and run script manager
-    manager = ScriptManager(NOTION_SCRIPTS)
-    manager.run_all()
-    logger.info("Finished running the cron script")
+        # Initialize and run script manager
+        manager = ScriptManager(NOTION_SCRIPTS)
+        manager.run_all()
+        logger.info("Finished running the cron script")
+        return 0
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
+        return 1
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        logger.error(f"An error occurred: {e}")
-        raise e
+    sys.exit(main())

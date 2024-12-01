@@ -433,3 +433,32 @@ def extract_monthly_totals(category: str, pages: List[Dict]) -> List[float]:
 
     return monthly_totals
 
+
+def extract_targets_from_pages(pages: List[Dict], current_month: str) -> Dict[str, float]:
+    """
+    Extracts Target values from monthly pages.
+
+    Args:
+        pages: List of Notion pages
+        current_month: Current month in MM/YY format to filter out
+
+    Returns:
+        Dict mapping category names to their target values
+    """
+    targets = {}
+
+    for page in pages:
+        try:
+            # Skip pages from current month
+            if page['properties']['Month']['rich_text'][0]['plain_text'] == current_month:
+                continue
+
+            category = page['properties']['Category']['title'][0]['plain_text']
+            target = page['properties'].get('Target', {}).get('number')
+            if target is not None:
+                targets[category] = target
+        except (KeyError, IndexError) as e:
+            logger.error(f"Error extracting target for page: {str(e)}")
+            continue
+
+    return targets

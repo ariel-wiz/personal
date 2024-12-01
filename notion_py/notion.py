@@ -360,8 +360,7 @@ def copy_pages_from_other_db_if_needed():
 
 @track_operation(NotionAPIOperation.GET_EXPENSES)
 def get_expenses_to_notion():
-    expense_service = NotionExpenseService(expense_tracker_db_id, months_expenses_tracker_db_id,
-                                           monthly_category_expense_db_id=monthly_category_expense_db)
+    expense_service = NotionExpenseService(expense_tracker_db_id, monthly_category_expense_db)
     expense_service.add_all_expenses_to_notion()
 
 

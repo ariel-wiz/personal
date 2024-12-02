@@ -408,8 +408,9 @@ def _invoke_notion_api(query_url, query_payload={}, method=Method.GET, print_res
     results = []
     start_cursor = None
 
-    resource_name = get_notion_id_mapping_from_url(query_url)
-    logger.debug(f"Invoking API for {resource_name}")
+    resource_name = _get_notion_resource_name_from_id(query_url, query_payload)
+    logger.debug(f"Invoking {method.capitalize() if query_url.split('/')[-1] != 'query' else Method.GET.capitalize()} "
+                 f"API {f'for {resource_name}' if resource_name else ''}")
 
     while True:
         response_data = _query_notion_api(query_url, query_payload, method, start_cursor=start_cursor,
@@ -642,13 +643,33 @@ def generate_icon_url(icon_type, icon_color=IconColor.LIGHT_GRAY):
     return f'https://www.notion.so/icons/{icon_type}_{icon_color}.svg'
 
 
-def get_notion_id_mapping_from_url(query_url: str) -> str:
-    """Extract Notion ID from URL by finding numeric ID or UUID in path"""
-    path_components = query_url.split('/')
+def _get_notion_resource_name_from_id(url: str, payload: dict = {}) -> str:
+    """
+    Extract Notion ID from either URL or payload.
 
-    for component in path_components:
-        # Check if component is numeric or UUID (32 chars without hyphens)
-        if component.isdigit() or len(component.replace('-', '')) == 32:
-            return _notion_id_mapping.get(component, 'Notion resource')
+    Args:
+        url: Notion API URL
+        payload: Optional API payload that may contain database/page ID
 
-    return 'Resource Name'  # Default if no ID found
+    Returns:
+        Optional[str]: Extracted Notion ID or None
+    """
+    id = ''
+    # First try to get ID from URL
+    url_parts = url.split('/')
+    for part in url_parts:
+        cleaned_part = part.strip().replace("-", "")
+        if len(cleaned_part) == 32:
+            id = cleaned_part
+
+    # If not found in URL, check payload
+    if not id and payload:
+        # Check parent database_id if exists
+        if 'parent' in payload and 'database_id' in payload['parent']:
+            id = payload['parent']['database_id'].strip().replace("-", "")
+
+        # Check direct database_id if exists
+        if not id and 'database_id' in payload:
+            id = payload['database_id'].strip().replace("-", "")
+
+    return _notion_id_mapping.get(id, "")

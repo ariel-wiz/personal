@@ -552,7 +552,13 @@ class NotionExpenseService:
                 logger.info(f"No expenses found for {target_date.strftime('%B %Y')}")
                 return {}
 
-            return self.update_monthly_pages(monthly_pages, month_expenses)
+            # Update category pages and get category totals
+            category_totals = self.update_monthly_pages(monthly_pages, month_expenses)
+
+            # Calculate and update total expenses
+            self.calculate_and_update_total_expenses(monthly_pages, month_expenses)
+
+            return category_totals
 
         except Exception as e:
             error_msg = f"Error processing monthly expenses for {target_date.strftime('%B %Y')}: {str(e)}"
@@ -606,25 +612,41 @@ class NotionExpenseService:
 
         return filtered_expenses
 
-    def calculate_and_update_total_expenses(self, monthly_pages: List[Dict], expenses: List[Expense]) -> Dict[
-        str, float]:
-        """Calculates and updates total expenses by category"""
-        category_sums = calculate_category_sums(expenses)
-        total_amount = sum(category_sums.values())
+    def calculate_and_update_total_expenses(self, monthly_pages: List[Dict], expenses: List[Expense]) -> None:
+        """Updates total expenses for the month"""
+        try:
+            # Calculate category sums using existing helper
+            category_sums = calculate_category_sums(expenses)
+            total_amount = sum(category_sums.values())
 
-        self._update_expenses_page(monthly_pages, total_amount)
-        return dict(category_sums)
+            # Find and update the Expenses page
+            expenses_page = find_expenses_page(monthly_pages)
+            if not expenses_page:
+                logger.warning("Expenses page not found in monthly pages")
+                return
 
-    def _update_expenses_page(self, monthly_pages: List[Dict], total_amount: float):
+            # Update with total and calculate average if needed
+            self._update_expenses_page(expenses_page, total_amount)
+
+            logger.info(f"Successfully updated monthly total expenses: {total_amount:.2f}")
+
+        except Exception as e:
+            logger.error(f"Error updating total expenses: {str(e)}")
+
+    def _update_expenses_page(self, expenses_page: Dict, total_amount: float):
         """Updates the Expenses page with total amount and average"""
-        expenses_page = find_expenses_page(monthly_pages)
-        if not expenses_page:
-            return
+        try:
+            update_payload = self._create_expenses_update_payload(expenses_page, total_amount)
+            update_page(expenses_page['id'], update_payload)
 
-        update_payload = self._create_expenses_update_payload(expenses_page, total_amount)
-        update_page(expenses_page['id'], update_payload)
-        logger.info(f"Updated Monthly Expenses with total: {total_amount:.2f}")
+            logger.info(f"Updated Expenses page with total: {total_amount:.2f}")
 
+            if "4 Months Average" in update_payload["properties"]:
+                logger.info(f"Added 4-month average to Expenses page")
+
+        except Exception as e:
+            logger.error(f"Error updating Expenses page: {str(e)}")
+            raise
 
     def _create_expenses_update_payload(self, page: Dict, total_amount: float) -> Dict:
         """Creates the payload for updating expenses"""

@@ -1,6 +1,7 @@
 import functools
 import json
 from datetime import datetime, timedelta
+from typing import List, Dict
 
 import requests
 
@@ -75,8 +76,10 @@ def get_db_info(db_id, print_response=False, print_response_type=''):
                               print_response_type=print_response_type)
 
 
-def get_db_pages(db_id, get_db_payload={}, print_response=False, print_response_type=''):
+def get_db_pages(db_id, get_db_payload=None, print_response=False, print_response_type=''):
     get_db_url = f"https://api.notion.com/v1/databases/{db_id}/query"
+    if get_db_payload is None:
+        get_db_payload = {}
     return _invoke_notion_api(get_db_url, get_db_payload, method=Method.POST, print_response=print_response,
                               print_response_type=print_response_type)
 
@@ -673,3 +676,222 @@ def _get_notion_resource_name_from_id(url: str, payload: dict = {}) -> str:
             id = payload['database_id'].strip().replace("-", "")
 
     return _notion_id_mapping.get(id, "")
+
+
+def manage_daily_summary_pages():
+    """Main function to manage daily summary pages"""
+    try:
+        daily_pages = get_db_pages(day_summary_db_id)
+        api_pages = get_db_pages(api_db_id)
+
+        if not daily_pages:
+            logger.info("No daily summary pages found")
+            return
+
+        # First handle duplicates
+        remove_duplicate_daily_pages(daily_pages)
+
+        # Then handle missing relations
+        if api_pages:
+            add_missing_api_relations(daily_pages, api_pages)
+
+    except Exception as e:
+        logger.error(f"Error managing daily summary pages: {str(e)}")
+
+
+def remove_duplicate_daily_pages(daily_pages: List[Dict]):
+    """Process and remove duplicate daily summary pages"""
+    try:
+        # Group pages by date
+        date_groups = group_pages_by_date(daily_pages)
+
+        # Process each group of pages with the same date
+        duplicates_removed = 0
+        for date, pages in date_groups.items():
+            if len(pages) > 1:
+                duplicates_removed += remove_duplicates_for_date(pages)
+
+        if duplicates_removed:
+            logger.info(f"Removed {duplicates_removed} duplicate daily summary pages")
+        else:
+            logger.info("No duplicate daily summary pages found")
+
+    except Exception as e:
+        logger.error(f"Error removing duplicate daily pages: {str(e)}")
+
+
+def group_pages_by_date(pages: List[Dict]) -> Dict[str, List[Dict]]:
+    """Group pages by their date"""
+    date_groups = {}
+    for page in pages:
+        try:
+            try:
+                date = page['properties']['Date']['date']['start']
+            except TypeError:
+                date = 'No Date'
+
+            if date not in date_groups:
+                date_groups[date] = []
+            date_groups[date].append(page)
+        except KeyError:
+            logger.warning(f"Page {page.get('id')} has no date property")
+            continue
+    return date_groups
+
+
+def remove_duplicates_for_date(pages: List[Dict]) -> int:
+    """Remove duplicate pages for a specific date"""
+    if len(pages) <= 1:
+        return 0
+
+    if should_delete_no_date_pages(pages):
+        return delete_pages_with_no_date(pages)
+
+    pages_by_relation = separate_pages_by_relation(pages)
+    return remove_duplicate_pages(pages_by_relation)
+
+
+def should_delete_no_date_pages(pages: List[Dict]) -> bool:
+    """Check if these are pages with no date"""
+    try:
+        return any(
+            page['properties']['Date']['date'] is None
+            for page in pages
+        )
+    except KeyError:
+        return False
+
+
+def delete_pages_with_no_date(pages: List[Dict]) -> int:
+    """Delete all pages that have no date"""
+    deleted_count = 0
+    for page in pages:
+        try:
+            delete_page(page['id'])
+            logger.debug(f"Removed page with no date {page['id']}")
+            deleted_count += 1
+        except Exception as e:
+            logger.error(f"Error deleting page with no date {page['id']}: {str(e)}")
+    return deleted_count
+
+
+def has_api_relation(page: Dict) -> bool:
+    """Check if page has API Status Page relation"""
+    try:
+        api_relation = page.get('properties', {}).get('API Status Page', {}).get('relation', [])
+        return len(api_relation) > 0
+    except Exception:
+        return False
+
+
+def separate_pages_by_relation(pages: List[Dict]) -> Dict[str, List[Dict]]:
+    """Separate pages into those with and without API relations"""
+    pages_by_relation = {
+        'with_relations': [],
+        'without_relations': []
+    }
+
+    for page in pages:
+        if has_api_relation(page):
+            pages_by_relation['with_relations'].append(page)
+        else:
+            pages_by_relation['without_relations'].append(page)
+
+    return pages_by_relation
+
+
+def remove_duplicate_pages(pages_by_relation: Dict[str, List[Dict]]) -> int:
+    """Remove duplicate pages while preserving those with relations"""
+    if pages_by_relation['with_relations']:
+        logger.debug(
+            f"Found {len(pages_by_relation['with_relations'])} pages with API relations - these will be preserved"
+        )
+
+    pages_to_remove = get_pages_to_remove(
+        pages_by_relation['without_relations'] if len(pages_by_relation['without_relations']) > 0 else
+        pages_by_relation['with_relations'])
+    return delete_duplicate_pages(pages_to_remove)
+
+
+def get_pages_to_remove(pages: List[Dict]) -> List[Dict]:
+    """Get list of pages that should be removed"""
+    if not pages:
+        return []
+
+    # Sort by last edited time, most recent first
+    sorted_pages = sorted(
+        pages,
+        key=lambda x: x.get('last_edited_time', ''),
+        reverse=True
+    )
+
+    # Keep the most recent, remove others
+    return sorted_pages[1:]
+
+
+def delete_duplicate_pages(pages: List[Dict]) -> int:
+    """Delete the specified duplicate pages"""
+    deleted_count = 0
+    for page in pages:
+        try:
+            delete_page(page['id'])
+            logger.debug(f"Removed duplicate page {page['id']}")
+            deleted_count += 1
+        except Exception as e:
+            logger.error(f"Error deleting page {page['id']}: {str(e)}")
+    return deleted_count
+
+
+def add_missing_api_relations(daily_pages: List[Dict], api_pages: List[Dict]):
+    """Add missing API page relations to daily summary pages"""
+    try:
+        # Create lookup dictionary for API pages by date
+        api_pages_by_date = {
+            page['properties']['Date']['date']['start']: page
+            for page in api_pages
+            if 'Date' in page['properties']
+               and page['properties']['Date'].get('date')
+        }
+
+        relations_added = 0
+        for daily_page in daily_pages:
+            if add_api_relation_if_missing(daily_page, api_pages_by_date):
+                relations_added += 1
+
+        if relations_added:
+            logger.info(f"Added {relations_added} missing API page relations")
+        else:
+            logger.info("No missing API page relations found")
+
+    except Exception as e:
+        logger.error(f"Error adding API relations: {str(e)}")
+
+
+def add_api_relation_if_missing(daily_page: Dict, api_pages_by_date: Dict[str, Dict]) -> bool:
+    """Add API relation to a daily page if missing and API page exists"""
+    try:
+        # Check if page already has API relation
+        api_status_relation = daily_page['properties'].get('API Status Page', {}).get('relation', [])
+        if api_status_relation:
+            return False
+
+        # Get date and find matching API page
+        daily_date = daily_page['properties']['Date']['date']['start']
+        api_page = api_pages_by_date.get(daily_date)
+
+        if not api_page:
+            return False
+
+        # Add relation
+        update_page_with_relation(
+            daily_page['id'],
+            api_page['id'],
+            "API Status Page"
+        )
+
+        logger.debug(f"Added API relation to daily page {daily_page['id']}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Error processing relation for page {daily_page.get('id')}: {str(e)}")
+        return False

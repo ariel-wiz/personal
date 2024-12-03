@@ -15,7 +15,7 @@ from notion_py.helpers.notion_payload import generate_payload, get_trading_paylo
 from notion_py.helpers.notion_common import create_page_with_db_dict_and_children_block, \
     get_db_pages, track_operation, create_daily_summary_pages, create_daily_api_pages, \
     update_page, create_page, copy_pages_to_daily, get_daily_tasks, \
-    get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url
+    get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url, manage_daily_summary_pages
 from variables import Paths
 
 
@@ -341,7 +341,8 @@ def create_daily_pages():
         create_daily_api_pages,
         create_parashat_hashavua,
         copy_recurring_tasks,
-        copy_normal_tasks
+        copy_normal_tasks,
+        manage_daily_summary_pages
     ]
     run_functions(functions)
 
@@ -383,7 +384,6 @@ def main(selected_tasks):
 
             # expense_service = NotionExpenseService(expense_tracker_db_id, Keys().current_month_category_expense_db)
             # expense_service.backfill_monthly_expenses(months_back=4)  # Process last 4 months
-
             get_expenses_to_notion()
             logger.info("End of manual run")
 

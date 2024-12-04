@@ -1,6 +1,7 @@
 import argparse
 import random
 
+from crossfit.crossfit_notion_manager import CrossfitManager
 from epub import read_epub
 from common import create_tracked_lambda, create_shabbat_dates
 from expense.notion_expense_service import NotionExpenseService
@@ -382,9 +383,9 @@ def main(selected_tasks):
         else:
             # Manually call the functions here
 
-            # expense_service = NotionExpenseService(expense_tracker_db_id, Keys().current_month_category_expense_db)
-            # expense_service.backfill_monthly_expenses(months_back=4)  # Process last 4 months
-            get_expenses_to_notion()
+            crossfit_manager = CrossfitManager(crossfit_exercises_db_id=Keys.crossfit_exercises_db_id)
+            crossfit_manager.add_crossfit_exercises_to_notion()
+
             logger.info("End of manual run")
 
     except Exception as e:

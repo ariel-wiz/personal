@@ -462,3 +462,21 @@ def extract_targets_from_pages(pages: List[Dict], current_month: str) -> Dict[st
             continue
 
     return targets
+
+
+def parse_target_date(month_year: str) -> Optional[datetime]:
+    """Parse month/year string (MM/YY) to datetime"""
+    try:
+        month_str, year_str = month_year.split('/')
+        month = int(month_str)
+        year = 2000 + int(year_str)  # Convert YY to YYYY
+
+        if not (1 <= month <= 12):
+            logger.error(f"Invalid month: {month}")
+            return None
+
+        return datetime(year, month, 1)
+
+    except ValueError as e:
+        logger.error(f"Error parsing month/year '{month_year}': {str(e)}")
+        return None

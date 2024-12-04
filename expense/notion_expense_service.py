@@ -25,7 +25,7 @@ from expense.expense_helpers import (
     group_expenses_by_category_or_subcategory, determine_target_category, calculate_date_range, calculate_average,
     log_monthly_total, get_amount_from_page, get_date_info, get_property_overrides, log_creation_completion,
     load_data_from_json, group_expenses_by_category, get_target_date, find_expenses_page, extract_monthly_totals,
-    extract_targets_from_pages
+    extract_targets_from_pages, parse_target_date
 )
 from notion_py.helpers.notion_common import (
     get_db_pages, generate_payload, update_page_with_relation, delete_page, create_page_with_db_dict, update_page,
@@ -749,78 +749,6 @@ class NotionExpenseService:
             logger.error(f"Error initializing current month: {str(e)}")
             return False
 
-    def _get_current_month_expenses(self) -> list:
-        """Get expenses for the current month"""
-        month_expenses = _get_expenses_for_month(
-            self.current_month_expenses,
-            self.existing_expenses_objects
-        )
-
-        if not month_expenses:
-            logger.info("No expenses found for current month")
-            return []
-
-        return month_expenses
-
-    def get_current_month_expenses(self) -> Optional[MonthlyExpense]:
-        """
-        Returns the MonthlyExpense object for the current month, creating it if necessary.
-        """
-        try:
-            # Get current month's expenses
-            self.existing_expenses_objects = self.get_expenses_from_notion(
-                current_months_expense_filter)
-
-            # Get or create current month's page
-            monthly_pages = self.get_monthly_expenses_from_notion(
-                current_month_year_filter)
-
-            if not monthly_pages:
-                # Create new month page if it doesn't exist
-                month_page = self.create_month_page_if_not_exists()
-                if not month_page:
-                    logger.error("Failed to create new month page")
-                    return None
-
-                monthly_expense = self.create_empty_monthly_expenses_object(month_page)
-            else:
-                monthly_expense = monthly_pages[0]
-
-            # Cache the current month expenses
-            self.current_month_expenses = monthly_expense
-            return monthly_expense
-
-        except Exception as e:
-            logger.error(f"Error getting current month expenses: {str(e)}")
-            logger.exception("Detailed error traceback:")
-            return None
-
-    def update_historical_monthly_pages(self, months_back: int = 4):
-        """Update monthly balance pages for historical expenses"""
-        current_date = datetime.now()
-
-        # Create necessary monthly pages
-        for i in range(months_back):
-            target_date = current_date - timedelta(days=30 * i)
-            self.create_month_page_if_not_exists(target_date)
-
-        # Get historical expenses
-        self.existing_expenses_objects = self.get_expenses_from_notion(
-            filter_by=last_4_months_expense_filter)
-
-        # Get monthly pages
-        self.monthly_expenses = self.get_monthly_expenses_from_notion(
-            filter_by=last_4_months_months_expense_filter)
-
-        # Update each monthly page
-        for monthly_expense in self.monthly_expenses:
-            month_expenses = _get_expenses_for_month(
-                monthly_expense,
-                self.existing_expenses_objects
-            )
-            if month_expenses:
-                self._update_monthly_expenses(monthly_expense, month_expenses)
-
     def create_month_page_if_not_exists(self, target_date: Optional[datetime] = None) -> Dict:
         """Create monthly expense page with proper averages if it doesn't exist"""
         target_date = target_date or datetime.now()
@@ -987,3 +915,17 @@ class NotionExpenseService:
             logger.error(f"Error processing month {target_date.strftime('%B %Y')}: {str(e)}")
             return {}
 
+    def update_monthly_category_expenses(self, month_year: str):
+        """Update monthly category expenses for a specific month/year"""
+        try:
+            target_date = parse_target_date(month_year)
+            if not target_date:
+                return
+
+            logger.info(f"Updating monthly categories for {target_date.strftime('%B %Y')}")
+
+            # Use existing process_monthly_expenses function with target date
+            self.process_monthly_expenses(target_date)
+
+        except Exception as e:
+            logger.error(f"Error updating monthly categories for {month_year}: {str(e)}")

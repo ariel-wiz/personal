@@ -107,6 +107,20 @@ def create_paragraph_block(content, link_url=None):
     }
 
 
+def create_number_block(numbered_list_items):
+    """Create a paragraph block"""
+    return [{
+                    "object": "block",
+                    "type": "numbered_list_item",
+                    "numbered_list_item": {
+                        "rich_text": [{
+                            "type": "text",
+                            "text": {"content": step}
+                        }]
+                    }
+                } for step in numbered_list_items]
+
+
 def create_heading_3_block(content):
     """Create a heading 3 block"""
     return {
@@ -130,11 +144,11 @@ def create_toggle_block(content, children_blocks):
     }
 
 
-def create_toggle_heading_3_block(content, children_blocks):
+def create_toggle_heading_block(content, children_blocks, heading_number=3):
     return {
         "object": "block",
-        "type": "heading_3",
-        "heading_3": {
+        "type": f"heading_{heading_number}",
+        f"heading_{heading_number}": {
             "rich_text": [
                 {
                     "text": {
@@ -203,6 +217,83 @@ def create_notion_link(page_id, text):
     }
 
 
+def generate_children_block_for_crossfit_exercise(description_steps, tips):
+    # description_block = create_number_block(description)
+    # tips_block = create_number_block(tips)
+    # description_toggle = create_toggle_heading_block("Description 📑", description_block, 2)
+    # tips_toggle = create_toggle_heading_block("Tips 👌🏼", tips_block, 2)
+    # list_to_update = [description_toggle, tips_toggle]
+    # return {"children": create_columns(list_to_update)}
+    return {
+        "children": [
+            {
+                "object": "block",
+                "type": "column_list",
+                "column_list": {
+                    "children": [
+                        {
+                            "object": "block",
+                            "type": "column",
+                            "column": {
+                                "children": [
+                                    {
+                                        "object": "block",
+                                        "type": "heading_2",
+                                        "heading_2": {
+                                            "rich_text": [{"text": {"content": "Description 📑"}}],
+                                            "color": "gray_background"
+                                        }
+                                    },
+                                    {
+                                        "object": "block",
+                                        "type": "divider",
+                                        "divider": {}
+                                    },
+                                    *[{
+                                        "object": "block",
+                                        "type": "bulleted_list_item",
+                                        "bulleted_list_item": {
+                                            "rich_text": [{"text": {"content": step}}]
+                                        }
+                                    } for step in description_steps]
+                                ]
+                            }
+                        },
+                        {
+                            "object": "block",
+                            "type": "column",
+                            "column": {
+                                "children": [
+                                    {
+                                        "object": "block",
+                                        "type": "heading_2",
+                                        "heading_2": {
+                                            "rich_text": [{"text": {"content": "Tips 👌"}}],
+                                            "color": "brown_background"
+                                        }
+                                    },
+                                    {
+                                        "object": "block",
+                                        "type": "divider",
+                                        "divider": {}
+                                    },
+                                    *[{
+                                        "object": "block",
+                                        "type": "bulleted_list_item",
+                                        "bulleted_list_item": {
+                                            "rich_text": [{"text": {"content": tip}}]
+                                        }
+                                    } for tip in tips]
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+
+
 def generate_children_block_for_shabbat(shabat_cities, parasha_summary, parasha_link_name, parasha_link):
     # Create sentence blocks
     summary_blocks = [
@@ -218,7 +309,7 @@ def generate_children_block_for_shabbat(shabat_cities, parasha_summary, parasha_
     ]
 
     # Create toggle block with cities
-    toggle_block = create_toggle_heading_3_block("🕊️ זמני שבת", cities_blocks)
+    toggle_block = create_toggle_heading_block("🕊️ זמני שבת", cities_blocks)
 
     # Create link block
     link_block = create_paragraph_block(f"🔗 {parasha_link_name}", parasha_link)

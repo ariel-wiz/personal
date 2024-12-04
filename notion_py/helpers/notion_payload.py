@@ -34,7 +34,7 @@ def generate_create_page_payload(db_id, db_dict, property_overrides=None):
         NotionPropertyType.SELECT_ID: ["Project"],
         NotionPropertyType.SELECT_NAME: ["Sleep Feedback", "Person Card", "Status", "Type", "Original Currency",
                                          "Charged Currency", "Category"],
-        NotionPropertyType.MULTI_SELECT: ["Activities"],
+        NotionPropertyType.MULTI_SELECT: ["Activities", "Body Parts", "Equipment"],
         NotionPropertyType.DATE: ["Date", "Due", "Processed Date"],
         NotionPropertyType.URL: ["gCal Link"],
         NotionPropertyType.NUMBER: ["Steps", "Steps Goal", "Calories", "Sleep Note", "Activity Calories",
@@ -56,6 +56,9 @@ def generate_create_page_payload(db_id, db_dict, property_overrides=None):
 
     for daily_task_element in db_dict.items():
         key, value = daily_task_element
+
+        if value in (None, "", [], {}):
+            continue
 
         # Check if there's an override for this property
         if key in property_overrides:

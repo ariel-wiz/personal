@@ -481,8 +481,8 @@ def create_page_with_db_dict(db_id, db_dict, property_overrides=None):
     return create_page(generated_payload)
 
 
-def create_page_with_db_dict_and_children_block(db_id, db_dict, children_block):
-    generated_payload = generate_create_page_payload(db_id, db_dict)
+def create_page_with_db_dict_and_children_block(db_id, db_dict, children_block, property_overrides=None):
+    generated_payload = generate_create_page_payload(db_id, db_dict, property_overrides)
     generated_payload.update(children_block)
 
     return create_page(generated_payload)

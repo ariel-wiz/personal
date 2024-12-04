@@ -25,6 +25,7 @@ book_summaries_db_id = Keys.book_summaries_db_id
 monthly_category_expense_db = Keys.monthly_category_expense_db
 
 
+
 class NotionPropertyType:
     TITLE = "title"
     TEXT = "rich_text"
@@ -108,6 +109,7 @@ class IconType:
     HISTORY = 'history'
     CREDIT_CARD = 'credit-card'
     ARROW_RIGHT_LINE = 'arrow-right-line'
+    GYM = 'gym'
 
 
 class IconColor:

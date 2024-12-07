@@ -383,7 +383,8 @@ def main(selected_tasks):
         else:
             # Manually call the functions here
 
-            crossfit_manager = CrossfitManager(crossfit_exercises_db_id=Keys.crossfit_exercises_db_id)
+            crossfit_manager = CrossfitManager(crossfit_exercises_db_id=Keys.crossfit_exercises_db_id,
+                                               crossfit_workout_db_id=Keys.crossfit_workouts_db_id)
             crossfit_manager.add_crossfit_exercises_to_notion()
 
             logger.info("End of manual run")

@@ -264,12 +264,127 @@ class CrossfitManager:
         self.variables_exercises = self.load_crossfit_exercises_from_variables(EXERCISES)
         self.notion_exercises = []
 
-        # self.crossfit_workouts_db_id = crossfit_workout_db_id
-        # self.variables_workouts = self.load_crossfit_workouts_from_variables(TRAININGS)
-        # self.notion_workouts = []
+        self.crossfit_workouts_db_id = crossfit_workout_db_id
+        self.variables_workouts = self.load_crossfit_workouts_from_variables(TRAININGS)
+        self.notion_workouts = []
+
+    def get_notion_exercise_names(self):
+        return sorted([exercise.name for exercise in self.notion_exercises])
 
     def get_exercise_by_name(self, exercise_name):
-        return self.match_exercise(exercise_name, self.notion_exercises)
+        """
+        Returns (found: bool, exercise_name: str)
+        found: True if matching exercise exists, False if no match
+        exercise_name: Mapped exercise name if found, original name if not found
+        """
+        normalized_name = self.map_exercise_name(exercise_name, self.get_notion_exercise_names())
+        found = normalized_name in self.get_notion_exercise_names()
+        return found, normalized_name
+
+    def map_exercise_name(self, name: str, known_exercises: list) -> str:
+        # Skip words check
+        skip_words = ['partner', 'warm up', 'warmup', 'drill', 'progression', 'practice', 'game']
+        if any(word in name.lower() for word in skip_words):
+            return ''
+
+        # Manual mappings - canonical form as key, variations as values
+        manual_mappings = {
+            "inchworm": ["inch worm", "inch worms"],
+            "weighted abmat sit up": ["weighted abmat sit ups"],
+            "alternating lunge": ["alternating lunges"],
+            "medicine ball pass": ["med ball pass", "med ball passes"],
+            "toes to bar": ["toe to bar", "toes to bars"],
+            "handstand push up": ["handstand pushup", "handstand push ups"],
+            "muscle up": ["muscle ups"],
+            "pull up": ["pull ups"],
+            "push up": ["push ups"],
+            "row": ["rows", "assault bike", "cal assault", "row bike", "machine row", "cal machine", "machine"],
+            "squat": ["squats"],
+            "lunge": ["lunges"],
+            "jump": ["jumps"],
+            "clean and jerk": ["clean jerk", "clean & jerk"],
+            "devils press": ["devil press"]
+        }
+
+        # Abbreviation mappings - canonical form as key, abbreviations as values
+        abbrev_map = {
+            'dumbbell': ['db'],
+            'kettlebell': ['kb'],
+            'pvc': ['pvc'],
+            'toes to bar': ['t2b'],
+            'handstand push up': ['hspu'],
+            'chest to bar': ['c2b'],
+            'kettlebell swing': ['kbs'],
+            'knees to elbow': ['k2e'],
+            'glute ham developer': ['ghd'],
+            'ab mat': ['abmat'],
+            'medicine ball': ['med ball'],
+            'overhead squat': ['ohs'],
+            'clean and jerk': ['c&j'],
+            'ground to overhead': ['gto'],
+            'romanian deadlift': ['rdl'],
+            'alternative': ['alt'],
+        }
+
+        def normalize_text(text):
+            text = text.lower().strip()
+            text = text.replace('-', ' ')
+            # Find canonical form if it exists in manual mappings
+            for canonical, variations in manual_mappings.items():
+                if text in variations or text == canonical.lower():
+                    return canonical
+            return text
+
+        def expand_abbreviations(text):
+            words = text.split()
+            expanded_words = []
+            for word in words:
+                word_lower = word.lower()
+                expanded = word
+                # Check if word matches any abbreviation
+                for canonical, abbrevs in abbrev_map.items():
+                    if word_lower in abbrevs:
+                        expanded = canonical
+                        break
+                expanded_words.append(expanded)
+            return ' '.join(expanded_words)
+
+        def standardize_exercises(text):
+            # Standardize compound movements
+            compound_patterns = {
+                'box jump over': 'box jump',
+                'burpee box jump over': 'burpee box jump',
+                'bar facing burpee': 'bar facing burpee',
+                'chest to bar pull up': 'chest to bar pull up',
+                'toes to bar': 'toes to bar',
+                'knees to elbow': 'knees to elbows'
+            }
+
+            for pattern, replacement in compound_patterns.items():
+                if pattern in text:
+                    return replacement
+            return text
+
+        # Process name
+        norm_name = normalize_text(name)
+        norm_name = expand_abbreviations(norm_name)
+        norm_name = standardize_exercises(norm_name)
+
+        # Create normalized dictionary of known exercises
+        norm_exercises = {normalize_text(standardize_exercises(expand_abbreviations(ex))): ex
+                          for ex in known_exercises}
+
+        # Try exact matches
+        if norm_name in norm_exercises:
+            return norm_exercises[norm_name]
+
+        # Try partial matches
+        for norm_known, original in norm_exercises.items():
+            if norm_name in norm_known or norm_known in norm_name:
+                return original
+
+        # Return processed version if no match found
+        return norm_name.title()
 
     def normalize_exercise_name(self, name):
         def normalize_text(text):
@@ -335,6 +450,24 @@ class CrossfitManager:
                 text = re.sub(pattern, replacement, text)
             return text
 
+        def standardize_compound_movements(text):
+            """Standardize compound movement names"""
+            compound_patterns = {
+                r'box jump[- ]?over': 'box jump',
+                r'devils?\s*press': 'devil press',
+                r'burpee[- ]?box[- ]?jump[- ]?over': 'burpee box jump over',
+                r'bar[- ]?facing[- ]?burpee': 'bar facing burpee',
+                r'chest[- ]?to[- ]?bar': 'chest to bar',
+                r'toes[- ]?to[- ]?bar': 'toes to bar',
+                r'knees[- ]?to[- ]?elbow': 'knees to elbow',
+                r'rowing|machine\s+row(?:\s+bike)?|row\s+bike': 'row'
+            }
+
+            text = text.lower()
+            for pattern, replacement in compound_patterns.items():
+                text = re.sub(pattern, replacement, text)
+            return text
+
         def expand_equipment_abbreviations(text):
             """Handle equipment abbreviations"""
             equipment_abbrev = {
@@ -348,34 +481,32 @@ class CrossfitManager:
             return text
 
         def standardize_exercise_plurals(text):
-            """Handle special cases for exercise name plurals"""
-            # Words that should always be singular
+            text = re.sub(r"'s$|s'$", "", text)
+
             always_singular = {
-                'pull up', 'push up', 'step up', 'clean', 'snatch', 'jerk',
-                'press', 'swing', 'squat', 'deadlift', 'row', 'run', 'muscle up'
+                'devil press', 'pull up', 'push up', 'step up', 'clean',
+                'snatch', 'jerk', 'press', 'swing', 'squat', 'deadlift',
+                'row', 'run', 'muscle up'
             }
 
-            # Compound exercises that should be preserved entirely
-            preserve_compounds = {
-                'plate hold', 'front rack', 'wall walk', 'wall ball'
+            # Map both singular and plural forms
+            always_plural = {
+                'double under': 'double unders',
+                'double unders': 'double unders',
+                'toes to bar': 'toes to bar',
+                'knees to elbow': 'knees to elbow'
             }
 
-            # First check if text is a preserved compound
-            text_lower = text.lower()
-            if text_lower in preserve_compounds:
-                return text_lower
+            words = text.lower().split()
+            joined_words = ' '.join(words)
 
-            # Normalize compound exercises
-            normalized = text_lower
-            normalized = re.sub(r'box jump(?:\s+over)?', 'box jump', normalized)  # Remove "over" from box jump
+            if joined_words in always_plural:
+                return always_plural[joined_words]
 
-            words = normalized.split()
             normalized_words = []
-
             for word in words:
-                # Check if word is part of a compound exercise name
                 base_word = word.rstrip('s')
-                if base_word.lower() in always_singular:
+                if base_word in always_singular:
                     normalized_words.append(base_word)
                 else:
                     normalized_words.append(word)
@@ -409,8 +540,8 @@ class CrossfitManager:
         # Standardize compound words (including Clean And Jerk)
         normalized = standardize_compound_words(normalized)
 
-        # Handle plurals
         normalized = standardize_exercise_plurals(normalized)
+        normalized = standardize_compound_movements(normalized)
 
         # Handle equipment combinations (like "Dumbbell Kettlebell")
         if 'dumbbell kettlebell' in normalized.lower() or 'kettlebell dumbbell' in normalized.lower():
@@ -431,16 +562,6 @@ class CrossfitManager:
 
         return normalized
 
-    def match_exercise(self, normalized_name, exercise_list):
-        """
-        Checks if a normalized exercise name exists in the exercise list.
-        Returns the matching exercise if found, None otherwise.
-        """
-        normalized_name = normalized_name.lower()
-        for exercise in exercise_list:
-            if self.normalize_exercise_name(exercise.name).lower() == normalized_name:
-                return exercise
-        return None
 
     def load_crossfit_exercises_from_variables(self, exercises_data: Dict[str, Any]) -> List[CrossfitExercise]:
         """
@@ -525,43 +646,48 @@ class CrossfitManager:
         if len(added_exercises) > 0:
             logger.info(f"Successfully added {len(added_exercises)} new exercises to Notion")
 
-    def load_crossfit_workouts_from_variables(self, workout_data: Dict[str, Any],
-                                              break_if_miss_exercise=False) -> List[CrossfitWorkout]:
-        """
-        Load CrossFit exercises from dictionary data into CrossfitExercise objects
-        """
+    def load_crossfit_workouts_from_variables(self, workout_data: Dict[str, Any], break_if_miss_exercise=False) -> List[
+        CrossfitWorkout]:
         if not self.notion_exercises:
             self.notion_exercises = self.get_crossfit_exercises_in_notion()
 
         workout_list = []
         missing_exercise_names = []
+
         for workout in workout_data:
             workout_keys = list(workout.keys())
             if len(workout_keys) == 1:
                 workout = workout[workout_keys[0]]
             elif len(workout_keys) == 2:
                 workout = workout['metcon']
+
             try:
                 exercise_list = []
                 for workout_exercise in workout['exercises_used']:
-                    exercise = self.get_exercise_by_name(workout_exercise)
-                    if not exercise:
-                        missing_exercise_names.append(workout_exercise)
+                    found, exercise_name = self.get_exercise_by_name(workout_exercise)
+                    if not found and exercise_name != '':
+                        missing_exercise_names.append(exercise_name)
                     else:
-                        exercise_list.append(exercise)
+                        matching_exercise = next((ex for ex in self.notion_exercises if ex.name == exercise_name), None)
+                        if matching_exercise:
+                            exercise_list.append(matching_exercise)
+
                 exercises_used = exercise_list
                 training_program = workout['training_program']
                 training_type = workout['training_type']
                 duration = workout['training_time']
                 workout_list.append(CrossfitWorkout(exercises_used, training_program, training_type, duration))
+
             except Exception as e:
                 logger.error(f"There is an issue while loading: {str(e)}")
+
         if missing_exercise_names:
             sorted_missing_names = sorted(list(set(missing_exercise_names)))
-            error_message = f"These required exercises don't exist in Notion: {set(sorted_missing_names)}"
+            error_message = f"These required exercises don't exist in Notion: {sorted_missing_names}"
             logger.error(error_message)
             if break_if_miss_exercise:
                 raise Exception(error_message)
+
         return workout_list
 
     def get_crossfit_workouts_in_notion(self):

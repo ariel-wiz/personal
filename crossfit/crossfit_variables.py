@@ -836,7 +836,7 @@ EXERCISES = {
             "Stand to complete"
         ]
     },
-    "Rowing": {
+    "Row": {
         "tips": ["Drive with legs first", "Keep core engaged", "Sequence: legs-back-arms"],
         "equipment": ["rowing machine"],
         "expertise": 2,
@@ -1937,27 +1937,6 @@ EXERCISES = {
         ]
     },
 
-    "Machine Row": {
-        "tips": [
-            "Keep chest against pad",
-            "Pull elbows back",
-            "Control the return"
-        ],
-        "equipment": ["rowing machine"],
-        "expertise": 1,
-        "demo_url": "https://www.youtube.com/watch?v=7qL3fH6prdY",
-        "body_part": ["back", "biceps"],
-        "description": [
-            "Set up with chest against pad",
-            "Grasp handles fully",
-            "Pull elbows back and down",
-            "Squeeze shoulder blades",
-            "Control return movement",
-            "Maintain posture",
-            "Keep core engaged"
-        ]
-    },
-
     "Single Unders": {
         "tips": [
             "Use wrists not arms",
@@ -2314,26 +2293,6 @@ EXERCISES = {
         ]
     },
 
-    "Machine Row/Bike": {
-        "tips": [
-            "Maintain consistent pace",
-            "Focus on power output",
-            "Keep proper form throughout"
-        ],
-        "equipment": ["rowing machine", "assault bike"],
-        "expertise": 1,
-        "body_part": ["cardio", "full body"],
-        "description": [
-            "Set up on chosen machine",
-            "Start at prescribed pace",
-            "Maintain consistent rhythm",
-            "Focus on breathing pattern",
-            "Monitor output/intensity",
-            "Complete prescribed distance/time",
-            "Control pace changes"
-        ]
-    },
-
     "Jog": {
         "tips": [
             "Keep easy sustainable pace",
@@ -2471,6 +2430,402 @@ EXERCISES = {
             "Lower with control",
             "Return to dead hang",
             "Repeat for prescribed reps"
+        ]
+    },
+    "Back Rack Position": {
+        "tips": [
+            "Keep elbows high and forward",
+            "Create solid shelf with shoulders",
+            "Maintain upright torso"
+        ],
+        "equipment": ["barbell"],
+        "expertise": 2,
+        "demo_url": "",
+        "body_part": ["shoulders", "core", "upper back"],
+        "description": [
+            "Position barbell across front deltoids",
+            "Elbows pointed forward and up",
+            "Create stable shelf with shoulders",
+            "Keep torso upright",
+            "Maintain neutral wrist position",
+            "Core engaged throughout",
+            "Practice with empty barbell first"
+        ]
+    },
+
+    "Chest Passes": {
+        "tips": [
+            "Step into throw",
+            "Follow through with hands",
+            "Keep ball at chest level"
+        ],
+        "equipment": ["medicine ball", "wall"],
+        "expertise": 1,
+        "demo_url": "",
+        "body_part": ["chest", "shoulders", "core"],
+        "description": [
+            "Hold ball at chest height",
+            "Elbows out to sides",
+            "Step forward as you push",
+            "Extend arms fully on release",
+            "Follow through with hands",
+            "Catch ball with soft hands",
+            "Reset position for next rep"
+        ]
+    },
+
+    "Down And Back Movements": {
+        "tips": [
+            "Maintain consistent pace",
+            "Control breathing pattern",
+            "Focus on form over speed"
+        ],
+        "equipment": [],
+        "expertise": 1,
+        "demo_url": "",
+        "body_part": ["full body", "cardio"],
+        "description": [
+            "Mark set distance for drill",
+            "Perform prescribed movement down",
+            "Turn around controlled",
+            "Return using same movement",
+            "Maintain form throughout",
+            "Complete specified rounds",
+            "Scale distance as needed"
+        ]
+    },
+
+    "Elbow Raises": {
+        "tips": [
+            "Keep shoulder blades pulled back",
+            "Control movement speed",
+            "Maintain upright posture"
+        ],
+        "equipment": ["barbell"],
+        "expertise": 1,
+        "demo_url": "",
+        "body_part": ["shoulders", "upper back"],
+        "description": [
+            "Start with bar in back rack",
+            "Drive elbows up toward ceiling",
+            "Keep shoulder blades retracted",
+            "Control downward movement",
+            "Maintain upright torso",
+            "Perform prescribed reps",
+            "Focus on full range of motion"
+        ]
+    },
+
+    "Granny Tosses": {
+        "tips": [
+            "Use leg drive for power",
+            "Keep ball close to body",
+            "Follow through overhead"
+        ],
+        "equipment": ["medicine ball", "wall"],
+        "expertise": 1,
+        "demo_url": "",
+        "body_part": ["legs", "shoulders", "core"],
+        "description": [
+            "Hold ball between legs",
+            "Squat down with ball",
+            "Drive through legs",
+            "Swing ball overhead",
+            "Release at full extension",
+            "Follow through with arms",
+            "Catch and repeat fluid motion"
+        ]
+    },
+
+    "Handstand Walk": {
+        "tips": [
+            "Keep arms locked",
+            "Look between hands",
+            "Take small controlled steps"
+        ],
+        "equipment": [],
+        "expertise": 4,
+        "demo_url": "",
+        "body_part": ["shoulders", "core", "balance"],
+        "description": [
+            "Kick up to handstand position",
+            "Lock arms fully",
+            "Look between hands",
+            "Keep core tight",
+            "Take small steps forward",
+            "Maintain balance through shoulders",
+            "Practice against wall first"
+        ]
+    },
+
+    "Hollow Hold": {
+        "tips": [
+            "Press lower back down",
+            "Point toes",
+            "Squeeze everything"
+        ],
+        "equipment": [],
+        "expertise": 2,
+        "demo_url": "",
+        "body_part": ["core", "hip flexors"],
+        "description": [
+            "Lie on back",
+            "Press lower back to ground",
+            "Lift shoulders off ground",
+            "Raise legs with straight knees",
+            "Point toes",
+            "Hold position",
+            "Maintain tension throughout"
+        ]
+    },
+
+    "Jumping Jacks": {
+        "tips": [
+            "Coordinate arms and legs",
+            "Land softly",
+            "Keep rhythm consistent"
+        ],
+        "equipment": [],
+        "expertise": 1,
+        "demo_url": "",
+        "body_part": ["full body", "cardio"],
+        "description": [
+            "Start with feet together",
+            "Arms at sides",
+            "Jump feet out wide",
+            "Simultaneously raise arms overhead",
+            "Jump feet back together",
+            "Lower arms to sides",
+            "Maintain steady rhythm"
+        ]
+    },
+    "Medicine Ball Pass": {
+        "tips": [
+            "Use legs for power",
+            "Keep core tight",
+            "Communicate with partner"
+        ],
+        "equipment": ["medicine ball"],
+        "expertise": 1,
+        "demo_url": "",
+        "body_part": ["full body", "coordination"],
+        "description": [
+            "Face partner or wall",
+            "Hold ball at chest",
+            "Slight knee bend",
+            "Drive through legs",
+            "Push ball forcefully",
+            "Follow through with hands",
+            "Catch with soft hands"
+        ]
+    },
+
+    "PVC Movements": {
+        "tips": [
+            "Keep arms straight",
+            "Control movement speed",
+            "Focus on mobility"
+        ],
+        "equipment": ["PVC pipe"],
+        "expertise": 1,
+        "demo_url": "",
+        "body_part": ["shoulders", "mobility"],
+        "description": [
+            "Hold PVC with wide grip",
+            "Keep arms straight",
+            "Perform prescribed movement",
+            "Maintain control throughout",
+            "Focus on full range",
+            "Scale grip width as needed",
+            "Progress movement speed gradually"
+        ]
+    },
+
+    "PVC Overhead Lunges": {
+        "tips": [
+            "Keep PVC behind head plane",
+            "Maintain vertical torso",
+            "Control knee tracking"
+        ],
+        "equipment": ["PVC pipe"],
+        "expertise": 2,
+        "demo_url": "",
+        "body_part": ["legs", "shoulders", "core"],
+        "description": [
+            "Hold PVC overhead",
+            "Arms fully locked",
+            "Step forward into lunge",
+            "Keep torso vertical",
+            "Lower back knee toward ground",
+            "Drive through front heel",
+            "Maintain overhead position"
+        ]
+    },
+
+    "PVC Switch": {
+        "tips": [
+            "Maintain grip width",
+            "Keep arms straight",
+            "Control movement path"
+        ],
+        "equipment": ["PVC pipe"],
+        "expertise": 1,
+        "demo_url": "",
+        "body_part": ["shoulders", "mobility"],
+        "description": [
+            "Hold PVC with wide grip",
+            "Start in front of body",
+            "Pass pipe over head",
+            "Bring to back position",
+            "Return to front",
+            "Maintain straight arms",
+            "Control movement speed"
+        ]
+    },
+
+    "Single Leg Squat": {
+        "tips": [
+            "Keep weight in heel",
+            "Maintain balance",
+            "Control descent"
+        ],
+        "equipment": [],
+        "expertise": 3,
+        "demo_url": "",
+        "body_part": ["legs", "balance", "core"],
+        "description": [
+            "Stand on one leg",
+            "Other leg straight out front",
+            "Squat on support leg",
+            "Keep torso upright",
+            "Lower under control",
+            "Drive through heel",
+            "Stand to full extension"
+        ]
+    },
+
+    "Sit Ups": {
+        "tips": [
+            "Anchor feet securely",
+            "Keep core engaged",
+            "Control both up and down"
+        ],
+        "equipment": ["mat"],
+        "expertise": 1,
+        "demo_url": "",
+        "body_part": ["core", "hip flexors"],
+        "description": [
+            "Lie on back",
+            "Bend knees, feet flat",
+            "Hands behind head",
+            "Lift shoulders off ground",
+            "Curl up to full sit-up",
+            "Lower under control",
+            "Maintain consistent pace"
+        ]
+    },
+
+    "Step Ups": {
+        "tips": [
+            "Drive through heel",
+            "Stand fully at top",
+            "Control step down"
+        ],
+        "equipment": ["box"],
+        "expertise": 1,
+        "demo_url": "",
+        "body_part": ["legs", "balance"],
+        "description": [
+            "Stand facing box",
+            "Place one foot fully on box",
+            "Drive through heel",
+            "Stand to full extension",
+            "Control step down",
+            "Alternate legs",
+            "Maintain upright posture"
+        ]
+    },
+
+    "Strict Press": {
+        "tips": [
+            "Keep core tight",
+            "Press straight up",
+            "Lock out arms"
+        ],
+        "equipment": ["barbell", "plates"],
+        "expertise": 2,
+        "demo_url": "",
+        "body_part": ["shoulders", "triceps", "core"],
+        "description": [
+            "Start in front rack position",
+            "Elbows slightly forward",
+            "Brace core tight",
+            "Press bar straight up",
+            "Push head through at top",
+            "Lock out arms fully",
+            "Return to rack position"
+        ]
+    },
+
+    "Underhand Toss": {
+        "tips": [
+            "Use leg drive",
+            "Keep ball close",
+            "Follow through up"
+        ],
+        "equipment": ["medicine ball"],
+        "expertise": 1,
+        "demo_url": "",
+        "body_part": ["legs", "shoulders"],
+        "description": [
+            "Hold ball at waist level",
+            "Slight knee bend",
+            "Drive through legs",
+            "Swing arms upward",
+            "Release ball at chest height",
+            "Follow through overhead",
+            "Catch and reset position"
+        ]
+    },
+    "Kip Swing": {
+        "tips": [
+            "Generate power from shoulders and lats",
+            "Keep core tight throughout movement",
+            "Maintain hollow and arch positions"
+        ],
+        "equipment": ["pull-up bar"],
+        "expertise": 2,
+        "demo_url": "",
+        "body_part": ["shoulders", "back", "core"],
+        "description": [
+            "Start in hang position with shoulders active",
+            "Create hollow position with ribs down",
+            "Push away from bar into arch position",
+            "Pull back to hollow maintaining tension",
+            "Build rhythm and power gradually",
+            "Keep shoulders engaged throughout",
+            "Control swing amplitude"
+        ]
+    },
+
+    "PVC Work": {
+        "tips": [
+            "Keep arms straight during movements",
+            "Focus on full range of motion",
+            "Move slowly and controlled"
+        ],
+        "equipment": ["PVC pipe"],
+        "expertise": 1,
+        "demo_url": "",
+        "body_part": ["shoulders", "mobility", "core"],
+        "description": [
+            "Hold PVC pipe with wide grip",
+            "Start with basic pass-throughs",
+            "Progress to overhead positions",
+            "Practice front rack position",
+            "Perform prescribed mobility drills",
+            "Maintain straight arms throughout",
+            "Focus on position and control"
         ]
     }
 }

@@ -358,7 +358,6 @@ def copy_pages_from_other_db_if_needed():
     run_functions(functions)
 
 
-@track_operation(NotionAPIOperation.GET_EXPENSES)
 def get_expenses_to_notion():
     expense_service = NotionExpenseService(expense_tracker_db_id, monthly_category_expense_db)
     expense_service.add_all_expenses_to_notion()
@@ -378,15 +377,18 @@ def main(selected_tasks):
         if selected_tasks:
             for task in selected_tasks:
                 task_function = task_map.get(task)
-                if task_function:
+                if task_function != get_expenses_to_notion:
                     task_function(should_track=True)
+                else:
+                    task_function()
         else:
             # Manually call the functions here
 
             crossfit_manager = CrossfitManager(crossfit_exercises_db_id=Keys.crossfit_exercises_db_id,
                                                crossfit_workout_db_id=Keys.crossfit_workouts_db_id)
-            crossfit_manager.add_crossfit_exercises_to_notion()
+            crossfit_manager.add_crossfit_workouts_to_notion()
 
+            # get_expenses_to_notion()
             logger.info("End of manual run")
 
     except Exception as e:

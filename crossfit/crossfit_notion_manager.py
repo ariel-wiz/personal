@@ -256,6 +256,16 @@ class CrossfitWorkout:
         self.name = ''
         self.page_id = ''
 
+    def get_icon(self):
+        color = IconColor.LIGHT_GRAY
+        if self.training_type.lower() == "metcon":
+            color = IconColor.PURPLE
+        elif self.training_type.lower() == "strength":
+            color = IconColor.GRAY
+        elif self.training_type.lower() == "warm-up":
+            color = IconColor.ORANGE
+        return generate_icon_url(IconType.RUN, color)
+
     def get_exercises_str(self):
         exercises_str = ''
         for exercise in self.exercise_used:

@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from common import capitalize_text_or_list
 from crossfit.crossfit_variables import EXERCISES, TRAININGS
@@ -231,21 +231,142 @@ class CrossfitExercise:
         return final_parts
 
 
+class CrossfitTmpExercise(CrossfitExercise):
+    def __init__(self, name: str):
+        data = {
+            'tips': [],
+            'equipment': [],
+            'expertise': 1,
+            'demo_url': '',
+            'crossfit_url': '',
+            'body_part': [],
+            'description': []
+        }
+        super().__init__(name, data)
+
+
 class CrossfitWorkout:
-    def __init__(self, exercise_used: list, training_program: dict, training_type: str, duration: int):
+    def __init__(self, exercise_used: list, training_program: dict, training_type: str, duration: Optional[int],
+                 original_training_program=None):
         self.exercise_used = exercise_used
         self.training_type = training_type
         self.duration = duration
-        self.workout_program = training_program
+        self.program = training_program
+        self.original_program = original_training_program
         self.name = ''
         self.page_id = ''
 
+    def get_exercises_str(self):
+        exercises_str = ''
+        for exercise in self.exercise_used:
+            exercises_str += f"{exercise.name}, "
+        exercises_str = exercises_str[:-2]
+
+        return exercises_str
+
+    def get_workout_program_str(self):
+        workout_str = ''
+        for workout_program_keys in self.program.keys():
+            workout_str += f"{workout_program_keys}\n"
+            for workout_program_key in self.program[workout_program_keys].keys():
+                workout_str += f"{workout_program_key}: {self.program[workout_program_keys][workout_program_key]}\n"
+            workout_str += "\n"
+        return workout_str
+
     def __str__(self) -> str:
-        return f"{self.training_type} - {self.duration} minutes"
+        try:
+            workout_str = f"Workout: {self.get_title()}\n"
+            workout_str += f"Training type: {self.training_type}\n"
+            workout_str += f"Header: {self.get_workout_header()}\n\n"
+            workout_str += f"Exercises: {self.get_exercises_str()}\n"
+            workout_str += f"Program: {self.get_workout_program_str()}\n"
+
+        except Exception as e:
+            logger.error(f"Error converting workout to string: {str(e)}")
+            workout_str = f"Error converting workout to string: {str(e)}"
+
+        return workout_str
 
     def __repr__(self) -> str:
         return f"CrossfitTraining(exercise_used={self.exercise_used}, training_type={self.training_type}, " \
-               f"duration={self.duration}, training_program={self.workout_program})"
+               f"duration={self.duration}, training_program={self.program})"
+
+    def get_workout_header(self, print=False):
+        workout_types = list(self.program.keys())
+        for workout_type in workout_types:
+            normalized_workout = self.normalize_training_format(workout_type).capitalize()
+            if print:
+                logger.debug(f"Original: {workout_type} - Normalized: {normalized_workout}")
+            return normalized_workout
+
+    def get_title(self, print=False):
+        if not self.name:
+            self.name = self.get_shorter_format() + f" - {self.duration} min - " + self.get_exercise_names_str()
+        if print:
+            logger.debug(self.name)
+        return self.name
+
+    def get_shorter_format(self):
+        workout_types_str = ', '.join(self.program.keys())
+        return workout_types_str
+
+    def get_exercise_names(self):
+        return [exercise.name for exercise in self.exercise_used]
+
+    def get_exercise_names_str(self):
+        return ', '.join(self.get_exercise_names())
+
+    def normalize_training_format(self, format_str: str) -> str:
+        try:
+            # Common abbreviations
+            abbreviations = {
+                "AMRAP": "As Many Repetitions As Possible",
+                "EMOM": "Every Minute On the Minute",
+                "RFT": "Rounds For Time"
+            }
+
+            format_str = format_str.strip()
+
+            # Handle AMRAP formats
+            if format_str.startswith("AMRAP"):
+                time = format_str.split()[1]
+                return f"{abbreviations['AMRAP']} (AMRAP) for {time} min"
+
+            # Handle EMOM formats
+            if format_str.startswith("EMOM"):
+                time_split = format_str.split()
+                if len(time_split) > 1:
+                    time = time_split[1]
+                else:
+                    time = self.duration
+                return f"{abbreviations['EMOM']} (EMOM) for {time} min"
+
+            # Handle "Every X min x Y" formats
+            if format_str.startswith("Every"):
+                return format_str.replace("x", "for") + " sets"
+
+            # Handle "For Time" formats
+            if format_str.startswith("For"):
+                time = self.duration if self.duration else ""
+                time_str = f" - {time} min" if time else ""
+                return f"For Time{time_str}"
+
+            # Handle numbered rounds (e.g. "3 Rounds")
+            if any(c.isdigit() for c in format_str) and "Round" in format_str:
+                return f"{format_str} For Time"
+
+            # Handle descending rep schemes
+            if "-" in format_str and all(x.isdigit() for x in format_str.split("-")):
+                return f"Descending Reps Scheme: {format_str}"
+
+            # Handle Death by formats
+            if format_str.startswith("Death"):
+                return "Death By (Ascending Reps Until Failure)"
+
+            return format_str
+        except Exception as e:
+            logger.error(f"Error normalizing training format: {str(e)}")
+            return format_str
 
     def payload(self) -> Dict:
         """Creates a Notion database payload for a CrossFit training"""
@@ -253,7 +374,7 @@ class CrossfitWorkout:
             "Training Type": self.training_type,
             "Duration": self.duration,
             "Exercise Used": self.exercise_used,
-            "Training Program": self.workout_program,
+            "Training Program": self.program,
             "Icon": generate_icon_url(IconType.GYM, IconColor.BROWN)
         }
 
@@ -262,11 +383,17 @@ class CrossfitManager:
     def __init__(self, crossfit_exercises_db_id: str, crossfit_workout_db_id: str):
         self.crossfit_exercises_db_id = crossfit_exercises_db_id
         self.variables_exercises = self.load_crossfit_exercises_from_variables(EXERCISES)
-        self.notion_exercises = []
+        self.notion_exercises = self.get_crossfit_exercises_in_notion()
 
         self.crossfit_workouts_db_id = crossfit_workout_db_id
+        # ariel = self.get_exercise_by_name('Running')
         self.variables_workouts = self.load_crossfit_workouts_from_variables(TRAININGS)
         self.notion_workouts = []
+        self.print_workouts()
+
+    def print_workouts(self):
+        for i, workout in enumerate(self.variables_workouts):
+            logger.debug(f"{i + 1}\n{str(workout)}")
 
     def get_notion_exercise_names(self):
         return sorted([exercise.name for exercise in self.notion_exercises])
@@ -303,7 +430,8 @@ class CrossfitManager:
             "lunge": ["lunges"],
             "jump": ["jumps"],
             "clean and jerk": ["clean jerk", "clean & jerk"],
-            "devils press": ["devil press"]
+            "devils press": ["devil press"],
+            "run": ["running"],
         }
 
         # Abbreviation mappings - canonical form as key, abbreviations as values
@@ -562,7 +690,6 @@ class CrossfitManager:
 
         return normalized
 
-
     def load_crossfit_exercises_from_variables(self, exercises_data: Dict[str, Any]) -> List[CrossfitExercise]:
         """
         Load CrossFit exercises from dictionary data into CrossfitExercise objects
@@ -648,14 +775,14 @@ class CrossfitManager:
 
     def load_crossfit_workouts_from_variables(self, workout_data: Dict[str, Any], break_if_miss_exercise=False) -> List[
         CrossfitWorkout]:
-        if not self.notion_exercises:
-            self.notion_exercises = self.get_crossfit_exercises_in_notion()
-
         workout_list = []
         missing_exercise_names = []
 
         for workout in workout_data:
             workout_keys = list(workout.keys())
+            original_workout = workout.copy()  # Store original workout data
+            original_workout = original_workout['training_program']  # Store original workout data
+
             if len(workout_keys) == 1:
                 workout = workout[workout_keys[0]]
             elif len(workout_keys) == 2:
@@ -663,6 +790,9 @@ class CrossfitManager:
 
             try:
                 exercise_list = []
+                # Map exercises to their Notion counterparts
+                exercise_mapping = {}  # To store original name -> Notion exercise mapping
+
                 for workout_exercise in workout['exercises_used']:
                     found, exercise_name = self.get_exercise_by_name(workout_exercise)
                     if not found and exercise_name != '':
@@ -671,12 +801,33 @@ class CrossfitManager:
                         matching_exercise = next((ex for ex in self.notion_exercises if ex.name == exercise_name), None)
                         if matching_exercise:
                             exercise_list.append(matching_exercise)
+                            exercise_mapping[workout_exercise] = matching_exercise
+
+                # Create a deep copy of the training program to modify
+                modified_program = self.replace_exercises_in_program(
+                    workout['training_program'],
+                    exercise_mapping
+                )
 
                 exercises_used = exercise_list
-                training_program = workout['training_program']
                 training_type = workout['training_type']
                 duration = workout['training_time']
-                workout_list.append(CrossfitWorkout(exercises_used, training_program, training_type, duration))
+                converted_duration = (
+                    duration if isinstance(duration, int)
+                    else None if duration == "until failure" or duration is None
+                    else int(duration) if str(duration).isdigit()
+                    else None
+                )
+
+                workout_obj = CrossfitWorkout(
+                        exercises_used,
+                        modified_program,
+                        training_type,
+                        converted_duration,
+                        original_workout
+                    )
+
+                workout_list.append(workout_obj)
 
             except Exception as e:
                 logger.error(f"There is an issue while loading: {str(e)}")
@@ -688,7 +839,32 @@ class CrossfitManager:
             if break_if_miss_exercise:
                 raise Exception(error_message)
 
+        logger.info(f"Loaded {len(workout_list)} workouts from variables")
         return workout_list
+
+    def replace_exercises_in_program(self, program: Dict, exercise_mapping: Dict) -> Dict:
+        if isinstance(program, dict):
+            new_program = {}
+            for key, value in program.items():
+                # Check if this is a leaf node (exercise details dictionary)
+                if isinstance(value, dict) and not any(isinstance(v, dict) for v in value.values()):
+                    # This is an exercise entry, try to map it
+                    found, exercise_name = self.get_exercise_by_name(key)
+                    if found:
+                        matching_exercise = next((ex for ex in exercise_mapping.values()
+                                                  if ex.name == exercise_name), None)
+                        new_key = matching_exercise if matching_exercise else CrossfitTmpExercise(exercise_name)
+                    else:
+                        new_key = key
+                    new_program[new_key] = value
+                else:
+                    # This is an intermediate node, keep traversing
+                    new_program[key] = self.replace_exercises_in_program(value, exercise_mapping)
+            return new_program
+        elif isinstance(program, list):
+            return [self.replace_exercises_in_program(item, exercise_mapping) for item in program]
+        else:
+            return program
 
     def get_crossfit_workouts_in_notion(self):
         crossfit_notion_pages = get_db_pages(self.crossfit_workouts_db_id)

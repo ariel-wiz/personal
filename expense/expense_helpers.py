@@ -143,20 +143,32 @@ def get_name(description: str, price: float) -> str:
 
 
 def get_category_name(description: str, he_category: str, price: float) -> str:
-    """Determine category based on description and price"""
-    # Income category for positive amounts
+    """
+    Determine category based on description and price.
+    First checks for multi-word phrases, then falls back to word-by-word matching.
+    """
     if price > 0:
         return 'Income 🏦'
 
-    # Check words against category keywords
+    # First check for multi-word phrases
+    for items_to_check in [description, he_category]:
+        for category_en, category_list in ENGLISH_CATEGORY.items():
+            for category_word in category_list:
+                # Skip single word keywords for this first pass
+                if ' ' in category_word and category_word.lower() in items_to_check.lower():
+                    return category_en
+
+    # Then check word by word for single-word matches
     for items_to_check in [description, he_category]:
         for item_to_check_word in items_to_check.split(' '):
             for category_en, category_list in ENGLISH_CATEGORY.items():
                 for category_word in category_list:
-                    if category_word.lower() in item_to_check_word.lower():
+                    # Only compare with single word keywords
+                    if ' ' not in category_word and category_word.lower() in item_to_check_word.lower():
                         return category_en
 
     return DEFAULT_CATEGORY
+
 
 
 def remove_emojis(text: str) -> str:

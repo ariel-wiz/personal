@@ -279,6 +279,7 @@ def get_next_sunday():
     days_until_sunday = (6 - current_date.weekday()) % 7
     return current_date + timedelta(days=days_until_sunday)
 
+
 def capitalize_text_or_list(text_or_list):
     if isinstance(text_or_list, list):
         return [text.capitalize() for text in text_or_list]

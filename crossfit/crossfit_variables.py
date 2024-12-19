@@ -2020,7 +2020,613 @@ EXERCISES = {
             "Switch sides if prescribed"
         ]
     },
+    "Band Pull Apart": {
+        "tips": [
+            "Keep arms straight throughout movement",
+            "Focus on squeezing shoulder blades together",
+            "Control the return, don't let band snap back"
+        ],
+        "equipment": ["resistance band"],
+        "expertise": 1,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["shoulders", "back"],
+        "description": [
+            "Stand with arms extended in front holding band",
+            "Keep arms straight and parallel to ground",
+            "Pull band apart until arms are fully extended sideways",
+            "Squeeze shoulder blades together at end range",
+            "Control return to starting position",
+            "Maintain tension throughout movement"
+        ]
+    },
 
+    "Behind Neck Press": {
+        "tips": [
+            "Maintain active shoulders throughout movement",
+            "Keep core tight for stability",
+            "Ensure adequate shoulder mobility before attempting"
+        ],
+        "equipment": ["barbell", "plates"],
+        "expertise": 3,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["shoulders", "triceps"],
+        "description": [
+            "Position barbell behind neck on upper traps",
+            "Grip bar just outside shoulders",
+            "Elbows pointed slightly forward",
+            "Press bar overhead while maintaining posture",
+            "Lock out arms at top",
+            "Return bar under control to starting position"
+        ]
+    },
+
+    "Bench Press": {
+        "tips": [
+            "Keep shoulders pinched and stable on bench",
+            "Drive feet into floor for stability",
+            "Bar path should be slightly diagonal"
+        ],
+        "equipment": ["barbell", "plates", "bench"],
+        "expertise": 2,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["chest", "shoulders", "triceps"],
+        "description": [
+            "Lie on bench with feet flat on floor",
+            "Grip bar slightly wider than shoulders",
+            "Lower bar to mid-chest",
+            "Keep elbows at roughly 45-degree angle",
+            "Press bar up and slightly back toward head",
+            "Lock out arms at top"
+        ]
+    },
+
+    "Butt Kicker": {
+        "tips": [
+            "Stay light on toes",
+            "Maintain upright posture",
+            "Keep movement quick and rhythmic"
+        ],
+        "equipment": [],
+        "expertise": 1,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["legs", "cardio"],
+        "description": [
+            "Stand tall with feet hip-width apart",
+            "Begin jogging in place",
+            "Focus on bringing heels to glutes",
+            "Keep upper body stable",
+            "Arms move in running motion",
+            "Maintain quick pace"
+        ]
+    },
+
+    "Calf Raise": {
+        "tips": [
+            "Push through balls of feet",
+            "Full range of motion - heel below platform",
+            "Control descent phase"
+        ],
+        "equipment": ["box", "plates"],
+        "expertise": 1,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["legs"],
+        "description": [
+            "Stand with balls of feet on edge of platform",
+            "Heels hanging off edge",
+            "Lower heels below platform level",
+            "Drive up onto toes as high as possible",
+            "Hold contracted position briefly",
+            "Lower under control"
+        ]
+    },
+
+    "Crab Walk": {
+        "tips": [
+            "Keep hips elevated throughout",
+            "Coordinate hand and foot movements",
+            "Maintain core engagement"
+        ],
+        "equipment": [],
+        "expertise": 1,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["core", "shoulders", "triceps"],
+        "description": [
+            "Sit with knees bent, feet flat",
+            "Place hands behind body, fingers pointing toward feet",
+            "Lift hips off ground",
+            "Walk backward using opposite hand and foot",
+            "Keep core tight and hips elevated",
+            "Maintain smooth movement pattern"
+        ]
+    },
+
+    "Crawl Under": {
+        "tips": [
+            "Keep body low to ground",
+            "Move smoothly and efficiently",
+            "Maintain core engagement"
+        ],
+        "equipment": ["bar"],
+        "expertise": 1,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["full body"],
+        "description": [
+            "Start in plank position facing obstacle",
+            "Keep body as flat as possible",
+            "Move forward using opposite arm and leg",
+            "Maintain core tension throughout",
+            "Keep smooth, controlled movement",
+            "Continue until cleared obstacle"
+        ]
+    },
+
+    "Dumbbell Bench Press": {
+        "tips": [
+            "Keep dumbbells in line with middle chest",
+            "Control descent phase",
+            "Press dumbbells up and slightly in"
+        ],
+        "equipment": ["dumbbells", "bench"],
+        "expertise": 2,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["chest", "shoulders", "triceps"],
+        "description": [
+            "Lie on bench holding dumbbells above chest",
+            "Lower dumbbells with controlled descent",
+            "Keep elbows at 45-degree angle",
+            "Touch dumbbells to outside of chest",
+            "Press up and slightly in",
+            "Lock out arms at top"
+        ]
+    },
+
+    "Dumbbell Front Rack": {
+        "tips": [
+            "Keep elbows high",
+            "Maintain upright torso",
+            "Create stable shelf with shoulders"
+        ],
+        "equipment": ["dumbbells"],
+        "expertise": 2,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["shoulders", "core"],
+        "description": [
+            "Clean dumbbells to shoulders",
+            "Create shelf with shoulders",
+            "Keep elbows high and forward",
+            "Maintain vertical torso",
+            "Core tight for stability",
+            "Hold position as prescribed"
+        ]
+    },
+
+    "Dumbbell Press": {
+        "tips": [
+            "Start with dumbbells at shoulders",
+            "Press straight up",
+            "Keep core engaged"
+        ],
+        "equipment": ["dumbbells"],
+        "expertise": 2,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["shoulders", "triceps"],
+        "description": [
+            "Hold dumbbells at shoulder height",
+            "Elbows slightly forward of body",
+            "Press dumbbells straight up",
+            "Lock out arms overhead",
+            "Lower under control",
+            "Return to shoulder position"
+        ]
+    },
+
+    "Dumbbell Reverse Lunge": {
+        "tips": [
+            "Step back far enough to keep front shin vertical",
+            "Keep chest up throughout movement",
+            "Control the descent"
+        ],
+        "equipment": ["dumbbells"],
+        "expertise": 2,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["legs", "core"],
+        "description": [
+            "Hold dumbbells at sides",
+            "Step backward into lunge position",
+            "Lower back knee toward ground",
+            "Keep front shin vertical",
+            "Drive through front heel to return",
+            "Alternate legs each rep"
+        ]
+    },
+
+    "Dumbbell Shoulder Press": {
+        "tips": [
+            "Keep core tight throughout",
+            "Press dumbbells straight up",
+            "Full lockout at top"
+        ],
+        "equipment": ["dumbbells"],
+        "expertise": 2,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["shoulders", "triceps"],
+        "description": [
+            "Clean dumbbells to shoulders",
+            "Elbows below and slightly forward",
+            "Press dumbbells overhead",
+            "Achieve full lockout",
+            "Lower under control",
+            "Return to shoulder position"
+        ]
+    },
+
+    "Front Rack Hold": {
+        "tips": [
+            "Keep elbows high",
+            "Maintain upright posture",
+            "Breathe steadily throughout hold"
+        ],
+        "equipment": ["barbell", "plates"],
+        "expertise": 2,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["shoulders", "core"],
+        "description": [
+            "Clean barbell to front rack position",
+            "Create solid rack position on shoulders",
+            "Elbows high and forward",
+            "Core tight for stability",
+            "Maintain position for prescribed time",
+            "Keep steady breathing pattern"
+        ]
+    },
+
+    "Handstand Hold": {
+        "tips": [
+            "Stack shoulders over hands",
+            "Keep core tight",
+            "Practice kick-ups separately"
+        ],
+        "equipment": ["wall"],
+        "expertise": 3,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["shoulders", "core"],
+        "description": [
+            "Place hands shoulder-width apart",
+            "Kick up to handstand against wall",
+            "Stack shoulders over hands",
+            "Keep body tight and straight",
+            "Maintain hollow body position",
+            "Hold for prescribed time"
+        ]
+    },
+
+    "High Knees": {
+        "tips": [
+            "Drive knees to chest height",
+            "Stay on toes",
+            "Maintain quick rhythm"
+        ],
+        "equipment": [],
+        "expertise": 1,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["legs", "cardio"],
+        "description": [
+            "Stand tall with feet hip-width",
+            "Drive knees up alternately",
+            "Aim for chest height with knees",
+            "Stay on balls of feet",
+            "Pump arms in running motion",
+            "Maintain quick pace"
+        ]
+    },
+
+    "Karaoke": {
+        "tips": [
+            "Stay on balls of feet",
+            "Cross feet smoothly",
+            "Keep hips level"
+        ],
+        "equipment": [],
+        "expertise": 2,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["legs", "coordination"],
+        "description": [
+            "Start with feet shoulder-width apart",
+            "Cross right foot behind left",
+            "Step left foot to side",
+            "Cross right foot in front",
+            "Continue pattern laterally",
+            "Maintain smooth rhythm"
+        ]
+    },
+
+    "Knee To Chest": {
+        "tips": [
+            "Keep supporting leg straight",
+            "Maintain balance",
+            "Pull knee fully to chest"
+        ],
+        "equipment": [],
+        "expertise": 1,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["legs", "hip flexors"],
+        "description": [
+            "Stand tall on one leg",
+            "Lift opposite knee toward chest",
+            "Grasp knee with both hands",
+            "Pull knee as close to chest as possible",
+            "Hold position as prescribed",
+            "Alternate legs"
+        ]
+    },
+
+    "Med Ball Squats": {
+        "tips": [
+            "Hold ball at chest height",
+            "Keep chest up throughout",
+            "Drive through heels"
+        ],
+        "equipment": ["medicine ball"],
+        "expertise": 1,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["legs", "core"],
+        "description": [
+            "Hold medicine ball at chest height",
+            "Feet shoulder-width apart",
+            "Break at hips and knees",
+            "Lower until hips below parallel",
+            "Drive through heels to stand",
+            "Maintain upright torso"
+        ]
+    },
+
+    "Prisoner Squat": {
+        "tips": [
+            "Keep hands behind head light",
+            "Chest up throughout movement",
+            "Push knees out over toes"
+        ],
+        "equipment": [],
+        "expertise": 1,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["legs"],
+        "description": [
+            "Stand with hands behind head",
+            "Feet shoulder-width apart",
+            "Break at hips and knees",
+            "Keep chest up and core tight",
+            "Lower until hips below parallel",
+            "Stand to full extension"
+        ]
+    },
+
+    "Reverse Lunge": {
+        "tips": [
+            "Step back far enough for vertical shin",
+            "Keep torso upright",
+            "Drive through front heel"
+        ],
+        "equipment": [],
+        "expertise": 1,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["legs"],
+        "description": [
+            "Stand with feet hip-width apart",
+            "Step one leg back",
+            "Lower back knee toward ground",
+            "Keep front shin vertical",
+            "Push through front heel to return",
+            "Alternate legs each rep"
+        ]
+    },
+
+    "Shoulder Press": {
+        "tips": [
+            "Stack bar over midline",
+            "Keep core tight",
+            "Full lockout overhead"
+        ],
+        "equipment": ["barbell", "plates"],
+        "expertise": 2,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["shoulders", "triceps"],
+        "description": [
+            "Start with bar in front rack",
+            "Grip just outside shoulders",
+            "Press bar straight overhead",
+            "Keep core tight throughout",
+            "Achieve full lockout",
+            "Return to rack position"
+        ]
+    },
+
+    "Shoulder To Overhead": {
+        "tips": [
+            "Choose press, push press, or jerk",
+            "Keep bar close to face",
+            "Finish with active shoulders"
+        ],
+        "equipment": ["barbell", "plates"],
+        "expertise": 3,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["shoulders", "legs"],
+        "description": [
+            "Start with bar in front rack",
+            "Choose movement style",
+            "Drive bar overhead",
+            "Achieve full lockout",
+            "Active shoulders at top",
+            "Return to rack position"
+        ]
+    },
+
+    "Single Dumbbell Press": {
+        "tips": [
+            "Keep core tight to prevent leaning",
+            "Stack dumbbell over shoulder",
+            "Control the descent"
+        ],
+        "equipment": ["dumbbell"],
+        "expertise": 2,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["shoulders", "core"],
+        "description": [
+            "Clean dumbbell to shoulder",
+            "Keep core engaged",
+            "Press dumbbell straight up",
+            "Achieve full lockout",
+            "Lower under control",
+            "Maintain midline stability"
+        ]
+    },
+
+    "Single Leg Toe Touch": {
+        "tips": [
+            "Keep standing leg straight",
+            "Hinge at hips",
+            "Maintain balance throughout"
+        ],
+        "equipment": [],
+        "expertise": 2,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["hamstrings", "balance"],
+        "description": [
+            "Stand on one leg",
+            "Hinge at hip keeping back straight",
+            "Reach for toe with opposite hand",
+            "Keep standing leg straight",
+            "Return to standing",
+            "Maintain balance throughout"
+        ]
+    },
+"Spiderman Lunge": {
+        "tips": [
+            "Keep back leg straight",
+            "Drop hips low into stretch",
+            "Maintain control throughout movement"
+        ],
+        "equipment": [],
+        "expertise": 1,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["legs", "hips"],
+        "description": [
+            "Start in push-up position",
+            "Step one foot forward outside same-side hand",
+            "Lower hips into deep stretch",
+            "Keep back leg straight",
+            "Return foot to starting position",
+            "Alternate sides"
+        ]
+    },
+
+    "Spiderman Twist": {
+        "tips": [
+            "Keep core engaged throughout",
+            "Control the rotation",
+            "Stay low in lunge position"
+        ],
+        "equipment": [],
+        "expertise": 2,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["core", "hips"],
+        "description": [
+            "Start in Spiderman lunge position",
+            "Front foot outside same-side hand",
+            "Lift inside arm toward ceiling",
+            "Rotate torso upward",
+            "Follow hand with eyes",
+            "Return to starting position"
+        ]
+    },
+
+    "Squat Toss": {
+        "tips": [
+            "Use hips to generate power",
+            "Keep ball close to body",
+            "Control the catch"
+        ],
+        "equipment": ["medicine ball"],
+        "expertise": 2,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["legs", "core"],
+        "description": [
+            "Hold medicine ball at chest",
+            "Perform full squat",
+            "Drive explosively through hips",
+            "Toss ball upward",
+            "Catch ball in quarter squat",
+            "Immediately begin next rep"
+        ]
+    },
+
+    "Toe Touch": {
+        "tips": [
+            "Keep legs straight",
+            "Bend from hips",
+            "Reach for toes, not just down"
+        ],
+        "equipment": [],
+        "expertise": 1,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["hamstrings"],
+        "description": [
+            "Stand with feet together",
+            "Keep legs straight",
+            "Bend forward at hips",
+            "Reach for toes",
+            "Hold stretch position",
+            "Return to standing"
+        ]
+    },
+
+    "Twist": {
+        "tips": [
+            "Keep hips stable",
+            "Rotate from thoracic spine",
+            "Maintain upright posture"
+        ],
+        "equipment": [],
+        "expertise": 1,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["core"],
+        "description": [
+            "Stand with feet shoulder-width apart",
+            "Arms extended at shoulder height",
+            "Keep hips facing forward",
+            "Rotate torso side to side",
+            "Maintain controlled movement",
+            "Keep core engaged throughout"
+        ]
+    },
     "Plank Reach Through": {
         "tips": [
             "Keep hips level",
@@ -4529,7 +5135,7 @@ TRAININGS = [
                     "Wall Ball": {"reps": 50, "weight": "22/26kg"},
                     "Farmers Carry": {"distance": "down stairs", "weight": "32/24kg"}
                 },
-                                    "notes": "Repeat sequence in reverse"
+                "notes": "Repeat sequence in reverse"
 
             },
             "training_type": "metcon",
@@ -4765,7 +5371,7 @@ TRAININGS = [
             "training_program": {
                 "For Time": {
                     "Cal Machine": {"calories": "40-30-20", "type": "M/26-24-14 W"},
-                    "Dual KB Swing": {"reps": "34-24-14", "weight": "24/16 or 22.5/15 kg"}                }
+                    "Dual KB Swing": {"reps": "34-24-14", "weight": "24/16 or 22.5/15 kg"}}
             },
             "training_type": "metcon",
             "training_time": 20
@@ -4796,7 +5402,7 @@ TRAININGS = [
                     "Ring Muscle-ups": {"reps": 10},
                     "Burpees": {"reps": 5}
                 },
-                    "notes": "Partners split work as needed"
+                "notes": "Partners split work as needed"
             },
             "training_type": "metcon",
             "training_time": 25
@@ -4828,7 +5434,7 @@ TRAININGS = [
                     "Run": {"distance": "100m"},
                     "Single-leg Squats": {"reps": 12, "notes": "alternating"}
                 },
-                    "notes": "Run together and perform 6 single-leg squats each"
+                "notes": "Run together and perform 6 single-leg squats each"
             },
             "training_type": "metcon",
             "training_time": 20
@@ -5441,7 +6047,7 @@ TRAININGS = [
                     "Push-ups": {"reps": 10},
                     "Air Squats": {"reps": 10}
                 },
-                    "Notes": "Light to moderate pace"
+                "Notes": "Light to moderate pace"
             },
             "training_type": "warm-up",
             "training_time": 10
@@ -5510,7 +6116,7 @@ TRAININGS = [
                     "Toes-to-bar": {"reps": 10},
                     "Box Jumps": {"reps": 10, "height": "50/40cm"}
                 },
-                    "Notes": "Step down from box"
+                "Notes": "Step down from box"
             },
             "training_type": "metcon",
             "training_time": 15
@@ -5566,7 +6172,7 @@ TRAININGS = [
                     "KB Swings": {"reps": 50, "weight": "24/32kg"},
                     "Shuttle Runs": {"reps": 50, "distance": "7.5M down/back"}
                 },
-                    "Notes": "One partner works at a time"
+                "Notes": "One partner works at a time"
             },
             "training_type": "metcon",
             "training_time": 20
@@ -5594,7 +6200,7 @@ TRAININGS = [
                     "Row": {"distance": "2000m", "or": "5000M Assault"},
                     "DB Clean and Jerk": {"reps": 100, "weight": "22.5/15kg"}
                 },
-                    "Notes": "Partners split work as desired"
+                "Notes": "Partners split work as desired"
             },
             "training_type": "metcon",
             "training_time": 20
@@ -5822,7 +6428,7 @@ TRAININGS = [
                     "4 Burpee Box Jump-overs": {"reps": 4},
                     "6 Chest-to-bar Pull-ups": {"reps": 6}
                 },
-                    "Notes": "Continue adding 2 reps to each movement"
+                "Notes": "Continue adding 2 reps to each movement"
             },
             "training_type": "metcon",
             "training_time": 15
@@ -5852,6 +6458,7 @@ TRAININGS = [
                 }
             },
             "training_type": "metcon",
+            "training_source": "rocklee",
             "training_time": 20
         }
     },
@@ -5868,6 +6475,7 @@ TRAININGS = [
                 }
             },
             "training_type": "warm-up",
+            "training_source": "rocklee",
             "training_time": 12
         },
         "metcon": {
@@ -5880,6 +6488,7 @@ TRAININGS = [
                 }
             },
             "training_type": "metcon",
+            "training_source": "rocklee",
             "training_time": 15
         }
     },
@@ -5896,6 +6505,7 @@ TRAININGS = [
                 }
             },
             "training_type": "warm-up",
+            "training_source": "rocklee",
             "training_time": 10
         },
         "metcon": {
@@ -5908,6 +6518,7 @@ TRAININGS = [
                 "Notes": "During rest perform max DB Front Rack Walking Lunges"
             },
             "training_type": "metcon",
+            "training_source": "rocklee",
             "training_time": 20
         }
     },
@@ -5923,6 +6534,7 @@ TRAININGS = [
                 }
             },
             "training_type": "warm-up",
+            "training_source": "rocklee",
             "training_time": 10
         },
         "metcon": {
@@ -5934,12 +6546,13 @@ TRAININGS = [
                 }
             },
             "training_type": "metcon",
+            "training_source": "rocklee",
             "training_time": 15
         }
     },
-{
+    {
         "exercises_used": ["Running", "Bear Crawl", "Samson Lunges", "Spiderman Twist", "Inchworm", "Crab Walk",
-                         "Burpee Broad Jump", "High Knees", "Butt Kickers"],
+                           "Burpee Broad Jump", "High Knees", "Butt Kickers"],
         "training_program": {
             "2 sets": {
                 "Running": {"distance": "200m", "pace": "moderate"},
@@ -5955,6 +6568,7 @@ TRAININGS = [
             "notes": ["Focus on maintaining high hips in crab walk", "Control movement speed"]
         },
         "training_type": "warm-up",
+        "training_source": "rocklee",
         "training_time": 10
     },
     {
@@ -5966,15 +6580,16 @@ TRAININGS = [
                 "Row/Bike": {"notes": "Max Calories"}
             },
             "notes": ["One partner runs and devil press while other rows/bikes for max calories",
-                     "Switch when runner returns",
-                     "Each partner will run and row four times"]
+                      "Switch when runner returns",
+                      "Each partner will run and row four times"]
         },
         "training_type": "metcon",
+        "training_source": "rocklee",
         "training_time": 25
     },
     {
         "exercises_used": ["Single Unders", "Inchworm", "Romanian Deadlifts", "DB Hang Clean", "DB Shoulder Press",
-                         "DB Reverse Lunge"],
+                           "DB Reverse Lunge"],
         "training_program": {
             "2 sets": {
                 "Single Unders": {"reps": 30},
@@ -5987,6 +6602,7 @@ TRAININGS = [
             "notes": "Build to working weight across sets"
         },
         "training_type": "warm-up",
+        "training_source": "rocklee",
         "training_time": 12
     },
     {
@@ -5995,8 +6611,8 @@ TRAININGS = [
             "For Load": {
                 "Back Rack Lunge": {"reps": "6-6-6-6-6"},
                 "notes": ["Sub Max reps on last set",
-                         "Find heavy set for the day, about @2RIR",
-                         "From the rig"]
+                          "Find heavy set for the day, about @2RIR",
+                          "From the rig"]
             }
         },
         "training_type": "strength",
@@ -6055,18 +6671,20 @@ TRAININGS = [
                     "Deadlift": {"reps": 25, "weight": "100/70kg"},
                     "Wall Ball": {"reps": 50, "weight": "20/14lbs"},
                     "Farmers Carry": {"distance": "down stairs", "weight": "32/24kg"},
-                    "Wall Ball": {"reps": 50, "weight": "20/14lbs"},
-                    "Deadlift": {"reps": 25, "weight": "100/70kg"},
-                    "Strict Pull-up": {"reps": 15}
+                    "Wall Ball 2": {"reps": 50, "weight": "20/14lbs"},
+                    "Deadlift 2": {"reps": 25, "weight": "100/70kg"},
+                    "Strict Pull-up 2": {"reps": 15}
                 }
             },
             "notes": ["Time cap 20:00"]
         },
         "training_type": "metcon",
+        "training_source": "rocklee",
         "training_time": 20
     },
     {
-        "exercises_used": ["PVC Good Mornings", "PVC Overhead Lunges", "PVC Pass Throughs", "Jump Rope", "Scorpion Stretches"],
+        "exercises_used": ["PVC Good Mornings", "PVC Overhead Lunges", "PVC Pass Throughs", "Jump Rope",
+                           "Scorpion Stretches"],
         "training_program": {
             "2 sets": {
                 "PVC Good Mornings": {"reps": 10},
@@ -6077,6 +6695,7 @@ TRAININGS = [
             "notes": "10 sec between movements"
         },
         "training_type": "warm-up",
+        "training_source": "rocklee",
         "training_time": 10
     },
     {
@@ -6091,6 +6710,7 @@ TRAININGS = [
             "rest": "1:00-1:30 between sets"
         },
         "training_type": "strength",
+        "training_source": "rocklee",
         "training_time": 15
     },
     {
@@ -6106,6 +6726,7 @@ TRAININGS = [
             }
         },
         "training_type": "metcon",
+        "training_source": "rocklee",
         "training_time": 10
     },
     {
@@ -6119,6 +6740,7 @@ TRAININGS = [
             }
         },
         "training_type": "warm-up",
+        "training_source": "rocklee",
         "training_time": 10
     },
     {
@@ -6134,6 +6756,7 @@ TRAININGS = [
             }
         },
         "training_type": "strength",
+        "training_source": "rocklee",
         "training_time": 12
     },
     {
@@ -6147,6 +6770,7 @@ TRAININGS = [
             "rest": "remaining time in the 3:00"
         },
         "training_type": "metcon",
+        "training_source": "rocklee",
         "training_time": 15
     },
     {
@@ -6159,6 +6783,7 @@ TRAININGS = [
             }
         },
         "training_type": "warm-up",
+        "training_source": "rocklee",
         "training_time": 12
     },
     {
@@ -6172,6 +6797,7 @@ TRAININGS = [
             }
         },
         "training_type": "strength",
+        "training_source": "rocklee",
         "training_time": 15
     },
     {
@@ -6185,318 +6811,2273 @@ TRAININGS = [
             "notes": ["Progress through all reps within time cap"]
         },
         "training_type": "metcon",
+        "training_source": "rocklee",
         "training_time": 12
     },
     {
-            "exercises_used": ["Spiderman Stretch", "Up Downs", "PVC Pass Through", "Air Squat", "PVC Shoulder Press"],
-            "training_program": {
-                "rounds": {
-                    "round_target": {
-                        "Alternating Spiderman Stretch": {"reps": 30},
-                        "Up Downs": {"reps": 20},
-                        "PVC Pass Through": {"reps": 20},
-                        "Air Squat": {"reps": 20},
-                        "PVC Shoulder Press": {"reps": 30}
-                    }
+        "exercises_used": ["Spiderman Stretch", "Up Downs", "PVC Pass Through", "Air Squat", "PVC Shoulder Press"],
+        "training_program": {
+            "rounds": {
+                "round_target": {
+                    "Alternating Spiderman Stretch": {"reps": 30},
+                    "Up Downs": {"reps": 20},
+                    "PVC Pass Through": {"reps": 20},
+                    "Air Squat": {"reps": 20},
+                    "PVC Shoulder Press": {"reps": 30}
                 }
-            },
-            "training_type": "warm-up",
-            "training_time": 10
+            }
         },
-        {
-            "exercises_used": ["Thruster"],
-            "training_program": {
-                "Progression": {
-                    "round_target": {
-                        "Thruster": {"reps": 5, "notes": "Build to heavy 3-rep thruster from the rack"}
-                    }
-                }
-            },
-            "training_type": "skill",
-            "training_time": 15
-        },
-        {
-            "exercises_used": ["Rope Climb", "Thruster"],
-            "training_program": {
-                "For Time": {
-                    "round_target": {
-                        "Rope Climb": {"reps": 1},
-                        "Thruster": {"reps": "3-9", "weight": "35/50kg"}
-                    }
-                }
-            },
-            "training_type": "metcon",
-            "training_time": 20
-    },
-{
-            "exercises_used": ["Jumping Jacks", "Samson Lunges", "Kettlebell Bent Over Row", "Air Squat",
-                               "Kettlebell Sumo Deadlift"],
-            "training_program": {
-                "rounds": {
-                    "round_target": {
-                        "Jumping Jacks": {"reps": 20},
-                        "Samson Lunges": {"reps": 20},
-                        "Kettlebell Bent Over Row": {"reps": 20},
-                        "Air Squat": {"reps": 20},
-                        "Kettlebell Sumo Deadlift": {"reps": 20}
-                    }
-                }
-            },
-            "training_type": "warm-up",
-            "training_time": 12
-        },
-        {
-            "exercises_used": ["Deadlift"],
-            "training_program": {
-                "build": {
-                    "round_target": {
-                        "Deadlift": {"reps": 3, "notes": "Build to heavy set of 3"}
-                    },
-                    "rest": "1:00-2:00 between lifts"
-                }
-            },
-            "training_type": "strength",
-            "training_time": 20
-        },
-        {
-            "exercises_used": ["Running", "Deadlift", "Sit Up"],
-            "training_program": {
-                "3 Sets": {
-                    "4:00 ON / 1:00 OFF": {
-                        "Running": {"distance": "200m", "pace": "@85% RPE"},
-                        "round_target": {
-                            "Deadlift": {"reps": 7},
-                            "Sit Up": {"reps": 14}
-                        }
-                    }
-                }
-            },
-            "training_type": "metcon",
-            "training_time": 15
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 10
     },
     {
-            "exercises_used": ["Row", "Single Under", "Kettlebell Romanian Deadlift"],
-            "training_program": {
-                "3 sets": {
+        "exercises_used": ["Thruster"],
+        "training_program": {
+            "Progression": {
+                "round_target": {
+                    "Thruster": {"reps": 5, "notes": "Build to heavy 3-rep thruster from the rack"}
+                }
+            }
+        },
+        "training_type": "skill",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Rope Climb", "Thruster"],
+        "training_program": {
+            "For Time": {
+                "round_target": {
+                    "Rope Climb": {"reps": 1},
+                    "Thruster": {"reps": "3-9", "weight": "35/50kg"}
+                }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+    {
+        "exercises_used": ["Jumping Jacks", "Samson Lunges", "Kettlebell Bent Over Row", "Air Squat",
+                           "Kettlebell Sumo Deadlift"],
+        "training_program": {
+            "rounds": {
+                "round_target": {
+                    "Jumping Jacks": {"reps": 20},
+                    "Samson Lunges": {"reps": 20},
+                    "Kettlebell Bent Over Row": {"reps": 20},
+                    "Air Squat": {"reps": 20},
+                    "Kettlebell Sumo Deadlift": {"reps": 20}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Deadlift"],
+        "training_program": {
+            "build": {
+                "round_target": {
+                    "Deadlift": {"reps": 3, "notes": "Build to heavy set of 3"}
+                },
+                "rest": "1:00-2:00 between lifts"
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+    {
+        "exercises_used": ["Running", "Deadlift", "Sit Up"],
+        "training_program": {
+            "3 Sets": {
+                "4:00 ON / 1:00 OFF": {
+                    "Running": {"distance": "200m", "pace": "@85% RPE"},
                     "round_target": {
-                        "Row": {"calories": 10},
-                        "Single Under": {"reps": 30},
-                        "Kettlebell Romanian Deadlift": {"reps": 10}
+                        "Deadlift": {"reps": 7},
+                        "Sit Up": {"reps": 14}
                     }
                 }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Row", "Single Under", "Kettlebell Romanian Deadlift"],
+        "training_program": {
+            "3 sets": {
+                "round_target": {
+                    "Row": {"calories": 10},
+                    "Single Under": {"reps": 30},
+                    "Kettlebell Romanian Deadlift": {"reps": 10}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    }, {
+        "exercises_used": ["Clean", "Push Press", "Box Jump"],
+        "training_program": {
+            "EMOM 16": {
+                "odd_minutes": {
+                    "Clean + Push Press": {"reps": "3+3-6+6-9+9"}
+                },
+                "even_minutes": {
+                    "Box Jump": {"reps": 12, "height": "24/20inch"}
+                }
+            }
+        },
+        "training_type": "skill",
+        "training_source": "rocklee",
+        "training_time": 16
+    }, {
+        "exercises_used": ["Devil Press", "Running"],
+        "training_program": {
+            "4 Rounds": {
+                "round_target": {
+                    "Devil Press": {"reps": 14, "weight": "22.5/15kg"},
+                    "Running": {"distance": "200m"}
+                },
+                "rest": "2:00 between rounds"
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 33
+    }, {
+        "exercises_used": ["Running", "Spiderman Stretch", "Single Leg V-up", "Scap Pull-up"],
+        "training_program": {
+            "2 sets": {
+                "round_target": {
+                    "Running": {"distance": "200m"},
+                    "Alternating Spiderman Stretch": {"reps": 10},
+                    "Single Leg V-up": {"reps": 10},
+                    "Scap Pull-up": {"reps": 10}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 10
+    }, {
+        "exercises_used": ["Toes to Bar", "Wall Walk"],
+        "training_program": {
+            "AMRAP 10": {
+                "round_target": {
+                    "Toes to Bar": {"reps": "3-6-9-12"},
+                    "Wall Walk": {"reps": "1-2-3-4"}
+                }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 10
+    }, {
+        "exercises_used": ["Single Under", "Jump Rope Variations"],
+        "training_program": {
+            "rounds": {
+                "round_target": {
+                    "Single Under": {"reps": 30},
+                    "Jump Rope Variations": {
+                        "Jog in Place": {"reps": 20},
+                        "Jump Front to Back": {"reps": 20},
+                        "Jump Side to Side": {"reps": 20},
+                        "Left Leg": {"reps": 20},
+                        "Right Leg": {"reps": 20}
+                    }
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 8
+    }, {
+        "exercises_used": ["Deadlift", "Hang Power Clean", "Front Squat"],
+        "training_program": {
+            "For Time": {
+                "round_target": {
+                    "Deadlift": {"reps": "7-7-5", "weight": "62.5/45kg"},
+                    "Hang Power Clean": {"reps": "prescribed"},
+                    "Front Squat": {"reps": "prescribed"}
+                }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 8
+    }, {
+        "exercises_used": ["PVC Good Morning", "PVC Overhead Lunge", "PVC Pass Through", "Mountain Climber",
+                           "Air Squat"],
+        "training_program": {
+            "rounds": {
+                "round_target": {
+                    "PVC Good Morning": {"reps": 10},
+                    "PVC Overhead Lunge": {"reps": 10},
+                    "PVC Pass Through": {"reps": 10},
+                    "Mountain Climber": {"reps": 20},
+                    "Air Squat": {"reps": 10}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 10
+    }, {
+        "exercises_used": ["Power Clean", "Bar Muscle Up", "Box Jump"],
+        "training_program": {
+            "Every 2 min x 10": {
+                "round_target": {
+                    "Power Clean": {"reps": 3, "weight": "60/40kg"},
+                    "Bar Muscle Up": {"reps": 2},
+                    "Box Jump": {"reps": 5, "height": "30/24inch"}
+                }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    }, {
+        "exercises_used": ["Running", "Push-up", "Good Morning", "Jump Rope", "Ring Row"],
+        "training_program": {
+            "Partner warm up": {
+                "Partner 1": {"Row/Bike": {"calories": 6 / 8}},
+                "Partner 2": {
+                    "Alternating Plank": {"time": "30 sec"},
+                    "Shoulder Taps": {"time": "30 sec"},
+                    "Hollow Hold": {"time": "30 sec"},
+                    "Bar Hang": {"time": "30 sec"}
+                }
             },
-            "training_type": "warm-up",
-            "training_time": 12
-        },{
-            "exercises_used": ["Clean", "Push Press", "Box Jump"],
-            "training_program": {
-                "EMOM 16": {
-                    "odd_minutes": {
-                        "Clean + Push Press": {"reps": "3+3-6+6-9+9"}
+            "additional": {
+                "1 set": {
+                    "Synchronized Sit-up": {"reps 1": [10, "slow"], "reps 2": [10, "fast"]},
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 15
+    }, {
+        "exercises_used": ["Toes to Bar", "Knees to Elbows"],
+        "training_program": {
+            "Progression": {
+                "round_target": {
+                    "1 set": {
+                        "Synchronized Sit-ups": {"reps": 5},
+                        "Calories 1": {"reps": "15/20"},
+                        "Toes to Bar": {"reps": 5},
+                        "Calories 2": {"reps": "15/20"},
+                        "Strict Knees to Elbows": {"reps": 3}
+                    }
+                }
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 20
+    }, {
+        "exercises_used": ["AbMat Sit-up", "Row", "Toes to Bar", "Knees to Elbows"],
+        "training_program": {
+            "For Time with Partner": {
+                "round_target": {
+                    "AbMat Sit-up": {"reps": 60, "notes": "synchronized"},
+                    "Row 1": {"calories": "40-50"},
+                    "Toes to Bar": {"reps": 40},
+                    "Row 2": {"calories": "40-50"},
+                    "Strict Knees to Elbows": {"reps": 20}
+                }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    }, {
+        "exercises_used": ["Row", "Single Under", "Turkish Get-Up", "Push-up", "Spiderman Stretch"],
+        "training_program": {
+            "3 rounds": {
+                "row/bike/shuttle run": {"time": "1:00"},
+                "round_target": {
+                    "Single Under": {"reps": 20},
+                    "Turkish Get-Up": {"reps": 10},
+                    "Push-up": {"reps": 10},
+                    "Spiderman Stretch": {"reps": 10},
+                    "Step-ups": {"reps": 10},
+                    "Samson Stretch": {"reps": "30/side"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 15
+    }, {
+        "exercises_used": ["Back Squat"],
+        "training_program": {
+            "Every 3min x 5 sets": {
+                "round_target": {
+                    "Back Squat": {
+                        "scheme": "10-8-8-6-6",
+                        "notes": ["Start with light weight", "Build it up to @8 RPE", "Moderate weight"]
+                    }
+                }
+            }
+        },
+        "training_type": "strength",
+        "training_time": 20
+    }, {
+        "exercises_used": ["Box Jump", "Running", "KB Swing"],
+        "training_program": {
+            "AMRAP 10": {
+                "round_target": {
+                    "Box Jump": {"height": "50/40 cm"},
+                    "Running": {"distance": "10m"},
+                    "KB Swing": {"weight": "32/24 kg"},
+                },
+                "notes": ["Step down from the box", "Use two KBs"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 10
+    },
+    {
+        "exercises_used": ["Muscle Clean", "Front Squat", "Push-up", "Ring Row"],
+        "training_program": {
+            "2 sets": {
+                "round_target": {
+                    "Muscle Clean": {"reps": 5, "notes": "Empty barbell"},
+                    "Front Squat": {"reps": 5},
+                    "Push-up": {"reps": 10},
+                    "Ring Row": {"reps": 10}
+                },
+                "notes": ["Focus on technique and proper positioning"]
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Front Squat"],
+        "training_program": {
+            "technique": {
+                "Front Squat": {
+                    "progression": [
+                        {"reps": "3-5", "notes": "Build to working weight"},
+                        {"notes": "Rest 1:00 between sets"},
+                        {"notes": "Front squat from the Rig/Floor"}
+                    ]
+                }
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Front Squat", "Pull-up"],
+        "training_program": {
+            "EMOM 20": {
+                "round_target": {
+                    "odd_minutes": {"Front Squat": {"reps": 5, "weight": "80/50kg"}},
+                    "even_minutes": {"Pull-up": {"reps": 5, "notes": "jumping muscle-up if scaled"}}
+                },
+                "notes": ["Keep core tight throughout front squats", "Focus on strict form"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+    {
+        "exercises_used": ["Toe Touch", "Good Morning", "Deadlift", "Behind Neck Press", "Burpee"],
+        "training_program": {
+            "2 rounds": {
+                "round_target": {
+                    "Toe Touch": {"reps": 10},
+                    "Good Morning": {"reps": 10, "notes": "Unweighted"},
+                    "Deadlift": {"reps": 10, "notes": "Empty barbell"},
+                    "Behind Neck Press": {"reps": 10},
+                    "Burpee": {"reps": 30}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 10
+    },
+    {
+        "exercises_used": ["Power Snatch", "Overhead Squat"],
+        "training_program": {
+            "Build up": {
+                "round_target": {
+                    "Power Snatch": {"reps": 3, "notes": "Build to heavy 1-rep power snatch"},
+                    "Overhead Squat": {"reps": 2, "notes": "After each successful snatch"}
+                },
+                "notes": ["Focus on bar path", "Maintain active shoulders"]
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Deadlift", "Power Clean", "Front Squat"],
+        "training_program": {
+            "10 rounds for time": {
+                "round_target": {
+                    "Deadlift": {"reps": 4, "weight": "45/60kg"},
+                    "Power Clean": {"reps": 3},
+                    "Front Squat": {"reps": 2}
+                },
+                "notes": ["Maintain form throughout", "Touch and go on deadlifts allowed"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+    {
+        "exercises_used": ["Running", "Bear Crawl", "Samson Lunges", "Spiderman Stretch", "Inchworm", "Crab Walk",
+                           "Burpee", "High Knee", "Butt Kicker"],
+        "training_program": {
+            "circuit": {
+                "round_target": {
+                    "Running 1": {"distance": "200m", "notes": "moderate pace"},
+                    "Bear Crawl": {"distance": "7.5M"},
+                    "Samson Lunges": {"distance": "7.5M"},
+                    "Spiderman Stretch": {"distance": "7.5M"},
+                    "Inchworm": {"distance": "7.5M", "notes": "with push-up"},
+                    "Crab Walk": {"distance": "7.5M", "notes": "high hips"},
+                    "High Knee": {"distance": "7.5M"},
+                    "Butt Kicker": {"distance": "7.5M"},
+                    "Running 2": {"distance": "200m", "notes": "fast/stride"}
+                },
+                "notes": ["Focus on quality movement", "Maintain proper form throughout"]
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Handstand Push-up", "Push Press"],
+        "training_program": {
+            "skill work": {
+                "round_target": {
+                    "Handstand Push-up": {"reps": "5-8", "notes": "practice holds if needed"},
+                    "Push Press": {"reps": "8", "notes": "build to working weight"}
+                },
+                "notes": ["Focus on balance and control", "Practice wall walks if needed"]
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Deadlift", "Hang Power Clean", "Front Squat"],
+        "training_program": {
+            "12 rounds for time": {
+                "round_target": {
+                    "Deadlift": {"reps": 4, "weight": "45/60kg"},
+                    "Hang Power Clean": {"reps": 3},
+                    "Front Squat": {"reps": 2}
+                },
+                "notes": ["Touch and go allowed", "Maintain full front rack in squats"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+    {
+        "exercises_used": ["Row", "Single Under", "Toy Soldier", "Push-up"],
+        "training_program": {
+            "3 rounds": {
+                "round_target": {
+                    "Row": {"calories": 10},
+                    "Single Under": {"reps": 50},
+                    "Toy Soldier": {"reps": 10},
+                    "Push-up": {"reps": 10}
+                },
+                "rest": "30 sec between rounds",
+                "notes": ["Focus on proper jumping mechanics", "Scale push-ups as needed"]
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Back Squat"],
+        "training_program": {
+            "Every 3min x 5 sets": {
+                "round_target": {
+                    "Back Squat": {"scheme": "10-8-8-6-6", "notes": "Build in weight each set"}
+                },
+                "notes": ["Start light and build to @8 RPE", "Focus on form and depth"]
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Air Squat", "Push-up", "Pull-up"],
+        "training_program": {
+            "AMRAP 20": {
+                "round_target": {
+                    "Air Squat": {"reps": 15},
+                    "Push-up": {"reps": 10},
+                    "Pull-up": {"reps": 5}
+                },
+                "notes": ["Known as 'Cindy'", "Scale movements as needed", "Maintain consistent pace"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+    {
+        "exercises_used": ["Running", "Jumping Jacks", "Push-up", "Spiderman Lunge", "Burpee", "Scorpion Stretch"],
+        "training_program": {
+            "2 sets": {
+                "round_target": {
+                    "Running": {"distance": "400m", "notes": "jog"},
+                    "Jumping Jacks": {"reps": 20},
+                    "Push-up": {"reps": 10, "notes": "to down-dog"},
+                    "Spiderman Lunge": {"reps": 10, "notes": "alternating"},
+                    "Burpee": {"reps": 10},
+                    "Scorpion Stretch": {"reps": 10, "notes": "alternating"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Bench Press"],
+        "training_program": {
+            "Build up": {
+                "round_target": {
+                    "Bench Press": {"notes": "15:00 To build to 1RM"}
+                },
+                "notes": ["Focus on proper setup", "Use spotters when needed"]
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Hand Release Push-up", "Running"],
+        "training_program": {
+            "For Time": {
+                "round_target": {
+                    "Hand Release Push-up": {"reps": "9-15-21-9"},
+                    "Running": {"distance": ["100m", "200m", "300m", "400m"]}
+                }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # שני 11
+    {
+        "exercises_used": ["PVC Pass Through", "Spiderman Stretch", "Push-up", "Scap Pull-up",
+                           "Dumbbell Shoulder Press"],
+        "training_program": {
+            "2 sets": {
+                "round_target": {
+                    "PVC Pass Through": {"reps": 10},
+                    "Spiderman Stretch": {"reps": 10, "notes": "alternating"},
+                    "Push-up": {"reps": 5},
+                    "Scap Pull-up": {"reps": 5},
+                    "Dumbbell Shoulder Press": {"reps": "5/arm"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 10
+    },
+    {
+        "exercises_used": ["Dumbbell Thruster"],
+        "training_program": {
+            "Last prep": {
+                "round_target": {
+                    "Dumbbell Thruster": {
+                        "reps": 10,
+                        "notes": "unbroken at workout weight"
+                    }
+                }
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Dumbbell Thruster", "Pull-up"],
+        "training_program": {
+            "For Time": {
+                "round_target": {
+                    "Dumbbell Thruster": {"reps": "27-21-15-9", "weight": "10/15 kg"},
+                    "Pull-up": {"reps": "27-21-15-9"}
+                },
+                "notes": ["Use two DBs"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # שלישי 12
+    {
+        "exercises_used": ["AbMat Sit-up", "Row", "Assault Bike"],
+        "training_program": {
+            "In team of 2": {
+                "round_target": {
+                    "AbMat Sit-up": {"reps": 20, "weight": "20/14 lbs medball"},
+                    "Row": {"calories": "16/12"},
+                    "Assault Bike": {"calories": "12/10"}
+                },
+                "notes": ["Partners split work as needed"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+
+    # רביעי 13
+    {
+        "exercises_used": ["Spiderman Stretch", "Scorpion Stretch", "Deadlift", "Shoulder Press", "Jumping Jack"],
+        "training_program": {
+            "2 sets": {
+                "round_target": {
+                    "Spiderman Stretch": {"reps": 10},
+                    "Scorpion Stretch": {"reps": 10},
+                    "Deadlift": {"reps": 10, "notes": "empty grip"},
+                    "Shoulder Press": {"reps": 10},
+                    "Jumping Jack": {"reps": 30}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Clean and Jerk"],
+        "training_program": {
+            "Every minute for 5 minutes": {
+                "round_target": {
+                    "Clean and Jerk": {"reps": 3, "notes": "touch and go"}
+                },
+                "notes": ["Increase load each minute", "Rest 1 minute between sets"]
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+
+    # חמישי 14
+    {
+        "exercises_used": ["Mountain Climber", "Burpee", "Air Squat"],
+        "training_program": {
+            "PVC SWITCH WARM-UP": {
+                "Penalty movements": {
+                    "Mountain Climber": {"reps": 20},
+                    "Burpee": {"reps": 5},
+                    "Air Squat": {"reps": 10}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 10
+    },
+    {
+        "exercises_used": ["KB Swing", "Shuttle Run"],
+        "training_program": {
+            "2 rounds for time": {
+                "round_target": {
+                    "KB Swing": {"reps": 50, "weight": "32/24 kg"},
+                    "Shuttle Run": {"reps": 50}
+                },
+                "notes": ["One partner works at a time", "Switch as needed"],
+                "rest": "1 shuttle run = 7.5M down/7.5M back"
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # שישי 15
+    {
+        "exercises_used": ["Jump Rope", "Calf Raise", "Plank Shoulder Tap", "Mountain Climber", "Single Unders",
+                           "Inchworm"],
+        "training_program": {
+            "3 sets": {
+                "round_target": {
+                    "Jump Rope": {"reps": 20},
+                    "Calf Raise": {"reps": 10},
+                    "Plank Shoulder Tap": {"reps": 20},
+                    "Mountain Climber": {"reps": 20},
+                    "Single Unders": {"reps": 20},
+                    "Inchworm": {"reps": 5, "notes": "with push-ups"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Power Clean"],
+        "training_program": {
+            "skill progression": {
+                "round_target": {
+                    "Power Clean 1": {"reps": "20 jump rope/DU or single unders"},
+                    "Power Clean 2": {"reps": 2, "notes": "build technique"}
+                },
+                "rest": "1:00 between sets"
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Double Under", "Push-up", "Power Clean"],
+        "training_program": {
+            "AMRAP 25": {
+                "round_target": {
+                    "Double Under": {"reps": 150},
+                    "Push-up": {"reps": 50},
+                    "Power Clean": {"reps": 15, "weight": "35/52.5kg"}
+                },
+                "notes": ["Partners split work as desired"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 25
+    },
+    {
+        "exercises_used": ["Jumping Jack", "Inchworm", "Samson Stretch", "Ring Row"],
+        "training_program": {
+            "2 sets": {
+                "round_target": {
+                    "Jumping Jack": {"reps": 20},
+                    "Inchworm": {"reps": 5},
+                    "Samson Stretch": {"reps": 10},
+                    "Ring Row": {"reps": 10},
+                },
+                "notes": ["Walk the feet forward to increase the difficulty of the row"]
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 10
+    },
+    {
+        "exercises_used": ["Bench Press"],
+        "training_program": {
+            "For load": {
+                "round_target": {
+                    "Bench Press": {"scheme": "5-5-5-5-5"},
+                    "notes": ["Max reps on the last set",
+                              "Use the same load for sets 4 and 5, but go for more than 5 reps in that final set",
+                              "Use a spotter if possible"]
+                }
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Pull-up", "Push-up", "Air Squat"],
+        "training_program": {
+            "Cindy": {
+                "AMRAP 20": {
+                    "round_target": {
+                        "Pull-up": {"reps": 5},
+                        "Push-up": {"reps": 10},
+                        "Air Squat": {"reps": 15}
                     },
-                    "even_minutes": {
-                        "Box Jump": {"reps": 12, "height": "24/20inch"}
+                    "notes": ["Scale movements as needed", "Maintain consistent pace"]
+                }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # שני 4
+    {
+        "exercises_used": ["Running", "Spiderman Stretch", "Plank Reach Through", "V-ups", "Bear Crawl",
+                           "Scap Pull-up"],
+        "training_program": {
+            "2 sets": {
+                "round_target": {
+                    "Running": {"distance": "200m"},
+                    "Spiderman Stretch": {"reps": 10, "notes": "alternating"},
+                    "Plank Reach Through": {"reps": 10, "notes": "alternating"},
+                    "V-ups": {"reps": 10, "notes": "alternating single-leg"},
+                    "Bear Crawl": {"reps": 10},
+                    "Scap Pull-up": {"reps": 10}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Push Press"],
+        "training_program": {
+            "On a 10:00 clock": {
+                "round_target": {
+                    "Push Press": {
+                        "reps": 5,
+                        "notes": ["Build to a heavy set of 5 reps", "From the floor"]
                     }
                 }
-            },
-            "training_type": "skill",
-            "training_time": 16
-        },{
-            "exercises_used": ["Devil Press", "Running"],
-            "training_program": {
-                "4 Rounds": {
-                    "round_target": {
-                        "Devil Press": {"reps": 14, "weight": "22.5/15kg"},
-                        "Running": {"distance": "200m"}
-                    },
-                    "rest": "2:00 between rounds"
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Sumo Deadlift High Pull", "Push Press", "Box Jump Over"],
+        "training_program": {
+            "7 rounds for time": {
+                "round_target": {
+                    "Sumo Deadlift High Pull": {"reps": 7, "weight": "42.5/30kg"},
+                    "Push Press": {"reps": 7},
+                    "Box Jump Over": {"reps": 7, "height": "#70/#50 CM"}
                 }
-            },
-            "training_type": "metcon",
-            "training_time": 33
-    },{
-            "exercises_used": ["Running", "Spiderman Stretch", "Single Leg V-up", "Scap Pull-up"],
-            "training_program": {
-                "2 sets": {
-                    "round_target": {
-                        "Running": {"distance": "200m"},
-                        "Alternating Spiderman Stretch": {"reps": 10},
-                        "Single Leg V-up": {"reps": 10},
-                        "Scap Pull-up": {"reps": 10}
-                    }
-                }
-            },
-            "training_type": "warm-up",
-            "training_time": 10
-        },{
-            "exercises_used": ["Toes to Bar", "Wall Walk"],
-            "training_program": {
-                "AMRAP 10": {
-                    "round_target": {
-                        "Toes to Bar": {"reps": "3-6-9-12"},
-                        "Wall Walk": {"reps": "1-2-3-4"}
-                    }
-                }
-            },
-            "training_type": "metcon",
-            "training_time": 10
-    },{
-            "exercises_used": ["Single Under", "Jump Rope Variations"],
-            "training_program": {
-                "rounds": {
-                    "round_target": {
-                        "Single Under": {"reps": 30},
-                        "Jump Rope Variations": {
-                            "Jog in Place": {"reps": 20},
-                            "Jump Front to Back": {"reps": 20},
-                            "Jump Side to Side": {"reps": 20},
-                            "Left Leg": {"reps": 20},
-                            "Right Leg": {"reps": 20}
-                        }
-                    }
-                }
-            },
-            "training_type": "warm-up",
-            "training_time": 8
-        },{
-            "exercises_used": ["Deadlift", "Hang Power Clean", "Front Squat"],
-            "training_program": {
-                "For Time": {
-                    "round_target": {
-                        "Deadlift": {"reps": "7-7-5", "weight": "62.5/45kg"},
-                        "Hang Power Clean": {"reps": "prescribed"},
-                        "Front Squat": {"reps": "prescribed"}
-                    }
-                }
-            },
-            "training_type": "metcon",
-            "training_time": 8
-    },{
-            "exercises_used": ["PVC Good Morning", "PVC Overhead Lunge", "PVC Pass Through", "Mountain Climber",
-                               "Air Squat"],
-            "training_program": {
-                "rounds": {
-                    "round_target": {
-                        "PVC Good Morning": {"reps": 10},
-                        "PVC Overhead Lunge": {"reps": 10},
-                        "PVC Pass Through": {"reps": 10},
-                        "Mountain Climber": {"reps": 20},
-                        "Air Squat": {"reps": 10}
-                    }
-                }
-            },
-            "training_type": "warm-up",
-            "training_time": 10
-        },{
-            "exercises_used": ["Power Clean", "Bar Muscle Up", "Box Jump"],
-            "training_program": {
-                "Every 2 min x 10": {
-                    "round_target": {
-                        "Power Clean": {"reps": 3, "weight": "60/40kg"},
-                        "Bar Muscle Up": {"reps": 2},
-                        "Box Jump": {"reps": 5, "height": "30/24inch"}
-                    }
-                }
-            },
-            "training_type": "metcon",
-            "training_time": 20
-    },{
-            "exercises_used": ["Running", "Push-up", "Good Morning", "Jump Rope", "Ring Row"],
-            "training_program": {
-                "Partner warm up": {
-                    "Partner 1": {"Row/Bike": {"calories": 6 / 8}},
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # שלישי 5
+    {
+        "exercises_used": ["Row", "Assault Bike", "Toy Soldier", "Samson Lunge", "Plank Reach Through"],
+        "training_program": {
+            "Partners": {
+                "round_target": {
+                    "Partner 1": {"work": "1 min on Row/Assault Bike"},
                     "Partner 2": {
-                        "Alternating Plank": {"time": "30 sec"},
-                        "Shoulder Taps": {"time": "30 sec"},
-                        "Hollow Hold": {"time": "30 sec"},
-                        "Bar Hang": {"time": "30 sec"}
+                        "circuit": [
+                            {"Toy Soldier": {"time": "1 min"}},
+                            {"Samson Lunge": {"time": "1 min"}},
+                            {"Plank Reach Through": {"time": "1 min"}}
+                        ]
                     }
                 },
-                "additional": {
-                    "1 set": {
-                        "Synchronized Sit-up": {"reps": [10, "slow"], "reps": [10, "fast"]},
-                    }
+                "notes": ["Switch every min", "Rest 10 sec between switches"]
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Row", "Assault Bike", "Devil Press"],
+        "training_program": {
+            "4 Rounds": {
+                "round_target": {
+                    "Row/Assault Bike": {"calories": "100/80"},
+                    "Devil Press": {"reps": 14, "weight": "22.5/15 kg"}
+                },
+                "rest": "2:00 between rounds",
+                "notes": ["Cap machine at 4:00", "Partners switch on machines as needed"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 33
+    },
+
+    # רביעי 6
+    {
+        "exercises_used": ["Jumping Jack", "Good Morning", "Box Step Over", "Box Jump Over"],
+        "training_program": {
+            "2 sets": {
+                "round_target": {
+                    "Jumping Jack": {"reps": 20},
+                    "Good Morning": {"reps": 10, "notes": "wide stance"},
+                    "Box Step Over": {"reps": 5},
+                    "Box Jump Over": {"reps": 5}
                 }
-            },
-            "training_type": "warm-up",
-            "training_time": 15
-        },{
-            "exercises_used": ["Toes to Bar", "Knees to Elbows"],
-            "training_program": {
-                "Progression": {
-                    "round_target": {
-                        "1 set": {
-                            "Synchronized Sit-ups": {"reps": 5},
-                            "Calories": {"reps": "15/20"},
-                            "Toes to Bar": {"reps": 5},
-                            "Calories": {"reps": "15/20"},
-                            "Strict Knees to Elbows": {"reps": 3}
-                        }
-                    }
-                }
-            },
-            "training_type": "strength",
-            "training_time": 20
-        },{
-            "exercises_used": ["AbMat Sit-up", "Row", "Toes to Bar", "Knees to Elbows"],
-            "training_program": {
-                "For Time with Partner": {
-                    "round_target": {
-                        "AbMat Sit-up": {"reps": 60, "notes": "synchronized"},
-                        "Row": {"calories": "40-50"},
-                        "Toes to Bar": {"reps": 40},
-                        "Row": {"calories": "40-50"},
-                        "Strict Knees to Elbows": {"reps": 20}
-                    }
-                }
-            },
-            "training_type": "metcon",
-            "training_time": 20
-    },{
-            "exercises_used": ["Row", "Single Under", "Turkish Get-Up", "Push-up", "Spiderman Stretch"],
-            "training_program": {
-                "3 rounds": {
-                    "row/bike/shuttle run": {"time": "1:00"},
-                    "round_target": {
-                        "Single Under": {"reps": 20},
-                        "Turkish Get-Up": {"reps": 10},
-                        "Push-up": {"reps": 10},
-                        "Spiderman Stretch": {"reps": 10},
-                        "Step-ups": {"reps": 10},
-                        "Samson Stretch": {"reps": "30/side"}
-                    }
-                }
-            },
-            "training_type": "warm-up",
-            "training_time": 15
-        },{
-            "exercises_used": ["Back Squat"],
-            "training_program": {
-                "Every 3min x 5 sets": {
-                    "round_target": {
-                        "Back Squat": {
-                            "scheme": "10-8-8-6-6",
-                            "notes": ["Start with light weight", "Build it up to @8 RPE", "Moderate weight"]
-                        }
-                    }
-                }
-            },
-            "training_type": "strength",
-            "training_time": 20
-        },{
-            "exercises_used": ["Box Jump", "Running", "KB Swing"],
-            "training_program": {
-                "AMRAP 10": {
-                    "round_target": {
-                        "Box Jump": {"height": "50/40 cm"},
-                        "Running": {"distance": "10m"},
-                        "KB Swing": {"weight": "32/24 kg"},
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 10
+    },
+    {
+        "exercises_used": ["Wall Walk", "Toes to Bar"],
+        "training_program": {
+            "AMRAP 10": {
+                "round_target": {
+                    "Wall Walk": {"reps": 2},
+                    "Toes to Bar": {"reps": 3}
+                },
+                "notes": ["Scale as needed", "Focus on quality movement"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+
+    # חמישי 7
+    {
+        "exercises_used": ["Single Under", "Back Rack Position", "Deadlift", "Hang Power Clean", "Front Squat"],
+        "training_program": {
+            "Complex": {
+                "Lifting Complex": {
+                    "3 sets": {
+                        "Deadlift": {"reps": 3},
+                        "Hang Power Clean": {"reps": 3},
+                        "Front Squat": {"reps": 3}
                     },
-                    "notes": ["Step down from the box", "Use two KBs"]
+                    "notes": ["Build to workout weight"]
                 }
-            },
-            "training_type": "metcon",
-            "training_time": 10
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Deadlift", "Hang Power Clean", "Front Squat"],
+        "training_program": {
+            "For Time": {
+                "round_target": {
+                    "Deadlift": {"reps": "7-7-5", "weight": "52.5/35 kg"},
+                    "Hang Power Clean": {"reps": "prescribed"},
+                    "Front Squat": {"reps": "prescribed"}
+                },
+                "time_cap": "8:00"
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 8
+    },
+
+    # שבת 9
+    {
+        "exercises_used": ["Running", "Single Under", "Samson Stretch", "Burpee", "Dumbbell Shoulder Press"],
+        "training_program": {
+            "warm-up": {
+                "round_target": {
+                    "Running": {"distance": "400m", "notes": "jog"},
+                    "Single Under": {"reps": 50},
+                    "Samson Stretch": {"reps": 10, "notes": "per leg"},
+                    "Burpee": {"reps": 10},
+                    "Dumbbell Shoulder Press": {"reps": "5 each arm"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Double Under", "Burpee", "Dumbbell Snatch", "Overhead Lunge", "Row", "Assault Bike"],
+        "training_program": {
+            "For Time": {
+                "round_target": {
+                    "Double Under": {"reps": 200},
+                    "Burpee": {"reps": 40},
+                    "Dumbbell Snatch": {"reps": "40 each arm", "weight": "22.5/15"},
+                    "Overhead DB Lunge": {"reps": 100, "notes": "single-arm"},
+                    "Row/Assault Bike": {"distance/calories": "800/1000m or 2500/2000M"}
+                },
+                "notes": ["Use one dumbbell", "Switch arms on lunges as needed"],
+                "time_cap": "34:00"
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 34
+    },
+    {
+        "exercises_used": ["Up Down", "Scorpion Stretch", "Single Leg Toe Touch", "Air Squat", "Burpee",
+                           "Samson Stretch", "Good Morning", "Mountain Climber"],
+        "training_program": {
+            "2 sets": {
+                "round_target": {
+                    "Up Down": {"reps": 30},
+                    "Scorpion Stretch": {"reps": 10, "notes": "alternating"},
+                    "Single Leg Toe Touch": {"reps": 10},
+                    "Air Squat": {"reps": 10},
+                    "Burpee": {"reps": 50},
+                    "Samson Stretch": {"reps": 10},
+                    "Good Morning": {"reps": 10, "notes": "unweighted"},
+                    "Mountain Climber": {"reps": 20}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Toes To Bar"],
+        "training_program": {
+            "EMOM 7": {
+                "round_target": {
+                    "Toes To Bar": {"reps": "6-10"}
+                }
+            }
+        },
+        "training_type": "skill",
+        "training_source": "rocklee",
+        "training_time": 7
+    },
+    {
+        "exercises_used": ["Rope Climb", "Devil Press"],
+        "training_program": {
+            "EMOM 12": {
+                "round_target": {
+                    "odd_minutes": {"Legless Rope Climb": {"reps": 2}},
+                    "even_minutes": {"Devil Press": {"reps": "Max-reps", "weight": "15/10 kg"}}
+                }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+
+    # שני 28
+    {
+        "exercises_used": ["Running", "Bear Crawl", "Samson Lunge", "Spiderman Twist", "Crab Walk", "Burpee"],
+        "training_program": {
+            "circuit": {
+                "round_target": {
+                    "Running 1": {"distance": "400m", "notes": "easy pace"},
+                    "Bear Crawl": {"distance": "7.5 M down"},
+                    "Samson Lunge": {"distance": "7.5 M back"},
+                    "Spiderman Twist": {"distance": "7.5 M"},
+                    "Crab Walk": {"notes": "focus on maintaining high hips"},
+                    "Burpee Broad Jump": {"distance": "7.5 M"},
+                    "Running 2": {"distance": "200m", "notes": "moderate pace"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Dumbbell Front Rack", "Front Rack Lunge"],
+        "training_program": {
+            "For Time": {
+                "round_target": {
+                    "Dumbbell Front Rack": {"reps": "1-1-1", "notes": "min"},
+                    "Front Rack Lunge": {"distance": "36m"}
+                }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # שלישי 29
+    {
+        "exercises_used": ["Single Under", "Scorpion Stretch", "Push-up"],
+        "training_program": {
+            "3 sets": {
+                "round_target": {
+                    "Single Under": {"reps": 40},
+                    "Scorpion Stretch": {"reps": 10, "notes": "alternating"},
+                    "Push-up": {"reps": "5-10", "notes": "tempo 5/5"}
+                },
+                "notes": ["Every round go for next option"]
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Skin the Cat"],
+        "training_program": {
+            "skill work": {
+                "round_target": {
+                    "Skin the Cat": {"reps": 20, "notes": "practice any variation"}
+                }
+            }
+        },
+        "training_type": "skill",
+        "training_source": "rocklee",
+        "training_time": 10
+    },
+    {
+        "exercises_used": ["Row", "Push-up"],
+        "training_program": {
+            "5 rounds": {
+                "round_target": {
+                    "Row": {"notes": "@8 Rpe"},
+                    "Push-up": {"reps": 30}
+                },
+                "notes": ["Score is total calories and push-up reps"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # רביעי 30
+    {
+        "exercises_used": ["Step Up", "Calf Raise", "Jump Rope", "Samson Stretch", "Single DB Press", "Goblet Squat"],
+        "training_program": {
+            "1 set": {
+                "round_target": {
+                    "Step Up": {"reps": 10, "notes": "alternating"},
+                    "Calf Raise": {"reps": 10, "notes": "slow"},
+                    "Jump Rope": {"time": "1:00", "notes": "practice"},
+                    "Samson Stretch": {"reps": 10},
+                    "Single DB Press": {"reps": "5/arm"},
+                    "Goblet Squat": {"reps": 20}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 10
+    },
+    {
+        "exercises_used": ["Turkish Get Up"],
+        "training_program": {
+            "4 sets": {
+                "round_target": {
+                    "Turkish Get Up": {"reps": "4/side", "notes": "alternating"},
+                },
+                "rest": "1:00 between sets",
+                "notes": ["Use a single dumbbell"]
+            }
+        },
+        "training_type": "skill",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Box Step Up", "Double Under"],
+        "training_program": {
+            "For Time": {
+                "round_target": {
+                    "Box Step Up": {"reps": 50, "height": "60/50cm"},
+                    "Double Under": {"reps": 50}
+                },
+                "notes": ["Every minute on the minute, starting at 0:00", "Use two dumbbells"],
+                "time_cap": "20:00"
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # חמישי 31
+    {
+        "exercises_used": ["Running", "PVC Pass Through", "Good Morning", "Muscle Clean", "Front Squat", "Push-up"],
+        "training_program": {
+            "3 rounds": {
+                "round_target": {
+                    "Running": {"distance": "400m", "notes": "jog"},
+                    "PVC Pass Through": {"reps": 10},
+                    "Good Morning": {"reps": 10},
+                    "Muscle Clean": {"reps": 10},
+                    "Front Squat": {"reps": 10},
+                    "Push-up": {"reps": 10}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Low Bar Muscle Up", "Hang Squat Clean"],
+        "training_program": {
+            "3-4 sets": {
+                "round_target": {
+                    "Hang Squat Clean": {"notes": "Build to workout load"},
+                    "Bar Muscle Up": {"reps": 2}
+                },
+                "rest": "1:00 between sets",
+                "notes": ["Or movement variation for the workout"]
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Hang Squat Clean", "Bar Muscle Up"],
+        "training_program": {
+            "5 rounds for time": {
+                "round_target": {
+                    "Hang Squat Clean": {"reps": 7, "weight": "70/50kg"},
+                    "Bar Muscle Up": {"reps": 5}
+                },
+                "notes": ["Scale movements as needed"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # שבת 2
+    {
+        "exercises_used": ["Running", "DB Deadlift", "DB Press", "Plank"],
+        "training_program": {
+            "2 rounds": {
+                "round_target": {
+                    "Running": {"distance": "200m"},
+                    "Single DB Deadlift": {"reps": 10},
+                    "Single DB Press": {"reps": "5/arm"},
+                    "Plank Hold": {"time": "30 sec"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 10
+    },
+    {
+        "exercises_used": ["Row", "Assault Bike", "DB Bench Press", "T2B", "DB"],
+        "training_program": {
+            "In teams of 2": {
+                "For time": {
+                    "round_target": {
+                        "Row/Assault Bike 1": {"calories": "50/40"},
+                        "DB Bench Press": {"reps": 50, "weight": "22.5/15"},
+                        "T2B": {"reps": 40},
+                        "Row/Assault Bike 2": {"calories": "50/40"}
+                    },
+                    "notes": ["I go you go", "Switch however you prefer",
+                              "Scale load accordingly for at least 50 DB Bench press"],
+                    "time_cap": "30:00"
+                }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 30
+    },
+    {
+        "exercises_used": ["Running", "Single Under", "Spiderman Stretch", "Push-up", "Box Step-up"],
+        "training_program": {
+            "1 round": {
+                "round_target": {
+                    "Running": {"distance": "200m", "notes": "jog"},
+                    "Single Under": {"reps": 20},
+                    "Spiderman Stretch": {"reps": 10, "notes": "alternating"},
+                    "Push-up": {"reps": 5, "notes": "to downward dog"},
+                    "Box Step-up": {"reps": 10}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Dumbbell Farmers Carry", "Front Rack Hold"],
+        "training_program": {
+            "4 sets for load": {
+                "round_target": {
+                    "Dumbbell Farmers Carry": {"distance": "100m"},
+                    "Front Rack Hold": {"time": "1:00", "notes": "dual DB"}
+                },
+                "notes": [
+                    "Use two dumbbells/KBs for the farmers carry",
+                    "Relatively heavy grunt work",
+                    "Build in load to a heavy set",
+                    "Rest 10-20 seconds between movements"
+                ]
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Box Jump Over", "Push-up", "Pull-up"],
+        "training_program": {
+            "For time": {
+                "round_target": {
+                    "Box Jump Over": {"reps": 20, "height": "60/50 CM"},
+                    "Push-up": {"reps": 20},
+                    "Pull-up": {"reps": 20}
+                },
+                "time_cap": "15:00"
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+
+    # שני 21
+    {
+        "exercises_used": ["Medicine Ball Pass", "Medicine Ball Side Pass", "Medicine Ball Clean"],
+        "training_program": {
+            "2 sets with a partner": {
+                "round_target": {
+                    "Medicine Ball Chest Pass": {"reps": 30},
+                    "Medicine Ball Side Pass": {"reps": 30, "notes": "each side"},
+                    "Medicine Ball Clean": {"reps": 30}
+                },
+                "rest": "30 between sets",
+                "notes": ["Focus on power clean progression"]
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Power Clean"],
+        "training_program": {
+            "For load": {
+                "scheme": "3-3-3-3-3",
+                "notes": ["Build for heavy triple for the day", "14:00 cap"]
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 14
+    },
+    {
+        "exercises_used": ["Run", "Burpee Over Bar", "Power Clean"],
+        "training_program": {
+            "17:00 AMRAP": {
+                "round_target": {
+                    "Run": {"distance": "400 M"},
+                    "Burpee Over Bar": {"reps": 4},
+                    "Power Clean": {"reps": 7, "notes": "75%"}
+                },
+                "notes": ["Use 75% of your heaviest set of the day"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 17
+    },
+
+    # שלישי 22
+    {
+        "exercises_used": ["Ring Row", "Knee Push-up", "Air Squat", "Scap Pull-up", "Push-up",
+                           "Medicine Ball Front Squat"],
+        "training_program": {
+            "2 sets": {
+                "round_target": {
+                    "Ring Row": {"reps": 10},
+                    "Knee Push-up": {"reps": 10},
+                    "Air Squat": {"reps": 10},
+                    "Scap Pull-up": {"reps": 5},
+                    "Push-up": {"reps": 5},
+                    "Medicine Ball Front Squat": {"reps": 5, "notes": "hold bottom for 3s"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Strict Muscle Up"],
+        "training_program": {
+            "skill progression": {
+                "round_target": {
+                    "Strict Muscle Up": {
+                        "time": "13:00-15:00",
+                        "notes": ["Practice ring transitions", "Scale to appropriate progression"]
+                    }
+                }
+            }
+        },
+        "training_type": "skill",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Wall Ball", "Strict Muscle Up"],
+        "training_program": {
+            "For time": {
+                "round_target": {
+                    "Wall Ball": {"scheme": "50-40-30", "weight": "14/20 lb"},
+                    "Strict Muscle Up": {"scheme": "4-4-3"}
+                }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # רביעי 23
+    {
+        "exercises_used": ["Deadlift"],
+        "training_program": {
+            "Build up": {
+                "3 sets": {
+                    "Deadlift": {"notes": "Build in load to workout weight"}
+                },
+                "time": "6:00-7:00"
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Double Under", "Deadlift"],
+        "training_program": {
+            "7 x 1:00 rounds of": {
+                "round_target": {
+                    "Double Under": {"reps": 21},
+                    "Deadlift": {"reps": "max reps", "weight": "140/100 kg"}
+                },
+                "rest": "2:00 between rounds"
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # חמישי 24
+    {
+        "exercises_used": ["Running", "Kettlebell Deadlift", "Burpee", "Kettlebell Swing", "Row", "Bike"],
+        "training_program": {
+            "circuit": {
+                "round_target": {
+                    "Running": {"distance": "200m", "notes": "slow"},
+                    "Kettlebell Deadlift": {"reps": 10},
+                    "Burpee": {"reps": 5, "notes": "Perfect"},
+                    "Kettlebell Swing": {"reps": 10},
+                    "Row/Bike": {"calories": 7},
+                    "Running": {"distance": "200m", "notes": "fast"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Toes to Bar", "Kettlebell Swing", "Double Under"],
+        "training_program": {
+            "3:00 Sets for time": {
+                "round_target": {
+                    "Toes to Bar": {"time": "3:00"},
+                    "Kettlebell Swing": {"time": "3:00", "weight": "24/16"},
+                    "Machine": {"calories": "3:00"},
+                    "Double Under": {"notes": "run 200m at the start of each interval"}
+                }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # שבת 25
+    {
+        "exercises_used": ["Running", "DB Deadlift", "DB Press", "Handstand Push-up", "Farmers Carry"],
+        "training_program": {
+            "2 rounds": {
+                "round_target": {
+                    "Running": {"distance": "200m"},
+                    "Single DB Deadlift": {"reps": 10},
+                    "Single DB Press": {"reps": "5/arm"},
+                    "Handstand Push-up": {"reps": 5},
+                    "Farmers Carry": {"distance": "30m", "notes": "out and back"}
+                },
+                "notes": ["Use workout variations and loads", "Split the work evenly and practice fast transitions"]
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Alt DB Hang Squat Snatch", "Handstand Push-up", "DB Farmers Carry"],
+        "training_program": {
+            "AMRAP 14 with a partner": {
+                "round_target": {
+                    "Alt DB Hang Squat Snatch": {"reps": 24, "weight": "24/16"},
+                    "Handstand Push-up": {"reps": 12},
+                    "DB Farmers Carry": {"distance": "200m"}
+                },
+                "notes": ["Share work load as desired", "Use two KBs for the farmers carry"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 14
+    },
+    {
+        "exercises_used": ["Jog", "Karaoke", "Knee to Chest", "Twist", "High Knees", "Butt Kicks"],
+        "training_program": {
+            "1 round": {
+                "round_target": {
+                    "each drill": {"distance": "7.5 M down and back"},
+                    "notes": ["High knee karaoke", "Knee to chest", "Lunge with a torso twist", "High knees",
+                              "Butt kicks"]
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 10
+    },
+    {
+        "exercises_used": ["Single Leg Squat"],
+        "training_program": {
+            "MINI ROUND": {
+                "2 rounds for time with a partner": {
+                    "Running": {"distance": "100m"},
+                    "Single Leg Squat": {"reps": 12, "notes": "alternating"},
+                    "notes": ["Run together and perform 6 single-leg squats each"]
+                }
+            }
+        },
+        "training_type": "skill",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Single Leg Squat"],
+        "training_program": {
+            "5 rounds for time with a partner": {
+                "round_target": {
+                    "Single Leg Squat": {"reps": 40, "notes": "alternating"},
+                    "Running": {"distance": "200m"}
+                },
+                "notes": ["Run together and break up the squats as needed"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # שני 14
+    {
+        "exercises_used": ["Samson Stretch", "PVC Overhead Squat", "Good Morning", "Hollow Rock", "Push-up", "Ring Row",
+                           "Strict Pull-up"],
+        "training_program": {
+            "2 sets": {
+                "round_target": {
+                    "Samson Stretch": {"reps": 10},
+                    "PVC Overhead Squat": {"reps": 10},
+                    "Good Morning": {"reps": 10},
+                    "Hollow Rock": {"reps": 10},
+                    "Push-up": {"reps": 10},
+                    "Ring Row OR Strict Pull-up": {"reps": "3-10"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Kettlebell Front Rack Carry"],
+        "training_program": {
+            "10 rounds for load": {
+                "round_target": {
+                    "KB Front Rack Carry": {"distance": "50m", "notes": "Dual KB"}
+                },
+                "rest": "1:00 between rounds",
+                "notes": [
+                    "Finish each carry in less than 1:00",
+                    "Record the heaviest successful carry",
+                    "Build up to the heaviest KBs or objects"
+                ]
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+    {
+        "exercises_used": ["Box Jump", "Wall Walk"],
+        "training_program": {
+            "3 rounds for time with a partner": {
+                "round_target": {
+                    "Box Jump": {"reps": 40},
+                    "Wall Walk": {"reps": 12}
+                },
+                "notes": ["One athlete works at a time. Athletes may alternate as they see fit."]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # שלישי 15
+    {
+        "exercises_used": ["Running", "Elbow to Instep", "Mountain Climber", "Prisoner Squat", "Burpee"],
+        "training_program": {
+            "2 rounds": {
+                "round_target": {
+                    "Running": {"distance": "400m"},
+                    "Elbow to Instep": {"reps": "5/side"},
+                    "Mountain Climber": {"reps": 20},
+                    "Prisoner Squat": {"reps": 10},
+                    "Burpee": {"reps": 5}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Front Squat"],
+        "training_program": {
+            "Every 1:30 x 7 sets": {
+                "round_target": {
+                    "Front Squat": {"scheme": "1-1-1-1-1-1-1"}
+                },
+                "notes": ["The final set should be the heaviest", "Find a heavy single front squat for the day"]
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Running", "KB Swing", "Single KB Farmers Carry"],
+        "training_program": {
+            "AMRAP 20": {
+                "round_target": {
+                    "Running": {"distance": "400m"},
+                    "KB Swing": {"reps": 32, "weight": "32/24"},
+                    "Single KB Farmers Carry": {"distance": "400m"}
+                },
+                "notes": ["Partners run together and break up the other two movements as needed."]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # רביעי 16
+    {
+        "exercises_used": ["Shuttle Run", "Step Up", "Box Step Up", "Dumbbell Box Step Up"],
+        "training_program": {
+            "2 sets": {
+                "round_target": {
+                    "Shuttle Run": {"notes": "easy pace"},
+                    "Step Up": {"reps": 10},
+                    "Jump Air Squat": {"reps": 5},
+                    "Dumbbell Box Step Up": {"reps": 10}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Power Snatch", "Machine", "Box Step Up"],
+        "training_program": {
+            "For reps": {
+                "4 rounds": {
+                    "Power Snatch": {"reps": 1, "weight": "workout weight"},
+                    "Machine": {"calories": 20},
+                    "Box Step Up": {"reps": 20}
+                },
+                "rest": "1:00 between movements"
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # חמישי 17
+    {
+        "exercises_used": ["Jumping Jack", "Air Squat", "Push-up", "Box Jump Over", "Wall Ball", "Burpee"],
+        "training_program": {
+            "2 set": {
+                "round_target": {
+                    "Jumping Jack": {"reps": 10},
+                    "Air Squat": {"reps": 10},
+                    "Push-up": {"reps": 10},
+                    "Box Jump Over": {"reps": 10},
+                    "Wall Ball Push Press": {"reps": 10},
+                    "Burpee": {"reps": 5}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Plank Hold", "Toes to Bar", "Strict Toes to Bar"],
+        "training_program": {
+            "For time": {
+                "round_target": {
+                    "Plank Hold 1": {"time": "1:00", "notes": "straight arms"},
+                    "Toes to Bar": {"reps": 25},
+                    "Plank Hold 2": {"time": "1:00", "notes": "on forearms"},
+                    "Strict Toes to Bar": {"reps": 25}
+                },
+                "time_cap": "15:00",
+                "notes": ["No more than 2 sets on plank holds"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+
+    # שבת 18
+    {
+        "exercises_used": ["Spiderman Stretch", "Leg Swing", "Scorpion Stretch", "Jumping Jack", "Deadlift",
+                           "Shoulder Press", "Up Down"],
+        "training_program": {
+            "1 set": {
+                "round_target": {
+                    "Spiderman Stretch": {"reps": 10, "notes": "alternating"},
+                    "Leg Swing 1": {"reps": "10/leg", "notes": "across the body"},
+                    "Scorpion Stretch": {"reps": 10, "notes": "alternating"},
+                    "Leg Swing 2": {"reps": "10/leg", "notes": "forward and backward"},
+                    "Jumping Jack": {"reps": 30},
+                    "Deadlift": {"reps": 10, "notes": "empty barbell"},
+                    "Shoulder Press": {"reps": 10, "notes": "empty barbell"},
+                    "Up Down": {"reps": 30}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Power Clean", "Burpee", "Box Jump Over"],
+        "training_program": {
+            "with a partner": {
+                "Every 2:30 for 15:00 (6 sets)": {
+                    "Power Clean": {"reps": 3, "weight": "60/40 kg"},
+                    "Burpee Over Bar": {"reps": 3},
+                    "Box Jump Over": {"reps": 3, "height": "60/50 CM"}
+                },
+                "rest": "30 sec each round",
+                "notes": [
+                    "This is six, all out sprints intended to be completed unbroken",
+                    "Rx rx for today- power clean must be unbroken- cap is 60/40 kg"
+                ]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Running", "Spiderman Stretch", "Samson Stretch", "Leg Swing", "Handstand Hold"],
+        "training_program": {
+            "1 set": {
+                "round_target": {
+                    "Running": {"distance": "200m", "notes": "jog"},
+                    "Spiderman Stretch": {"reps": 10, "notes": "alternating"},
+                    "Samson Stretch": {"time": "30/20 sec"},
+                    "Leg Swing": {"reps": 10, "notes": "forward and backward"},
+                    "Handstand Hold": {"time": "30 sec"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Single Leg Toe Touch", "Reverse Lunge", "Band Pull Apart", "Handstand Hold"],
+        "training_program": {
+            "1 set": {
+                "round_target": {
+                    "Single Leg Toe Touch": {"reps": 10},
+                    "Reverse Lunge": {"reps": 10, "notes": "alternating"},
+                    "Band Pull Apart": {"reps": 10},
+                    "Handstand/Plank Hold": {"time": "30 sec"}
+                }
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Walking Lunge", "Push-up", "KB Strict Press"],
+        "training_program": {
+            "AMRAP 10": {
+                "round_target": {
+                    "Walking Lunge": {"reps": 30},
+                    "Push-up": {"reps": 4},
+                    "KB Strict Press": {"reps": "4/arm", "weight": "16/12 kg"}
+                },
+                "notes": ["Scale movements as needed"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 10
+    },
+
+    # שני 7
+    {
+        "exercises_used": ["Running", "Inchworm", "Air Squat", "DB Snatch", "Kip Swing"],
+        "training_program": {
+            "2 rounds": {
+                "round_target": {
+                    "Running": {"distance": "200m"},
+                    "Inchworm": {"reps": 5, "notes": "with push up"},
+                    "Air Squat": {"reps": 10},
+                    "DB Snatch": {"reps": 10},
+                    "Kip Swing": {"reps": 10}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Power Clean", "Front Squat", "Shoulder To Overhead", "Bar Muscle Up"],
+        "training_program": {
+            "OCTOBER 7th - CFSR Hero WOD": {
+                "7 Rounds For Time": {
+                    "Power Clean": {"reps": 10},
+                    "Front Squat": {"reps": 10},
+                    "Shoulder To Overhead": {"reps": 10},
+                    "Bar Muscle Up": {"reps": 10}
+                },
+                "notes": ["With a Partner", "Cap 25min", "Rx 70/45", "Partition the reps with the partner as needed"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 25
+    },
+
+    # שלישי 8
+    {
+        "exercises_used": ["Single Under", "Samson Lunge", "Single Leg V-up", "Hollow Hold", "Scap Pull Up"],
+        "training_program": {
+            "3 rounds": {
+                "round_target": {
+                    "Single Under": {"reps": 30},
+                    "Samson Lunge": {"reps": 30},
+                    "Single Leg V-up": {"reps": 10, "notes": "alternating"},
+                    "Hollow Hold": {"time": "30 sec"},
+                    "Scap Pull Up": {"reps": 10}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Strict Press"],
+        "training_program": {
+            "Build up": {
+                "notes": ["16:00 To build for 1RM For today"]
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 16
+    },
+    {
+        "exercises_used": ["Kettlebell Swing", "Toes to Bar"],
+        "training_program": {
+            "For time": {
+                "round_target": {
+                    "Kettlebell Swing": {"scheme": "21-15-12-9-6-3", "weight": "32/24"},
+                    "Toes to Bar": {"scheme": "3-6-9-12-15-18"}
+                },
+                "notes": ["Scale as needed"]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # רביעי 9
+    {
+        "exercises_used": ["PVC Pass Through", "Good Morning", "Front Squat", "Plank Hold"],
+        "training_program": {
+            "2 sets": {
+                "round_target": {
+                    "PVC Pass Through": {"reps": 10},
+                    "PVC Good Morning": {"reps": 10},
+                    "PVC Front Squat": {"reps": 10},
+                    "Side Plank Hold": {"time": "15 sec", "notes": "per side"},
+                    "Plank Hold": {"time": "20 sec"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Power Clean"],
+        "training_program": {
+            "Build up": {
+                "2-3 sets": {
+                    "Power Clean": {"reps": 3, "notes": "building"}
+                },
+                "warm up round": {
+                    "Plank Hold": {"time": "30 sec"},
+                    "Power Clean": {"reps": 1, "notes": "unbroken"}
+                }
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Power Clean", "Running", "Plank Hold"],
+        "training_program": {
+            "3 rounds for time": {
+                "round_target": {
+                    "Power Clean": {"reps": 21, "weight": "70/50 kg"},
+                    "Running": {"distance": "200m"},
+                    "Plank Hold": {"notes": "time equal to run time, should be unbroken"}
+                }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # חמישי 10
+    {
+        "exercises_used": ["Running", "Single Under", "Samson Stretch", "Leg Press", "Morning"],
+        "training_program": {
+            "2 sets": {
+                "round_target": {
+                    "Running": {"distance": "200M", "notes": "jog"},
+                    "Single Under": {"reps": 30},
+                    "Samson Stretch": {"reps": "20/leg"},
+                    "Single Leg Press": {"reps": "5/5", "notes": "good morning-slow and controlled"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Deadlift"],
+        "training_program": {
+            "strength": {
+                "notes": ["20:00 to build up for 1RM"]
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+    {
+        "exercises_used": ["Machine", "KB Swing"],
+        "training_program": {
+            "in team of 2": {
+                "For time": {
+                    "Machine": {"calories": "42-30-18 M/36-24-14 W"},
+                    "KB Swing": {"reps": "36/24", "weight": "24/16 Or 22.5/15 Kg DBS"}
+                },
+                "notes": [
+                    "the calories are meant to be completed as fast as possible",
+                    "I go you go for the Machines and dual swing-split it as you prefer to go as fast as possible",
+                    "Target time-7:00-10:00"
+                ]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
+    },
+
+    # שבת 11
+    {
+        "exercises_used": ["Air Squat", "Granny Toss", "Chest Pass", "Side Toss", "Roll Pass", "Squat Toss"],
+        "training_program": {
+            "1 round": {
+                "round_target": {
+                    "Air Squat": {"reps": 10, "notes": "no ball"},
+                    "Granny Toss": {"reps": 10},
+                    "Chest Pass": {"reps": 10},
+                    "Side Toss": {"reps": "10/side"},
+                    "Roll Pass": {"reps": 10},
+                    "Squat Toss": {"reps": 10}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Bar Muscle Up"],
+        "training_program": {
+            "skill progression": {
+                "notes": ["Bar Muscle Up practice"]
+            }
+        },
+        "training_type": "skill",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Wall Ball", "Bar Muscle Up", "Wall Walk"],
+        "training_program": {
+            "AMRAP 25 with a partner": {
+                "round_target": {
+                    "Wall Ball": {"reps": 20, "weight": "14/20 lb"},
+                    "Bar Muscle Up": {"reps": 10},
+                    "Wall Walk": {"reps": 5}
+                },
+                "notes": ["Partners split work as needed."]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 25
+    },
+    {
+        "exercises_used": ["Row", "Plank", "Kip Swing", "Samson Stretch"],
+        "training_program": {
+            "AMRAP 5": {
+                "round_target": {
+                    "Row/Single Under/Shuttle Run": {"distance": "30m"},
+                    "Plank Reach Through": {"reps": 10, "notes": "alternating"},
+                    "Kip Swing": {"reps": 10},
+                    "Samson Stretch": {"reps": "30/side"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 10
+    },
+    {
+        "exercises_used": ["Pull-up", "Push-up", "Sit-up", "Air Squat"],
+        "training_program": {
+            "2 rounds": {
+                "round_target": {
+                    "Pull-up": {"reps": 3},
+                    "Push-up": {"reps": 5},
+                    "Sit-up": {"reps": 3},
+                    "Air Squat": {"reps": 3}
+                }
+            }
+        },
+        "training_type": "skill",
+        "training_source": "rocklee",
+        "training_time": 10
+    },
+    {
+        "exercises_used": ["Pull-up", "Push-up", "Sit-up", "Squat"],
+        "training_program": {
+            "5 rounds, each for time": {
+                "round_target": {
+                    "Pull-up": {"reps": 20},
+                    "Push-up": {"reps": 30},
+                    "Sit-up": {"reps": 40},
+                    "Squat": {"reps": 50}
+                },
+                "rest": "3:00 between rounds"
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 35
+    },
+
+    # שלישי 3
+    {
+        "exercises_used": ["Running", "Samson Lunge", "Superman Hold", "Plank Reach Through"],
+        "training_program": {
+            "3 rounds": {
+                "round_target": {
+                    "Running": {"distance": "200M", "notes": "jog"},
+                    "Samson Lunge": {"time": "0:30", "notes": "stretch/leg"},
+                    "Superman Hold": {"time": "0:30"},
+                    "Plank Reach Through": {"reps": 10, "notes": "alternating"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Deadlift"],
+        "training_program": {
+            "strength": {
+                "round_target": {
+                    "Deadlift": {"scheme": "Build to 4@2RIR+ 2 x 3-4 reps", "percentage": "85%-90%"}
+                }
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Knees to Elbow", "Row", "Assault Bike"],
+        "training_program": {
+            "In team of 2 16:00 AMRAP": {
+                "round_target": {
+                    "Knees to Elbow": {"reps": 40},
+                    "Machine": {"distance": "2000/3000-meter Assault/1200/1500-meter row"}
+                },
+                "notes": [
+                    "One person works at a time during the knees-to-elbows",
+                    "One partner holds a plank while the other bikes/rows"
+                ]
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 16
+    },
+
+    # רביעי 2
+    {
+        "exercises_used": ["Arm Circle", "Kettlebell Press", "Goblet Squat", "Push-up", "Wall Walk"],
+        "training_program": {
+            "3 sets": {
+                "round_target": {
+                    "Arm Circle": {"reps": 10, "notes": "forward and backward"},
+                    "KB Press": {"reps": 15, "notes": "single-arm overhead"},
+                    "Goblet Squat": {"reps": 5, "tempo": "@3000"},
+                    "Push-up": {"reps": 5},
+                    "Wall Walk": {"reps": 1}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 12
+    },
+    {
+        "exercises_used": ["Back Squat"],
+        "training_program": {
+            "strength": {
+                "round_target": {
+                    "Back Squat": {"scheme": "Build to 4@1RIR+ 2-3 x 3-4 reps", "percentage": "85%-90%"}
+                }
+            }
+        },
+        "training_type": "strength",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Box Jump", "Handstand Push-up"],
+        "training_program": {
+            "Complete as many rounds as possible in 9:00 of": {
+                "round_target": {
+                    "Box Jump": {"reps": "2-4-6-8", "height": "60/50 CM"},
+                    "Handstand Push-up": {"reps": "prescribed"}
+                }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 9
+    },
+
+    # שני 30
+    {
+        "exercises_used": ["Jump Around", "Jump Over", "Crawl Under"],
+        "training_program": {
+            "JUNKYARD DOG WARM-UP": {
+                "round_target": {
+                    "Partner A": {"reps": 6, "notes": "jumps around partner"},
+                    "Partner B": {"reps": 6, "notes": "jumps around partner"},
+                    "Partner A": {"reps": 4, "notes": "jump over and crawl under partner"},
+                    "Partner B": {"reps": 4, "notes": "jump over and crawl under partner"}
+                }
+            }
+        },
+        "training_type": "warm-up",
+        "training_source": "rocklee",
+        "training_time": 10
+    },
+    {
+        "exercises_used": ["Clean and Jerk"],
+        "training_program": {
+            "skill work": {
+                "On a 10:00 clock": {
+                    "Clean and Jerk": {"reps": 3, "notes": "unbroken", "notes2": "Build to a heavy set"}
+                }
+            }
+        },
+        "training_type": "skill",
+        "training_source": "rocklee",
+        "training_time": 15
+    },
+    {
+        "exercises_used": ["Running", "Clean and Jerk"],
+        "training_program": {
+            "5 rounds for time": {
+                "round_target": {
+                    "Running": {"distance": "200m"},
+                    "Clean and Jerk": {"reps": 6, "weight": "80/55 kg"}
+                }
+            }
+        },
+        "training_type": "metcon",
+        "training_source": "rocklee",
+        "training_time": 20
     }
 ]
 

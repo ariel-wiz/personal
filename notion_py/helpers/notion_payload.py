@@ -16,12 +16,15 @@ def generate_payload(filter=None, sorts=None):
 def generate_create_page_payload(db_id, db_dict, property_overrides=None):
     """
     Generate Notion page creation payload with flexible property types.
+    Handles predefined mappings and automatic type detection.
 
     Args:
-        db_id: Database ID
-        db_dict: Dictionary of values
-        property_overrides: Dictionary to override default property types
-            e.g. {"Category": NotionPropertyType.TITLE}
+        db_id (str): Database ID
+        db_dict (dict): Dictionary of values to set
+        property_overrides (dict, optional): Dictionary to override default property types
+
+    Returns:
+        dict: Notion API payload
     """
     daily_task_payload = {"parent": {"database_id": db_id}, "properties": {}}
     property_overrides = property_overrides or {}
@@ -39,61 +42,122 @@ def generate_create_page_payload(db_id, db_dict, property_overrides=None):
         NotionPropertyType.URL: ["gCal Link"],
         NotionPropertyType.NUMBER: ["Steps", "Steps Goal", "Calories", "Sleep Note", "Activity Calories",
                                     "Charged Amount", "Original Amount", "Remaining Amount", "4 Months Average",
-                                    "Target"]
+                                    "Target"],
+        NotionPropertyType.RELATION: ["Exercises"]
     }
 
-    # Property type payload templates
-    daily_db_payload = {
-        NotionPropertyType.TITLE: {"title": [{"text": {"content": None}}]},
-        NotionPropertyType.TEXT: {"rich_text": [{"text": {"content": None}}]},
-        NotionPropertyType.SELECT_ID: {"select": {"id": None}},
-        NotionPropertyType.MULTI_SELECT: {"multi_select": []},
-        NotionPropertyType.SELECT_NAME: {"select": {"name": None}},
-        NotionPropertyType.DATE: {"date": {"start": None}},
-        NotionPropertyType.URL: {"url": None},
-        NotionPropertyType.NUMBER: {"number": None}
-    }
+    def detect_property_type(key, value):
+        """
+        Detect property type based on predefined mappings and value analysis.
+        """
+        # First check predefined mappings
+        for prop_type, keys in daily_db_items.items():
+            if key in keys:
+                return prop_type
 
-    for daily_task_element in db_dict.items():
-        key, value = daily_task_element
+        # Then check if it's a relation
+        if isinstance(value, (list, tuple)):
+            if all(isinstance(x, str) and len(x) >= 32 for x in value):
+                return NotionPropertyType.RELATION
+        elif isinstance(value, str) and len(value) >= 32:
+            return NotionPropertyType.RELATION
 
+        # Otherwise detect based on value type
+        if isinstance(value, bool):
+            return NotionPropertyType.CHECKBOX
+        elif isinstance(value, (int, float)):
+            return NotionPropertyType.NUMBER
+        elif isinstance(value, (list, tuple)):
+            return NotionPropertyType.MULTI_SELECT
+        elif isinstance(value, str):
+            if value.startswith(('http://', 'https://')):
+                return NotionPropertyType.URL
+            elif '@' in value and '.' in value.split('@')[1]:
+                return NotionPropertyType.EMAIL
+            else:
+                return NotionPropertyType.TEXT
+
+        return NotionPropertyType.TEXT
+
+    def format_property_value(prop_type, value):
+        """
+        Format value according to Notion API requirements for each property type.
+        """
         if value in (None, "", [], {}):
-            continue
+            return None
 
-        # Check if there's an override for this property
-        if key in property_overrides:
-            property_type = property_overrides[key]
-            payload_element = replace_none_with_list_or_string(daily_db_payload[property_type], value)
-            daily_task_payload["properties"][key] = payload_element
+        if prop_type == NotionPropertyType.TITLE:
+            return {"title": [{"text": {"content": str(value)}}]}
+
+        elif prop_type == NotionPropertyType.TEXT:
+            return {"rich_text": [{"text": {"content": str(value)}}]}
+
+        elif prop_type == NotionPropertyType.NUMBER:
+            return {"number": float(value)}
+
+        elif prop_type == NotionPropertyType.CHECKBOX:
+            return {"checkbox": bool(value)}
+
+        elif prop_type == NotionPropertyType.SELECT_NAME:
+            return {"select": {"name": str(value)}}
+
+        elif prop_type == NotionPropertyType.SELECT_ID:
+            return {"select": {"id": str(value)}}
+
+        elif prop_type == NotionPropertyType.MULTI_SELECT:
+            if isinstance(value, str):
+                value = [value]
+            return {"multi_select": [{"name": str(v)} for v in value]}
+
+        elif prop_type == NotionPropertyType.DATE:
+            if isinstance(value, list) and len(value) == 2:
+                return {"date": {"start": value[0], "end": value[1]}}
+            return {"date": {"start": value}}
+
+        elif prop_type == NotionPropertyType.URL:
+            return {"url": value}
+
+        elif prop_type == NotionPropertyType.EMAIL:
+            return {"email": value}
+
+        elif prop_type == NotionPropertyType.RELATION:
+            if isinstance(value, (list, tuple)):
+                return {"relation": [{"id": str(id_)} for id_ in value]}
+            return {"relation": [{"id": str(value)}]}
+
+        elif prop_type == NotionPropertyType.PEOPLE:
+            if isinstance(value, (list, tuple)):
+                return {"people": [{"id": str(id_)} for id_ in value]}
+            return {"people": [{"id": str(value)}]}
+
+        # Default case
+        return {"rich_text": [{"text": {"content": str(value)}}]}
+
+    # Process each property
+    for key, value in db_dict.items():
+        if value in (None, "", [], {}):
             continue
 
         # Handle Icon specially
         if key == "Icon":
             if len(value) == 1:
-                icon_element = {"type": "emoji", "emoji": value}
+                daily_task_payload["icon"] = {"type": "emoji", "emoji": value}
             else:
-                icon_element = {"type": "external", "external": {"url": value}}
-            daily_task_payload["icon"] = icon_element
+                daily_task_payload["icon"] = {"type": "external", "external": {"url": value}}
             continue
 
-        # Regular property processing
-        for db_item_category_key, fields in daily_db_items.items():
-            if key in fields:
-                if db_item_category_key == NotionPropertyType.DATE and isinstance(value, list) and len(value) == 2:
-                    start_date, end_date = value
-                    payload_element = replace_none_with_list_or_string(daily_db_payload[db_item_category_key],
-                                                                       start_date)
-                    payload_element["date"]["end"] = end_date
-                elif db_item_category_key == NotionPropertyType.MULTI_SELECT:
-                    value = [value] if isinstance(value, str) else value
-                    payload_element = {"multi_select": [{"name": v} for v in value]}
-                else:
-                    payload_element = replace_none_with_list_or_string(daily_db_payload[db_item_category_key], value)
-                daily_task_payload["properties"][key] = payload_element
-                break
+        # Get property type (from override, predefined mapping, or detect it)
+        prop_type = (property_overrides.get(key) or  # First check overrides
+                     next((t for t, keys in daily_db_items.items() if key in keys),
+                          None) or  # Then check predefined mappings
+                     detect_property_type(key, value))  # Finally auto-detect
+
+        # Format and add the property value
+        formatted_value = format_property_value(prop_type, value)
+        if formatted_value is not None:
+            daily_task_payload["properties"][key] = formatted_value
 
     return daily_task_payload
-
 
 def get_relation_payload(page_id_data_to_import, relation_name, other_params={}):
     """

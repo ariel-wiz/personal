@@ -30,7 +30,7 @@ class CrossfitExercise:
         self.crossfit_url = data.get('crossfit_url', '')
         self.body_part = self.normalize_body_parts(data.get('body_part', []))
         self.description = data.get('description', [])
-        self.page_id = ''
+        self.page_id = data.get('id', '')
 
     def __str__(self) -> str:
         equipment_str = ", ".join(self.equipment) if self.equipment else "No equipment"
@@ -57,8 +57,23 @@ class CrossfitExercise:
             "Video": self.demo_url,
             "Link": self.crossfit_url,
             "Body Parts": self.body_part,
-            "Icon": generate_icon_url(IconType.GYM, IconColor.BROWN)
+            "Icon": self.get_icon()
         }
+
+    def get_icon(self):
+        color = IconColor.LIGHT_GRAY
+        if self.expertise == 1:
+            color = IconColor.GRAY
+        elif self.expertise == 2:
+            color = IconColor.LIGHT_GRAY
+        elif self.expertise == 3:
+            color = IconColor.GREEN
+        elif self.expertise == 4:
+            color = IconColor.YELLOW
+        elif self.expertise == 5:
+            color = IconColor.RED
+        return generate_icon_url(IconType.GYM, color)
+
 
     def children_blocks(self):
         return generate_children_block_for_crossfit_exercise(self.description, self.tips)
@@ -245,16 +260,62 @@ class CrossfitTmpExercise(CrossfitExercise):
         super().__init__(name, data)
 
 
+class CrossfitWorkoutType:
+    METCON = "Metcon"
+    SKILL = "Skill"
+    WARM_UP = "Warm-up"
+
+
 class CrossfitWorkout:
     def __init__(self, exercise_used: list, training_program: dict, training_type: str, duration: Optional[int],
-                 original_training_program=None):
+                 training_source='', original_training_program=None):
         self.exercise_used = exercise_used
         self.training_type = training_type
+        self.training_source = training_source
         self.duration = duration
         self.program = training_program
         self.original_program = original_training_program
         self.name = ''
         self.page_id = ''
+
+    def payload(self) -> Dict:
+        """Creates a Notion database payload for a CrossFit training"""
+        return {
+            "Name": self.get_title(),
+            "Type": self.training_type,
+            "Duration (Min)": self.duration,
+            "Exercises": [exercise.page_id for exercise in self.exercise_used],
+            "Source": self.training_source.capitalize(),
+            "Icon": self.get_icon()
+        }
+
+    def get_property_overrides(self) -> Dict:
+        """Returns property type overrides for CrossFit exercise creation"""
+        return {
+            "Name": NotionPropertyType.TITLE,
+            "Type": NotionPropertyType.SELECT_NAME,
+            "Duration (Min)": NotionPropertyType.NUMBER,
+            "Source": NotionPropertyType.SELECT_NAME,
+            "Exercises": NotionPropertyType.RELATION
+        }
+
+    # workout.children_blocks(),
+    # workout.get_property_overrides())
+
+    @property
+    def training_type(self):
+        return self._training_type
+
+    @training_type.setter
+    def training_type(self, training_type_to_set):
+        if training_type_to_set == "metcon":
+            self._training_type = CrossfitWorkoutType.METCON
+        elif training_type_to_set == "strength" or training_type_to_set == "skill":
+            self._training_type = CrossfitWorkoutType.SKILL
+        elif training_type_to_set == "warm-up":
+            self._training_type = CrossfitWorkoutType.WARM_UP
+        else:
+            self._training_type = "Other"
 
     def get_icon(self):
         color = IconColor.LIGHT_GRAY
@@ -276,12 +337,16 @@ class CrossfitWorkout:
 
     def get_workout_program_str(self):
         workout_str = ''
-        for workout_program_keys in self.program.keys():
-            workout_str += f"{workout_program_keys}\n"
-            for workout_program_key in self.program[workout_program_keys].keys():
-                workout_str += f"{workout_program_key}: {self.program[workout_program_keys][workout_program_key]}\n"
-            workout_str += "\n"
-        return workout_str
+        try:
+            for workout_program_keys in self.program.keys():
+                workout_str += f"{workout_program_keys}\n"
+                for workout_program_key in self.program[workout_program_keys].keys():
+                    workout_str += f"{workout_program_key}: {self.program[workout_program_keys][workout_program_key]}\n"
+                workout_str += "\n"
+            return workout_str
+        except Exception as e:
+            logger.error(f"Error getting workout program string: {str(e)}")
+            return workout_str
 
     def __str__(self) -> str:
         try:
@@ -299,7 +364,7 @@ class CrossfitWorkout:
 
     def __repr__(self) -> str:
         return f"CrossfitTraining(exercise_used={self.exercise_used}, training_type={self.training_type}, " \
-               f"duration={self.duration}, training_program={self.program})"
+               f"duration={self.duration}, training_program={self.get_workout_program_str()})"
 
     def get_workout_header(self, print=False):
         workout_types = list(self.program.keys())
@@ -378,16 +443,6 @@ class CrossfitWorkout:
             logger.error(f"Error normalizing training format: {str(e)}")
             return format_str
 
-    def payload(self) -> Dict:
-        """Creates a Notion database payload for a CrossFit training"""
-        return {
-            "Training Type": self.training_type,
-            "Duration": self.duration,
-            "Exercise Used": self.exercise_used,
-            "Training Program": self.program,
-            "Icon": generate_icon_url(IconType.GYM, IconColor.BROWN)
-        }
-
 
 class CrossfitManager:
     def __init__(self, crossfit_exercises_db_id: str, crossfit_workout_db_id: str):
@@ -396,7 +451,6 @@ class CrossfitManager:
         self.notion_exercises = self.get_crossfit_exercises_in_notion()
 
         self.crossfit_workouts_db_id = crossfit_workout_db_id
-        # ariel = self.get_exercise_by_name('Running')
         self.variables_workouts = self.load_crossfit_workouts_from_variables(TRAININGS)
         self.notion_workouts = []
         self.print_workouts()
@@ -435,13 +489,17 @@ class CrossfitManager:
             "muscle up": ["muscle ups"],
             "pull up": ["pull ups"],
             "push up": ["push ups"],
-            "row": ["rows", "assault bike", "cal assault", "row bike", "machine row", "cal machine", "machine"],
+            "row": ["rows", "assault bike", "cal assault", "row bike", "machine row", "cal machine", "machine", "bike"],
             "squat": ["squats"],
             "lunge": ["lunges"],
             "jump": ["jumps"],
             "clean and jerk": ["clean jerk", "clean & jerk"],
             "devils press": ["devil press"],
             "run": ["running"],
+            "box jump": ["box step over", "jump around", "jump over"],
+            "butt kicker": ["butt kickers", "butt kicks"],
+            "high knees": ["high knee"],
+            "dumbbell press": ["single dumbbell press", "dumbbell presses"],
         }
 
         # Abbreviation mappings - canonical form as key, abbreviations as values
@@ -783,74 +841,99 @@ class CrossfitManager:
         if len(added_exercises) > 0:
             logger.info(f"Successfully added {len(added_exercises)} new exercises to Notion")
 
+    def get_training_program(self, workout):
+        if isinstance(workout, dict):
+            # Direct match
+            if 'training_program' in workout:
+                return workout['training_program']
+            # Search in values
+            for value in workout.values():
+                result = self.get_training_program(value)
+                if result is not None:
+                    return result
+        # For lists/iterables
+        elif isinstance(workout, (list, tuple)):
+            for item in workout:
+                result = self.get_training_program(item)
+                if result is not None:
+                    return result
+        return None
+
     def load_crossfit_workouts_from_variables(self, workout_data: Dict[str, Any], break_if_miss_exercise=False) -> List[
         CrossfitWorkout]:
-        workout_list = []
-        missing_exercise_names = []
+        try:
+            workout_list = []
+            missing_exercise_names = []
 
-        for workout in workout_data:
-            workout_keys = list(workout.keys())
-            original_workout = workout.copy()  # Store original workout data
-            original_workout = original_workout['training_program']  # Store original workout data
+            for workout in workout_data:
+                workout_keys = list(workout.keys())
+                original_workout = workout.copy()  # Store original workout data
+                original_workout = self.get_training_program(original_workout)
 
-            if len(workout_keys) == 1:
-                workout = workout[workout_keys[0]]
-            elif len(workout_keys) == 2:
-                workout = workout['metcon']
+                if len(workout_keys) == 1:
+                    workout = workout[workout_keys[0]]
+                elif len(workout_keys) == 2:
+                    workout = workout['metcon']
 
-            try:
-                exercise_list = []
-                # Map exercises to their Notion counterparts
-                exercise_mapping = {}  # To store original name -> Notion exercise mapping
+                try:
+                    exercise_list = []
+                    # Map exercises to their Notion counterparts
+                    exercise_mapping = {}  # To store original name -> Notion exercise mapping
 
-                for workout_exercise in workout['exercises_used']:
-                    found, exercise_name = self.get_exercise_by_name(workout_exercise)
-                    if not found and exercise_name != '':
-                        missing_exercise_names.append(exercise_name)
-                    else:
-                        matching_exercise = next((ex for ex in self.notion_exercises if ex.name == exercise_name), None)
-                        if matching_exercise:
-                            exercise_list.append(matching_exercise)
-                            exercise_mapping[workout_exercise] = matching_exercise
+                    for workout_exercise in workout['exercises_used']:
+                        found, exercise_name = self.get_exercise_by_name(workout_exercise)
+                        if not found and exercise_name != '':
+                            missing_exercise_names.append(exercise_name)
+                        else:
+                            matching_exercise = next((ex for ex in self.notion_exercises if ex.name == exercise_name),
+                                                     None)
+                            if matching_exercise:
+                                exercise_list.append(matching_exercise)
+                                exercise_mapping[workout_exercise] = matching_exercise
 
-                # Create a deep copy of the training program to modify
-                modified_program = self.replace_exercises_in_program(
-                    workout['training_program'],
-                    exercise_mapping
-                )
+                    # Create a deep copy of the training program to modify
+                    modified_program = self.replace_exercises_in_program(
+                        workout['training_program'],
+                        exercise_mapping
+                    )
 
-                exercises_used = exercise_list
-                training_type = workout['training_type']
-                duration = workout['training_time']
-                converted_duration = (
-                    duration if isinstance(duration, int)
-                    else None if duration == "until failure" or duration is None
-                    else int(duration) if str(duration).isdigit()
-                    else None
-                )
+                    exercises_used = exercise_list
+                    training_type = workout['training_type']
+                    training_source = workout.get('training_source', '')
+                    duration = workout['training_time']
+                    converted_duration = (
+                        duration if isinstance(duration, int)
+                        else None if duration == "until failure" or duration is None
+                        else int(duration) if str(duration).isdigit()
+                        else None
+                    )
 
-                workout_obj = CrossfitWorkout(
+                    workout_obj = CrossfitWorkout(
                         exercises_used,
                         modified_program,
                         training_type,
                         converted_duration,
+                        training_source,
                         original_workout
                     )
 
-                workout_list.append(workout_obj)
+                    workout_list.append(workout_obj)
 
-            except Exception as e:
-                logger.error(f"There is an issue while loading: {str(e)}")
+                except Exception as e:
+                    logger.error(f"There is an issue while loading: {str(e)}")
 
-        if missing_exercise_names:
-            sorted_missing_names = sorted(list(set(missing_exercise_names)))
-            error_message = f"These required exercises don't exist in Notion: {sorted_missing_names}"
-            logger.error(error_message)
-            if break_if_miss_exercise:
-                raise Exception(error_message)
+            if missing_exercise_names:
+                sorted_missing_names = sorted(list(set(missing_exercise_names)))
+                error_message = f"These required exercises don't exist in Notion: {sorted_missing_names}"
+                logger.error(error_message)
+                if break_if_miss_exercise:
+                    raise Exception(error_message)
 
-        logger.info(f"Loaded {len(workout_list)} workouts from variables")
-        return workout_list
+            logger.info(f"Loaded {len(workout_list)} workouts from variables")
+            return workout_list
+        except Exception as e:
+            logger.error(f"Error loading workouts from variables: {str(e)}")
+            raise Exception(f"Error loading workouts from variables: {str(e)}")
 
     def replace_exercises_in_program(self, program: Dict, exercise_mapping: Dict) -> Dict:
         if isinstance(program, dict):
@@ -878,7 +961,7 @@ class CrossfitManager:
 
     def get_crossfit_workouts_in_notion(self):
         crossfit_notion_pages = get_db_pages(self.crossfit_workouts_db_id)
-        # return self.get_workouts_from_notion(crossfit_notion_pages)
+        return self.get_workouts_from_notion(crossfit_notion_pages)
         return []
 
     def get_workouts_from_notion(self, crossfit_notion_pages: list) -> List[CrossfitExercise]:
@@ -937,23 +1020,22 @@ class CrossfitManager:
 
     def add_crossfit_workouts_to_notion(self):
         added_workouts = []
-        if not self.notion_workouts:
-            self.notion_workouts = self.get_crossfit_workouts_in_notion()
+        # if not self.notion_workouts:
+        #     self.notion_workouts = self.get_crossfit_workouts_in_notion()
 
-        exercise_names = [exercise.name for exercise in self.notion_exercises]
-        for exercise in self.variables_exercises:
-            if exercise.name in exercise_names:
-                logger.debug(f"{exercise.name} already exists in Notion")
+        workout_names = [workout.name for workout in self.notion_workouts]
+        for workout in self.variables_workouts:
+            if workout.name in workout_names:
+                logger.debug(f"{workout.name} already exists in Notion")
             else:
                 try:
-                    create_page_with_db_dict_and_children_block(self.crossfit_exercises_db_id, exercise.payload(),
-                                                                exercise.children_blocks(),
-                                                                exercise.get_property_overrides())
+                    create_page_with_db_dict(self.crossfit_workouts_db_id, workout.payload(),
+                                             workout.get_property_overrides())
                 except Exception as e:
-                    logger.error(f"Error adding {exercise.name} to Notion: {str(e)}")
+                    logger.error(f"Error adding {workout.name} to Notion: {str(e)}")
                     continue
-                added_workouts.append(exercise)
-                logger.debug(f"Added {exercise.name} to Notion")
+                added_workouts.append(workout)
+                logger.debug(f"Added {workout.name} to Notion")
 
         if len(added_workouts) > 0:
             logger.info(f"Successfully dded {len(added_workouts)} new exercises to Notion")

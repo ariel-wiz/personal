@@ -35,6 +35,11 @@ class NotionPropertyType:
     URL = "url"
     NUMBER = "number"
     EMOJI = "emoji"
+    CHECKBOX = "checkbox"
+    EMAIL = "email"
+    RELATION = "relation"
+    PEOPLE = "people"
+
 
 
 class Method:

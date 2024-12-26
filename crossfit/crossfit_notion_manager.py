@@ -1,10 +1,12 @@
+import json
 import re
 from typing import Dict, Any, List, Optional
 
 from common import capitalize_text_or_list
 from crossfit.crossfit_variables import EXERCISES, TRAININGS
 from logger import logger
-from notion_py.helpers.notion_children_blocks import generate_children_block_for_crossfit_exercise
+from notion_py.helpers.notion_children_blocks import generate_children_block_for_crossfit_exercise, \
+    generate_children_block_for_crossfit_workout
 from notion_py.helpers.notion_common import get_db_pages, create_page_with_db_dict, \
     create_page_with_db_dict_and_children_block, generate_icon_url
 
@@ -63,9 +65,9 @@ class CrossfitExercise:
     def get_icon(self):
         color = IconColor.LIGHT_GRAY
         if self.expertise == 1:
-            color = IconColor.GRAY
-        elif self.expertise == 2:
             color = IconColor.LIGHT_GRAY
+        elif self.expertise == 2:
+            color = IconColor.GRAY
         elif self.expertise == 3:
             color = IconColor.GREEN
         elif self.expertise == 4:
@@ -283,24 +285,29 @@ class CrossfitWorkout:
         return {
             "Name": self.get_title(),
             "Type": self.training_type,
-            "Duration (Min)": self.duration,
+            "Time Cap (Min)": self.duration,
             "Exercises": [exercise.page_id for exercise in self.exercise_used],
             "Source": self.training_source.capitalize(),
             "Icon": self.get_icon()
         }
+
+    def children_blocks(self):
+        workout_name = self.get_training_type_longer_format()
+        formatted = self.format_workout_program()
+        children_block = generate_children_block_for_crossfit_workout(workout_name, formatted,
+                                                                      json.dumps(self.original_program),
+                                                                      add_score=False)
+        return children_block
 
     def get_property_overrides(self) -> Dict:
         """Returns property type overrides for CrossFit exercise creation"""
         return {
             "Name": NotionPropertyType.TITLE,
             "Type": NotionPropertyType.SELECT_NAME,
-            "Duration (Min)": NotionPropertyType.NUMBER,
+            "Time Cap (Min)": NotionPropertyType.NUMBER,
             "Source": NotionPropertyType.SELECT_NAME,
             "Exercises": NotionPropertyType.RELATION
         }
-
-    # workout.children_blocks(),
-    # workout.get_property_overrides())
 
     @property
     def training_type(self):
@@ -376,13 +383,60 @@ class CrossfitWorkout:
 
     def get_title(self, print=False):
         if not self.name:
-            self.name = self.get_shorter_format() + f" - {self.duration} min - " + self.get_exercise_names_str()
+            self.name = self.get_training_type_shorter_format() + f" - {self.duration} min - " + self.get_exercise_names_str()
         if print:
             logger.debug(self.name)
         return self.name
 
-    def get_shorter_format(self):
+    def get_training_type_shorter_format(self):
         workout_types_str = ', '.join(self.program.keys())
+
+        # Handle EMOM cases
+        if workout_types_str.startswith('EMOM'):
+            return 'EMOM'
+
+        # Handle AMRAP cases
+        if workout_types_str.startswith('AMRAP'):
+            return 'AMRAP'
+
+        if workout_types_str.startswith('Every'):
+            return 'Every minute'
+
+        return workout_types_str
+
+    def get_training_type_longer_format(self):
+        workout_types_str = ', '.join(self.program.keys())
+
+        # Handle EMOM cases
+        if workout_types_str.startswith('EMOM'):
+            duration = workout_types_str.split()[1] if len(workout_types_str.split()) > 1 else self.duration
+            return f"Every Minute On the Minute (EMOM) for {duration} min"
+
+        # Handle AMRAP cases
+        if workout_types_str.startswith('AMRAP'):
+            duration = workout_types_str.split()[1] if len(workout_types_str.split()) > 1 else self.duration
+            return f"As Many Repetitions As Possible (AMRAP) for {duration} min"
+
+        # Handle "Every X min x Y" cases
+        if workout_types_str.startswith('Every'):
+            parts = workout_types_str.split()
+            if len(parts) > 4:  # "Every X min x Y"
+                return f"Every {parts[1]} Minutes for {parts[4]} Sets"
+
+        # Handle "For Time" cases
+        if workout_types_str.startswith('For Time'):
+            time_cap = f" with {self.duration} min cap" if self.duration else ""
+            return f"For Time{time_cap}"
+
+        # Handle "Rounds for Time"
+        if any(c.isdigit() for c in workout_types_str) and "Round" in workout_types_str:
+            time_cap = f" with {self.duration} min cap" if self.duration else ""
+            return f"{workout_types_str}{time_cap}"
+
+        # Handle Death by format
+        if workout_types_str.startswith('Death'):
+            return "Death By (Ascending Reps Each Round Until Failure)"
+
         return workout_types_str
 
     def get_exercise_names(self):
@@ -390,6 +444,44 @@ class CrossfitWorkout:
 
     def get_exercise_names_str(self):
         return ', '.join(self.get_exercise_names())
+
+    def format_workout_program(self):
+        """Formats workout program into standardized exercise list based on innermost dict keys"""
+        formatted_exercises = []
+        all_keys = set()
+
+        def get_inner_dict_keys(prog):
+            """Extract keys from innermost dictionaries"""
+            if isinstance(prog, dict):
+                # Check if this dict contains only non-dict values
+                if not any(isinstance(v, (dict, list)) for v in prog.values()):
+                    all_keys.update(prog.keys())
+                for value in prog.values():
+                    get_inner_dict_keys(value)
+            elif isinstance(prog, list):
+                for item in prog:
+                    get_inner_dict_keys(item)
+
+        def process_program(prog):
+            if isinstance(prog, dict):
+                for key, value in prog.items():
+                    if hasattr(key, 'page_id'):
+                        exercise_dict = {"id": key.page_id}
+                        for k in all_keys:
+                            exercise_dict[k] = str(value.get(k, "")) if isinstance(value, dict) else ""
+                        formatted_exercises.append(exercise_dict)
+                    else:
+                        process_program(value)
+            elif isinstance(prog, list):
+                for item in prog:
+                    process_program(item)
+
+        # First pass: collect all keys from innermost dictionaries
+        get_inner_dict_keys(self.program)
+
+        # Second pass: format exercises with collected keys
+        process_program(self.program)
+        return formatted_exercises
 
     def normalize_training_format(self, format_str: str) -> str:
         try:
@@ -962,7 +1054,6 @@ class CrossfitManager:
     def get_crossfit_workouts_in_notion(self):
         crossfit_notion_pages = get_db_pages(self.crossfit_workouts_db_id)
         return self.get_workouts_from_notion(crossfit_notion_pages)
-        return []
 
     def get_workouts_from_notion(self, crossfit_notion_pages: list) -> List[CrossfitExercise]:
         """Gets all CrossFit exercises from Notion database"""
@@ -1029,8 +1120,10 @@ class CrossfitManager:
                 logger.debug(f"{workout.name} already exists in Notion")
             else:
                 try:
-                    create_page_with_db_dict(self.crossfit_workouts_db_id, workout.payload(),
-                                             workout.get_property_overrides())
+                    create_page_with_db_dict_and_children_block(self.crossfit_workouts_db_id, workout.payload(),
+                                                                workout.children_blocks(),
+                                                                workout.get_property_overrides())
+
                 except Exception as e:
                     logger.error(f"Error adding {workout.name} to Notion: {str(e)}")
                     continue

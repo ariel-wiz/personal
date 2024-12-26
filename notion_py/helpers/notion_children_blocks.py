@@ -1,5 +1,3 @@
-
-
 def generate_children_block_for_daily_inspirations(note, author, main_content):
     children_block = [
         {
@@ -110,15 +108,15 @@ def create_paragraph_block(content, link_url=None):
 def create_number_block(numbered_list_items):
     """Create a paragraph block"""
     return [{
-                    "object": "block",
-                    "type": "numbered_list_item",
-                    "numbered_list_item": {
-                        "rich_text": [{
-                            "type": "text",
-                            "text": {"content": step}
-                        }]
-                    }
-                } for step in numbered_list_items]
+        "object": "block",
+        "type": "numbered_list_item",
+        "numbered_list_item": {
+            "rich_text": [{
+                "type": "text",
+                "text": {"content": step}
+            }]
+        }
+    } for step in numbered_list_items]
 
 
 def create_heading_3_block(content):
@@ -144,22 +142,25 @@ def create_toggle_block(content, children_blocks):
     }
 
 
-def create_toggle_heading_block(content, children_blocks, heading_number=3):
-    return {
+def create_toggle_heading_block(content, children_blocks, heading_number=3, color_background=""):
+    """Create a toggle heading block."""
+    heading_number_str = f"heading_{heading_number}"
+    block = {
         "object": "block",
-        "type": f"heading_{heading_number}",
-        f"heading_{heading_number}": {
+        "type": heading_number_str,
+        heading_number_str: {
             "rich_text": [
                 {
-                    "text": {
-                        "content": content
-                    }
+                    "type": "text",
+                    "text": {"content": content},
+                    "annotations": {"color": f"{color_background}_background"} if color_background else {}
                 }
             ],
             "is_toggleable": True,
             "children": children_blocks
         }
     }
+    return block
 
 
 def create_code_block(content, language="python"):
@@ -217,13 +218,94 @@ def create_notion_link(page_id, text):
     }
 
 
+def generate_children_block_for_crossfit_workout(title: str, exercises: list, notes: str = "",
+                                                 add_score: bool = False) -> dict:
+    """Generate workout block with optional score table."""
+    columns = [{"name": "Exercise", "type": "mention", "field": "id"}]
+    other_fields = [k for k in exercises[0].keys() if k != "id"]
+    columns.extend([{
+        "name": key.capitalize(),
+        "type": "text",
+        "field": key
+    } for key in other_fields])
+
+    workout_table = {
+        "object": "block",
+        "type": "table",
+        "table": {
+            "table_width": len(columns),
+            "has_column_header": True,
+            "has_row_header": False,
+            "children": [
+                            {
+                                "type": "table_row",
+                                "table_row": {
+                                    "cells": [[{
+                                        "type": "text",
+                                        "text": {"content": col["name"]},
+                                    }] for col in columns]
+                                }
+                            }
+                        ] + [
+                            {
+                                "type": "table_row",
+                                "table_row": {
+                                    "cells": [
+                                        [{
+                                            "type": "mention",
+                                            "mention": {"page": {"id": exercise[col["field"]]}}
+                                        }] if col["type"] == "mention" else
+                                        [{"type": "text", "text": {"content": str(exercise.get(col["field"], ""))}}]
+                                        for col in columns
+                                    ]
+                                }
+                            }
+                            for exercise in exercises
+                        ]
+        }
+    }
+
+    children_block = [create_heading_3_block(title), workout_table]
+    if notes:
+        children_block.append(create_toggle_block("Original Exercise", [create_paragraph_block(notes)]))
+    children_block.append(create_separator_block())
+
+    if add_score:
+        score_table = {
+            "object": "block",
+            "type": "table",
+            "table": {
+                "table_width": 2,
+                "has_column_header": True,
+                "has_row_header": False,
+                "children": [
+                                {
+                                    "type": "table_row",
+                                    "table_row": {
+                                        "cells": [[{
+                                            "type": "text",
+                                            "text": {"content": header},
+                                            "annotations": {"color": "green"}  # Added color to header
+                                        }] for header in ["Date", "Score"]]
+                                    }
+                                }
+                            ] + [
+                                {
+                                    "type": "table_row",
+                                    "table_row": {
+                                        "cells": [[{"type": "text", "text": {"content": ""}}] for _ in range(2)]
+                                    }
+                                } for _ in range(2)  # Two empty rows
+                            ]
+            }
+        }
+
+        children_block.append(create_toggle_heading_block("My Score 💪", [score_table], color_background="green"))
+
+    return {"children": children_block}
+
+
 def generate_children_block_for_crossfit_exercise(description_steps, tips):
-    # description_block = create_number_block(description)
-    # tips_block = create_number_block(tips)
-    # description_toggle = create_toggle_heading_block("Description 📑", description_block, 2)
-    # tips_toggle = create_toggle_heading_block("Tips 👌🏼", tips_block, 2)
-    # list_to_update = [description_toggle, tips_toggle]
-    # return {"children": create_columns(list_to_update)}
     return {
         "children": [
             {

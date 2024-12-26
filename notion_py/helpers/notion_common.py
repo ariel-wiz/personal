@@ -62,6 +62,10 @@ def create_page(create_payload, print_response=False):
     return _invoke_notion_api(create_url, create_payload, method=Method.POST, print_response=print_response)
 
 
+def get_page_children(page_id, print_response=False):
+    return get_page(page_id, get_children=True, print_response=print_response)
+
+
 def get_page(page_id, get_children=False, print_response=False):
     page_id = page_id.strip().replace("-", "")
     get_url = f"https://api.notion.com/v1/pages/{page_id}"

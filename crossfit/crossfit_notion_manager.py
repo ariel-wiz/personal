@@ -216,7 +216,7 @@ class CrossfitExercise:
 
                 # Functional categories to be mapped to major muscle groups
                 "power": "full body",
-                "stability": "core",
+                "stability": "full body",
                 "coordination": "full body",
                 "balance": "full body",
                 "agility": "full body",
@@ -291,7 +291,7 @@ class CrossfitWorkout:
             "Icon": self.get_icon()
         }
 
-    def children_blocks(self):
+    def page_content(self):
         workout_name = self.get_training_type_longer_format()
         formatted = self.format_workout_program()
         children_block = generate_children_block_for_crossfit_workout(workout_name, formatted,
@@ -357,9 +357,8 @@ class CrossfitWorkout:
 
     def __str__(self) -> str:
         try:
-            workout_str = f"Workout: {self.get_title()}\n"
+            workout_str = f"Workout: {self.get_training_type_longer_format()}\n"
             workout_str += f"Training type: {self.training_type}\n"
-            workout_str += f"Header: {self.get_workout_header()}\n\n"
             workout_str += f"Exercises: {self.get_exercises_str()}\n"
             workout_str += f"Program: {self.get_workout_program_str()}\n"
 
@@ -389,7 +388,7 @@ class CrossfitWorkout:
         return self.name
 
     def get_training_type_shorter_format(self):
-        workout_types_str = ', '.join(self.program.keys())
+        workout_types_str = next(iter(self.program.keys()))
 
         # Handle EMOM cases
         if workout_types_str.startswith('EMOM'):
@@ -402,10 +401,10 @@ class CrossfitWorkout:
         if workout_types_str.startswith('Every'):
             return 'Every minute'
 
-        return workout_types_str
+        return workout_types_str.capitalize()
 
     def get_training_type_longer_format(self):
-        workout_types_str = ', '.join(self.program.keys())
+        workout_types_str = next(iter(self.program.keys()))
 
         # Handle EMOM cases
         if workout_types_str.startswith('EMOM'):
@@ -437,7 +436,7 @@ class CrossfitWorkout:
         if workout_types_str.startswith('Death'):
             return "Death By (Ascending Reps Each Round Until Failure)"
 
-        return workout_types_str
+        return workout_types_str.capitalize()
 
     def get_exercise_names(self):
         return [exercise.name for exercise in self.exercise_used]
@@ -453,19 +452,41 @@ class CrossfitWorkout:
         def get_inner_dict_keys(prog):
             """Extract keys from innermost dictionaries"""
             if isinstance(prog, dict):
-                # Check if this dict contains only non-dict values
-                if not any(isinstance(v, (dict, list)) for v in prog.values()):
-                    all_keys.update(prog.keys())
+                # Check for exercise specifications in dict values
                 for value in prog.values():
-                    get_inner_dict_keys(value)
-            elif isinstance(prog, list):
-                for item in prog:
-                    get_inner_dict_keys(item)
+                    if isinstance(value, dict):
+                        if not any(isinstance(v, (dict, list)) for v in value.values()):
+                            all_keys.update(value.keys())
+                        get_inner_dict_keys(value)
+                    elif isinstance(value, list):
+                        for item in value:
+                            if isinstance(item, dict):
+                                # Handle each exercise dictionary
+                                for _, exercise_details in item.items():
+                                    if isinstance(exercise_details, dict):
+                                        all_keys.update(exercise_details.keys())
+                                get_inner_dict_keys(item)
 
         def process_program(prog):
             if isinstance(prog, dict):
                 for key, value in prog.items():
-                    if hasattr(key, 'page_id'):
+                    if isinstance(value, list):
+                        # Handle list of exercises
+                        for item in value:
+                            for exercise_name, exercise_details in item.items():
+                                exercise_dict = {"id": ""}  # Default empty ID
+
+                                # Handle both CrossfitTmpExercise and string exercise names
+                                if hasattr(exercise_name, 'page_id'):
+                                    exercise_dict["id"] = exercise_name.page_id
+
+                                # Add all other exercise details
+                                for k in all_keys:
+                                    exercise_dict[k] = str(exercise_details.get(k, ""))
+
+                                formatted_exercises.append(exercise_dict)
+                    elif hasattr(key, 'page_id'):
+                        # Handle direct exercise entries
                         exercise_dict = {"id": key.page_id}
                         for k in all_keys:
                             exercise_dict[k] = str(value.get(k, "")) if isinstance(value, dict) else ""
@@ -858,7 +879,8 @@ class CrossfitManager:
 
     def get_crossfit_exercises_in_notion(self):
         crossfit_notion_pages = get_db_pages(self.crossfit_exercises_db_id)
-        return self.get_exercises_from_notion(crossfit_notion_pages)
+        exercises = self.get_exercises_from_notion(crossfit_notion_pages)
+        return sorted(exercises, key=lambda x: x.name)
 
     def get_exercises_from_notion(self, crossfit_notion_pages: list) -> List[CrossfitExercise]:
         """Gets all CrossFit exercises from Notion database"""
@@ -995,9 +1017,9 @@ class CrossfitManager:
                     duration = workout['training_time']
                     converted_duration = (
                         duration if isinstance(duration, int)
-                        else None if duration == "until failure" or duration is None
+                        else 45 if duration == "until failure" or duration is None
                         else int(duration) if str(duration).isdigit()
-                        else None
+                        else 45
                     )
 
                     workout_obj = CrossfitWorkout(
@@ -1028,28 +1050,64 @@ class CrossfitManager:
             raise Exception(f"Error loading workouts from variables: {str(e)}")
 
     def replace_exercises_in_program(self, program: Dict, exercise_mapping: Dict) -> Dict:
+        """
+        Recursively replaces exercise names with CrossfitExercise objects in the training program.
+        Handles both exercise-as-key and exercise-in-list formats, including numeric keys.
+
+        Args:
+            program (Dict): The training program structure
+            exercise_mapping (Dict): Mapping of exercise names to CrossfitExercise objects
+        """
         if isinstance(program, dict):
             new_program = {}
             for key, value in program.items():
-                # Check if this is a leaf node (exercise details dictionary)
-                if isinstance(value, dict) and not any(isinstance(v, dict) for v in value.values()):
-                    # This is an exercise entry, try to map it
+                # Only try to map string keys to exercises
+                if isinstance(key, str):
                     found, exercise_name = self.get_exercise_by_name(key)
-                    if found:
-                        matching_exercise = next((ex for ex in exercise_mapping.values()
-                                                  if ex.name == exercise_name), None)
+                    if found and isinstance(value, dict) and not any(isinstance(v, dict) for v in value.values()):
+                        matching_exercise = next(
+                            (ex for ex in exercise_mapping.values() if ex.name == exercise_name),
+                            None
+                        )
                         new_key = matching_exercise if matching_exercise else CrossfitTmpExercise(exercise_name)
-                    else:
-                        new_key = key
-                    new_program[new_key] = value
-                else:
-                    # This is an intermediate node, keep traversing
+                        new_program[new_key] = value
+                        continue
+
+                # Handle lists of exercise dictionaries
+                if isinstance(value, list):
+                    new_list = []
+                    for item in value:
+                        if isinstance(item, dict):
+                            exercise_key = next(iter(item)) if item else None
+                            if isinstance(exercise_key, str):
+                                found, mapped_name = self.get_exercise_by_name(exercise_key)
+                                if found:
+                                    matching_exercise = next(
+                                        (ex for ex in exercise_mapping.values() if ex.name == mapped_name),
+                                        None
+                                    )
+                                    if matching_exercise:
+                                        new_list.append({matching_exercise: item[exercise_key]})
+                                        continue
+                            new_list.append(self.replace_exercises_in_program(item, exercise_mapping))
+                        else:
+                            new_list.append(item)
+                    new_program[key] = new_list
+
+                # Handle nested dictionaries
+                elif isinstance(value, dict):
                     new_program[key] = self.replace_exercises_in_program(value, exercise_mapping)
+
+                # Keep original key-value pair for non-string keys
+                else:
+                    new_program[key] = value
+
             return new_program
+
         elif isinstance(program, list):
             return [self.replace_exercises_in_program(item, exercise_mapping) for item in program]
-        else:
-            return program
+
+        return program
 
     def get_crossfit_workouts_in_notion(self):
         crossfit_notion_pages = get_db_pages(self.crossfit_workouts_db_id)
@@ -1121,7 +1179,7 @@ class CrossfitManager:
             else:
                 try:
                     create_page_with_db_dict_and_children_block(self.crossfit_workouts_db_id, workout.payload(),
-                                                                workout.children_blocks(),
+                                                                workout.page_content(),
                                                                 workout.get_property_overrides())
 
                 except Exception as e:

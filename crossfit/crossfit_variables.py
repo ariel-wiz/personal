@@ -1,6 +1,53 @@
 import re
 
 EXERCISES = {
+    "Jumping Squat": {
+        "tips": [
+            "Land softly with knees tracking over toes",
+            "Use arms to help generate power",
+            "Maintain tight core throughout movement",
+            "Control descent into next rep"
+        ],
+        "equipment": [],  # Bodyweight version - can be loaded with DBs/KB for advanced
+        "expertise": 2,  # More technical than air squat but still accessible
+        "demo_url": "https://www.youtube.com/watch?v=CTxYfJ1qN8Y",
+        "crossfit_url": "",
+        "body_part": ["legs"],
+        "description": [
+            "Start with feet shoulder width apart",
+            "Lower into quarter to half squat position",
+            "Keep chest up and core engaged",
+            "Drive arms up as you explode through legs",
+            "Extend hips, knees, and ankles powerfully",
+            "Jump straight up reaching full extension",
+            "Land softly with bent knees to absorb impact",
+            "Immediately transition into next rep",
+            "Maintain rhythm and control throughout"
+        ]
+    },
+    "Push Up": {
+        "tips": [
+            "Keep core tight and body in straight line",
+            "Hands slightly wider than shoulder width",
+            "Lower chest to ground controlling descent",
+            "Push through full palm maintaining body tension"
+        ],
+        "equipment": [],  # Bodyweight movement
+        "expertise": 1,  # Fundamental movement
+        "demo_url": "https://www.youtube.com/watch?v=0pkjOk0EiAk",
+        "crossfit_url": "https://www.crossfit.com/essentials/push-up",
+        "body_part": ["chest", "shoulders", "triceps", "core"],
+        "description": [
+            "Start in high plank position with hands shoulder-width apart",
+            "Keep body in straight line from head to heels",
+            "Lower body as one unit until chest touches ground",
+            "Keep elbows at roughly 45 degree angle from body",
+            "Push back to starting position maintaining body alignment",
+            "Breathe steadily throughout movement",
+            "Maintain full body tension",
+            "Reset position before next rep"
+        ]
+    },
     "Snatch": {
         "tips": [
             "Keep bar close throughout pull",
@@ -2523,7 +2570,7 @@ EXERCISES = {
             "Maintain balance throughout"
         ]
     },
-"Spiderman Lunge": {
+    "Spiderman Lunge": {
         "tips": [
             "Keep back leg straight",
             "Drop hips low into stretch",
@@ -4273,25 +4320,6 @@ TRAININGS = [
 
         }
     },
-
-    {
-        "warm_up": {
-            "exercises_used": ["Row/Bike", "Toy Soldiers", "Samson Lunges", "Plank Reach Through"],
-            "training_program": {
-                "Partner Work": {
-                    "Partner 1": {"Row/Bike": {"time": "1 min"}},
-                    "Partner 2": {
-                        "Alt Toy Soldiers": {"time": "1 min"},
-                        "Alt Samson Lunges": {"time": "1 min"},
-                        "Alt Plank Reach Through": {"time": "1 min"}
-                    },
-                    "notes": "Switch roles every minute"
-                }
-            },
-            "training_type": "warm-up",
-            "training_time": 10
-        }
-    },
     {
         "metcon": {
             "exercises_used": ["Assault Bike", "Devil Press"],
@@ -4345,14 +4373,14 @@ TRAININGS = [
             "exercises_used": ["Single Unders", "Jump Rope Variations"],
             "training_program": {
                 "rounds": {
-                    "Single Unders": {"reps": 30},
-                    "Single Under Variations": {
-                        "Jog in Place": {"reps": 20},
-                        "Jump Front to Back": {"reps": 20},
-                        "Jump Side to Side": {"reps": 20},
-                        "Left Leg": {"reps": 20},
-                        "Right Leg": {"reps": 20}
-                    }
+                    "Single Unders": {"reps": 30,
+                                      "notes": "Jog in Place reps 20 "
+                                          "Jump Front to Back reps 20 "
+                                          "Jump Side to Side reps 20"
+                                          "Left Leg reps 20"
+                                          "Right Leg reps 20"
+                                      }
+
                 }
             },
             "training_type": "warm-up",
@@ -4724,23 +4752,6 @@ TRAININGS = [
         }
     },
 
-    {
-        "warm_up": {
-            "exercises_used": ["Partner Work", "Row/Bike", "Mountain Climbers", "Alternating Lunges"],
-            "training_program": {
-                "partner_work": {
-                    "Partner 1": {"exercise": "Row/Bike", "time": "1 min"},
-                    "Partner 2": {
-                        "Complex": ["Mountain Climbers", "Alternating Lunges", "Push-ups"],
-                        "time": "1 min each"
-                    },
-                    "notes": "Switch roles every minute"
-                }
-            },
-            "training_type": "warm-up",
-            "training_time": 12
-        }
-    },
     {
         "metcon": {
             "exercises_used": ["AbMat Sit-ups", "Toes to Bar", "K2E"],
@@ -5783,22 +5794,6 @@ TRAININGS = [
         }
     },
     {
-        "warm_up": {
-            "exercises_used": ["Bear Crawl", "Samson Lunges", "Box Step-ups", "Push-ups", "Hollow Rocks"],
-            "training_program": {
-                "Partner Work": {
-                    "Partner 1": {"Run": {"distance": "400m"}},
-                    "Partner 2": {
-                        "Samson Lunges": {"reps": 10},
-                        "Box Step-ups": {"reps": 10},
-                        "Push-ups": {"reps": 10},
-                        "Hollow Rocks": {"reps": 10}
-                    }
-                }
-            },
-            "training_type": "warm-up",
-            "training_time": 12
-        },
         "metcon": {
             "exercises_used": ["Box Jump", "Sit-ups", "Ring Dips"],
             "training_program": {
@@ -7042,28 +7037,8 @@ TRAININGS = [
         "training_type": "metcon",
         "training_source": "rocklee",
         "training_time": 20
-    }, {
-        "exercises_used": ["Running", "Push-up", "Good Morning", "Jump Rope", "Ring Row"],
-        "training_program": {
-            "Partner warm up": {
-                "Partner 1": {"Row/Bike": {"calories": 6 / 8}},
-                "Partner 2": {
-                    "Alternating Plank": {"time": "30 sec"},
-                    "Shoulder Taps": {"time": "30 sec"},
-                    "Hollow Hold": {"time": "30 sec"},
-                    "Bar Hang": {"time": "30 sec"}
-                }
-            },
-            "additional": {
-                "1 set": {
-                    "Synchronized Sit-up": {"reps 1": [10, "slow"], "reps 2": [10, "fast"]},
-                }
-            }
-        },
-        "training_type": "warm-up",
-        "training_source": "rocklee",
-        "training_time": 15
-    }, {
+    },
+    {
         "exercises_used": ["Toes to Bar", "Knees to Elbows"],
         "training_program": {
             "Progression": {
@@ -7679,29 +7654,6 @@ TRAININGS = [
         "training_type": "metcon",
         "training_source": "rocklee",
         "training_time": 20
-    },
-
-    # שלישי 5
-    {
-        "exercises_used": ["Row", "Assault Bike", "Toy Soldier", "Samson Lunge", "Plank Reach Through"],
-        "training_program": {
-            "Partners": {
-                "round_target": {
-                    "Partner 1": {"work": "1 min on Row/Assault Bike"},
-                    "Partner 2": {
-                        "circuit": [
-                            {"Toy Soldier": {"time": "1 min"}},
-                            {"Samson Lunge": {"time": "1 min"}},
-                            {"Plank Reach Through": {"time": "1 min"}}
-                        ]
-                    }
-                },
-                "notes": ["Switch every min", "Rest 10 sec between switches"]
-            }
-        },
-        "training_type": "warm-up",
-        "training_source": "rocklee",
-        "training_time": 12
     },
     {
         "exercises_used": ["Row", "Assault Bike", "Devil Press"],

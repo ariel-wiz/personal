@@ -3480,8 +3480,72 @@ EXERCISES = {
             "Maintain straight arms throughout",
             "Focus on position and control"
         ]
+    },
+    "Leg Press": {
+        "tips": [
+            "Keep feet shoulder width apart on platform",
+            "Control eccentric phase with no bouncing",
+            "Drive through heels and maintain full foot contact"
+        ],
+        "equipment": ["leg press machine"],
+        "expertise": 2,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["legs"],
+        "description": [
+            "Adjust seat position so knees don't pass 90 degrees at bottom",
+            "Place feet shoulder width on platform, toes slightly out",
+            "Unrack weight by straightening legs",
+            "Lower weight under control until legs reach 90 degrees",
+            "Drive through heels to press weight up",
+            "Stop just short of lockout to maintain tension",
+            "Maintain neutral spine throughout movement"
+        ]
+    },
+    "Roll Pass": {
+        "tips": [
+            "Keep core tight throughout movement",
+            "Roll smoothly without losing tension",
+            "Pass medicine ball with control and accuracy"
+        ],
+        "equipment": ["med ball"],
+        "expertise": 1,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["shoulders"],
+        "description": [
+            "Partners lie on back about 6 feet apart",
+            "First partner holds medicine ball at chest",
+            "Roll to one side while keeping core engaged",
+            "Pass ball to partner as you roll",
+            "Return to center as partner receives ball",
+            "Partner repeats movement in opposite direction",
+            "Maintain continuous, controlled movement pattern"
+        ]
+    },
+    "Weighted Ab Mat Sit Up": {
+        "tips": [
+            "Keep weight plate close to chest throughout",
+            "Use hip flexors to initiate movement",
+            "Control descent to protect lower back"
+        ],
+        "equipment": ["mat", "plate"],
+        "expertise": 2,
+        "demo_url": "",
+        "crossfit_url": "",
+        "body_part": ["abs"],
+        "description": [
+            "Position AbMat under lower back",
+            "Hold weight plate at chest level",
+            "Feet anchored, arms extended holding plate",
+            "Engage core and lift torso up",
+            "Touch plate to ground behind head",
+            "Control return to starting position",
+            "Keep weight close to body throughout movement"
+        ]
     }
 }
+
 
 TRAININGS = [
     {
@@ -4516,10 +4580,10 @@ TRAININGS = [
     },
     {
         "metcon": {
-            "exercises_used": ["Weighted AbMat Sit-ups", "Assault Bike", "Double Unders"],
+            "exercises_used": ["Weighted Ab Mat Sit Up", "Assault Bike", "Double Unders"],
             "training_program": {
                 "AMRAP 15": {
-                    "Weighted AbMat Sit-ups": {"reps": 20, "weight": "#20/#14 medball"},
+                    "Weighted Ab Mat Sit Up": {"reps": 20, "weight": "#20/#14 medball"},
                     "Assault Bike": {"calories": 12}
                 }
             },

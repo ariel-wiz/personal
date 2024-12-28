@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple, Set
 
 from common import capitalize_text_or_list
 from crossfit.crossfit_variables import EXERCISES, TRAININGS
@@ -35,9 +35,11 @@ class CrossfitExercise:
         self.page_id = data.get('id', '')
 
     def __str__(self) -> str:
-        equipment_str = ", ".join(self.equipment) if self.equipment else "No equipment"
-        body_parts = ", ".join(self.body_part) if self.body_part else "Full body"
-        return f"{self.name} ({self.expertise_level}) - Equipment: {equipment_str} - Target: {body_parts}"
+        equipment_str = ", ".join(self.equipment) if self.equipment else ""
+        page_id_exists = "true" if self.page_id else "false"
+        return (f"{self.name} ({self.expertise_level})"
+                f"{' - ' + equipment_str if equipment_str else ''}"
+                f" - page_id_exist {page_id_exists}")
 
     def __repr__(self) -> str:
         return f"CrossfitExercise(name='{self.name}', expertise={self.expertise}, equipment={self.equipment}, " \
@@ -75,7 +77,6 @@ class CrossfitExercise:
         elif self.expertise == 5:
             color = IconColor.RED
         return generate_icon_url(IconType.GYM, color)
-
 
     def children_blocks(self):
         return generate_children_block_for_crossfit_exercise(self.description, self.tips)
@@ -292,12 +293,24 @@ class CrossfitWorkout:
         }
 
     def page_content(self):
-        workout_name = self.get_training_type_longer_format()
-        formatted = self.format_workout_program()
-        children_block = generate_children_block_for_crossfit_workout(workout_name, formatted,
-                                                                      json.dumps(self.original_program),
-                                                                      add_score=False)
-        return children_block
+
+        additional_info = []
+
+        try:
+            workout_name = self.get_training_type_longer_format()
+            formatted = self.format_workout_program()
+            if len(self.program.keys()) > 1:
+                program = self.program
+                program_keys = self.program.keys()
+                additional_info = [f"{key.capitalize()} - {value}" for key, value in self.program.items() if 'note' in key.lower() or 'rest' in key.lower()]
+            children_block = generate_children_block_for_crossfit_workout(workout_name, formatted, additional_info,
+                                                                          json.dumps(self.original_program),
+                                                                          add_score=False)
+            return children_block
+        except Exception as e:
+            error_message = f"Error generating workout content: {str(e)}"
+            logger.error(error_message)
+            raise Exception(error_message)
 
     def get_property_overrides(self) -> Dict:
         """Returns property type overrides for CrossFit exercise creation"""
@@ -445,14 +458,11 @@ class CrossfitWorkout:
         return ', '.join(self.get_exercise_names())
 
     def format_workout_program(self):
-        """Formats workout program into standardized exercise list based on innermost dict keys"""
         formatted_exercises = []
         all_keys = set()
 
         def get_inner_dict_keys(prog):
-            """Extract keys from innermost dictionaries"""
             if isinstance(prog, dict):
-                # Check for exercise specifications in dict values
                 for value in prog.values():
                     if isinstance(value, dict):
                         if not any(isinstance(v, (dict, list)) for v in value.values()):
@@ -461,8 +471,7 @@ class CrossfitWorkout:
                     elif isinstance(value, list):
                         for item in value:
                             if isinstance(item, dict):
-                                # Handle each exercise dictionary
-                                for _, exercise_details in item.items():
+                                for exercise_details in item.values():
                                     if isinstance(exercise_details, dict):
                                         all_keys.update(exercise_details.keys())
                                 get_inner_dict_keys(item)
@@ -470,37 +479,22 @@ class CrossfitWorkout:
         def process_program(prog):
             if isinstance(prog, dict):
                 for key, value in prog.items():
-                    if isinstance(value, list):
-                        # Handle list of exercises
+                    if isinstance(value, dict):
+                        # Handle exercise entries with page IDs
+                        if isinstance(key, CrossfitExercise):
+                            exercise_dict = {"id": key.page_id if hasattr(key, 'page_id') else ""}
+                            if not exercise_dict["id"]:
+                                print('Ariel')
+                            for k in all_keys:
+                                exercise_dict[k] = str(value.get(k, ""))
+                            formatted_exercises.append(exercise_dict)
+                        else:
+                            process_program(value)
+                    elif isinstance(value, list):
                         for item in value:
-                            for exercise_name, exercise_details in item.items():
-                                exercise_dict = {"id": ""}  # Default empty ID
+                            process_program(item)
 
-                                # Handle both CrossfitTmpExercise and string exercise names
-                                if hasattr(exercise_name, 'page_id'):
-                                    exercise_dict["id"] = exercise_name.page_id
-
-                                # Add all other exercise details
-                                for k in all_keys:
-                                    exercise_dict[k] = str(exercise_details.get(k, ""))
-
-                                formatted_exercises.append(exercise_dict)
-                    elif hasattr(key, 'page_id'):
-                        # Handle direct exercise entries
-                        exercise_dict = {"id": key.page_id}
-                        for k in all_keys:
-                            exercise_dict[k] = str(value.get(k, "")) if isinstance(value, dict) else ""
-                        formatted_exercises.append(exercise_dict)
-                    else:
-                        process_program(value)
-            elif isinstance(prog, list):
-                for item in prog:
-                    process_program(item)
-
-        # First pass: collect all keys from innermost dictionaries
         get_inner_dict_keys(self.program)
-
-        # Second pass: format exercises with collected keys
         process_program(self.program)
         return formatted_exercises
 
@@ -575,125 +569,164 @@ class CrossfitManager:
     def get_notion_exercise_names(self):
         return sorted([exercise.name for exercise in self.notion_exercises])
 
-    def get_exercise_by_name(self, exercise_name):
+    def get_exercise_by_name(self, exercise_name: str) -> Tuple[bool, str]:
         """
-        Returns (found: bool, exercise_name: str)
-        found: True if matching exercise exists, False if no match
-        exercise_name: Mapped exercise name if found, original name if not found
+        Returns (found: bool, normalized_name: str)
         """
+        # Skip workout descriptors
+        if self.is_workout_descriptor(exercise_name):
+            return False, ''
+
         normalized_name = self.map_exercise_name(exercise_name, self.get_notion_exercise_names())
         found = normalized_name in self.get_notion_exercise_names()
+
+        # Log results for debugging
+        # self.log_exercise_matching(exercise_name, normalized_name, found)
+
         return found, normalized_name
 
     def map_exercise_name(self, name: str, known_exercises: list) -> str:
-        # Skip words check
-        skip_words = ['partner', 'warm up', 'warmup', 'drill', 'progression', 'practice', 'game']
-        if any(word in name.lower() for word in skip_words):
-            return ''
+        """Maps exercise name to a known exercise name with enhanced matching."""
 
-        # Manual mappings - canonical form as key, variations as values
-        manual_mappings = {
-            "inchworm": ["inch worm", "inch worms"],
-            "weighted abmat sit up": ["weighted abmat sit ups"],
-            "alternating lunge": ["alternating lunges"],
-            "medicine ball pass": ["med ball pass", "med ball passes"],
-            "toes to bar": ["toe to bar", "toes to bars"],
-            "handstand push up": ["handstand pushup", "handstand push ups"],
-            "muscle up": ["muscle ups"],
-            "pull up": ["pull ups"],
-            "push up": ["push ups"],
-            "row": ["rows", "assault bike", "cal assault", "row bike", "machine row", "cal machine", "machine", "bike"],
-            "squat": ["squats"],
-            "lunge": ["lunges"],
-            "jump": ["jumps"],
-            "clean and jerk": ["clean jerk", "clean & jerk"],
-            "devils press": ["devil press"],
-            "run": ["running"],
-            "box jump": ["box step over", "jump around", "jump over"],
-            "butt kicker": ["butt kickers", "butt kicks"],
-            "high knees": ["high knee"],
-            "dumbbell press": ["single dumbbell press", "dumbbell presses"],
+        def normalize_name(name: str) -> str:
+            # Convert to lowercase and remove special characters
+            name = name.lower().strip()
+            # Replace hyphens with spaces
+            name = name.replace('-', ' ')
+            # Remove any other special characters but preserve spaces
+            name = ''.join(c if c.isalnum() or c.isspace() else ' ' for c in name)
+            # Normalize multiple spaces
+            name = ' '.join(name.split())
+            return name
+
+        manual_mapping = {
+            'box step over': 'box step up',
+            'assault assault bike': 'assault bike',
+            'box step overs': 'box step up',
+            'ghd sit up': 'glute ham developer sit up',
+            'ghd situp': 'glute ham developer sit up',
+            'butt kicks': 'butt kicker',
+            'kettlebells': 'kettlebell',
+            'cal bike': 'row',
+            'cal machine': 'row',
+            'machine': 'row',
+            'toe to bar': 'toes to bar',
+            'toe2bar': 'toes to bar',
+            't2b': 'toes to bar',
+            'bike cal': 'row',
+            'machine bike': 'row',
+            'airbike': 'row',
+            'box jump over': 'box jump',
+            'jump over': 'box jump',
+            'bike': 'row',
+            'assault bike': 'row',
+            'devils press': 'devil press',
+            'weighted ab mat': 'ab mat sit up',
+            'inch worm': 'inchworm',
+            'inch worms': 'inchworm',
+            'scap pull ups': 'scap pull up',
+            'scap pull up': 'scap pull up',
+            'double undermbbell': 'dumbbell',
+            'single double undermbbell': 'dumbbell'
         }
 
-        # Abbreviation mappings - canonical form as key, abbreviations as values
-        abbrev_map = {
-            'dumbbell': ['db'],
-            'kettlebell': ['kb'],
-            'pvc': ['pvc'],
-            'toes to bar': ['t2b'],
-            'handstand push up': ['hspu'],
-            'chest to bar': ['c2b'],
-            'kettlebell swing': ['kbs'],
-            'knees to elbow': ['k2e'],
-            'glute ham developer': ['ghd'],
-            'ab mat': ['abmat'],
-            'medicine ball': ['med ball'],
-            'overhead squat': ['ohs'],
-            'clean and jerk': ['c&j'],
-            'ground to overhead': ['gto'],
-            'romanian deadlift': ['rdl'],
-            'alternative': ['alt'],
-        }
+        if not name or self.is_workout_descriptor(name):
+            return name
 
-        def normalize_text(text):
-            text = text.lower().strip()
-            text = text.replace('-', ' ')
-            # Find canonical form if it exists in manual mappings
-            for canonical, variations in manual_mappings.items():
-                if text in variations or text == canonical.lower():
-                    return canonical
-            return text
+        # First normalize and check manual mapping
+        normalized = normalize_name(name)
+        if normalized in manual_mapping:
+            name = manual_mapping[normalized]
 
-        def expand_abbreviations(text):
-            words = text.split()
-            expanded_words = []
-            for word in words:
-                word_lower = word.lower()
-                expanded = word
-                # Check if word matches any abbreviation
-                for canonical, abbrevs in abbrev_map.items():
-                    if word_lower in abbrevs:
-                        expanded = canonical
-                        break
-                expanded_words.append(expanded)
-            return ' '.join(expanded_words)
+            if "scap" in name:
+                return name.title()
 
-        def standardize_exercises(text):
-            # Standardize compound movements
-            compound_patterns = {
-                'box jump over': 'box jump',
-                'burpee box jump over': 'burpee box jump',
-                'bar facing burpee': 'bar facing burpee',
-                'chest to bar pull up': 'chest to bar pull up',
-                'toes to bar': 'toes to bar',
-                'knees to elbow': 'knees to elbows'
+        def get_base_variations(name: str) -> Set[str]:
+            """Get base variations of a name"""
+            variations = {name}
+
+            # Handle plurals
+            variations.add(name.rstrip('s'))
+            if not name.endswith('s'):
+                variations.add(name + 's')
+
+            # Handle hyphenated versions
+            variations.add(name.replace(' ', '-'))
+            variations.add(name.replace('-', ' '))
+
+            return variations
+
+        def get_full_variations(name: str) -> Set[str]:
+            """Get all variations of a name including abbreviations"""
+            variations = get_base_variations(name)
+            base_variations = variations.copy()
+
+            # Common abbreviations and their expansions
+            abbrev_map = {
+                'kb': 'kettlebell',
+                'db': 'dumbbell',
+                'bb': 'barbell',
+                'hspu': 'handstand push up',
+                't2b': 'toes to bar',
+                'du': 'double under',
+                'c2b': 'chest to bar',
+                'k2e': 'knees to elbow',
+                'ghd': 'glute ham developer',
+                'med ball': 'medicine ball',
+                'ab mat': 'abdominal mat'
             }
 
-            for pattern, replacement in compound_patterns.items():
-                if pattern in text:
-                    return replacement
-            return text
+            # Add variations with abbreviations
+            for abbrev, full in abbrev_map.items():
+                for base in base_variations:
+                    if abbrev in base:
+                        variations.add(base.replace(abbrev, full))
+                    if full in base:
+                        variations.add(base.replace(full, abbrev))
 
-        # Process name
-        norm_name = normalize_text(name)
-        norm_name = expand_abbreviations(norm_name)
-        norm_name = standardize_exercises(norm_name)
+            return variations
 
-        # Create normalized dictionary of known exercises
-        norm_exercises = {normalize_text(standardize_exercises(expand_abbreviations(ex))): ex
-                          for ex in known_exercises}
+        # Skip empty names
+        if not name or name.strip() == '':
+            return ''
 
-        # Try exact matches
-        if norm_name in norm_exercises:
-            return norm_exercises[norm_name]
+        # Skip workout descriptors
+        workout_terms = ['emom', 'amrap', 'rounds', 'for time', 'rest', 'cap',
+                         'every', 'min', 'reps', 'weight', 'notes', 'partner']
+        if any(term in name.lower() for term in workout_terms):
+            return name
+
+        # Normalize input and known exercises
+        norm_input = normalize_name(name)
+        norm_known = {normalize_name(ex): ex for ex in known_exercises}
+
+        # Get variations of input name
+        input_variations = get_full_variations(norm_input)
+
+        # Try exact matches first
+        for variation in input_variations:
+            if variation in norm_known:
+                return norm_known[variation]
 
         # Try partial matches
-        for norm_known, original in norm_exercises.items():
-            if norm_name in norm_known or norm_known in norm_name:
-                return original
+        for norm_name, original in norm_known.items():
+            for variation in input_variations:
+                # Check if the variation contains or is contained by the known exercise
+                if variation in norm_name or norm_name in variation:
+                    return original
 
-        # Return processed version if no match found
-        return norm_name.title()
+        # No match found, return capitalized input
+        return ' '.join(word.capitalize() for word in name.split())
+
+    def log_exercise_matching(self, exercise_name: str, normalized_name: str, found: bool):
+        """Log exercise matching results for debugging."""
+        if not found and normalized_name:
+            logger.debug(f"No match found - Input: '{exercise_name}' -> Normalized: '{normalized_name}'")
+            close_matches = [ex for ex in self.get_notion_exercise_names()
+                             if normalized_name in ex.lower() or ex.lower() in normalized_name]
+            if close_matches:
+                logger.debug(f"Possible matches: {close_matches}")
+
 
     def normalize_exercise_name(self, name):
         def normalize_text(text):
@@ -973,7 +1006,7 @@ class CrossfitManager:
                     return result
         return None
 
-    def load_crossfit_workouts_from_variables(self, workout_data: Dict[str, Any], break_if_miss_exercise=False) -> List[
+    def load_crossfit_workouts_from_variables(self, workout_data: Dict[str, Any], break_if_miss_exercise=True) -> List[
         CrossfitWorkout]:
         try:
             workout_list = []
@@ -997,6 +1030,9 @@ class CrossfitManager:
                     for workout_exercise in workout['exercises_used']:
                         found, exercise_name = self.get_exercise_by_name(workout_exercise)
                         if not found and exercise_name != '':
+                            logger.debug(f"Missing exercise: '{workout_exercise}' -> '{exercise_name}'")
+                            logger.debug(
+                                f"Similar exercises: {[ex for ex in self.get_notion_exercise_names() if exercise_name.lower() in ex.lower()]}")
                             missing_exercise_names.append(exercise_name)
                         else:
                             matching_exercise = next((ex for ex in self.notion_exercises if ex.name == exercise_name),
@@ -1005,10 +1041,10 @@ class CrossfitManager:
                                 exercise_list.append(matching_exercise)
                                 exercise_mapping[workout_exercise] = matching_exercise
 
-                    # Create a deep copy of the training program to modify
                     modified_program = self.replace_exercises_in_program(
                         workout['training_program'],
-                        exercise_mapping
+                        exercise_mapping,
+                        missing_exercise_names  # Pass the list to track missing exercises
                     )
 
                     exercises_used = exercise_list
@@ -1049,64 +1085,103 @@ class CrossfitManager:
             logger.error(f"Error loading workouts from variables: {str(e)}")
             raise Exception(f"Error loading workouts from variables: {str(e)}")
 
-    def replace_exercises_in_program(self, program: Dict, exercise_mapping: Dict) -> Dict:
+    def is_workout_descriptor(self, text: str) -> bool:
+        """Enhanced workout descriptor detection."""
+        text = text.lower().strip()
+
+        # Expanded list of workout descriptors
+        format_indicators = [
+            'emom', 'amrap', 'round', 'rounds', 'for time', 'rest',
+            'strength', 'death by', 'every', 'min', 'sets', 'clock',
+            'calories', 'team', 'skill', 'build to', 'build up',
+            'for load', 'for reps', 'time cap', 'last prep',
+            'warm up', 'complex', 'prep', 'distance', 'partner', 'drill'
+        ]
+
+        # Check if text starts with numbers or contains specific patterns
+        if (any(c.isdigit() for c in text.split()[0]) or
+                'complete as many' in text or
+                'lifting complex' in text or
+                'machine distance' in text):
+            return True
+
+        return any(indicator in text for indicator in format_indicators)
+
+    def add_to_missing_exercises(self, exercise_name: str, missing_exercise_names: list):
+        """
+        Adds exercise to missing list if it's a valid exercise name and not already tracked.
+        """
+        if (exercise_name and
+                exercise_name not in missing_exercise_names and
+                not self.is_workout_descriptor(exercise_name)):
+
+            # Additional validation - check if it looks like an exercise name
+            # Most exercise names have more than one word or contain specific terms
+            exercise_terms = ['pvc', 'bar', 'jump', 'push', 'pull', 'press', 'squat',
+                              'deadlift', 'clean', 'snatch', 'row', 'run']
+
+            # Convert to lowercase for comparison
+            name_lower = exercise_name.lower()
+
+            # Add only if it contains exercise terms or has multiple words
+            if (len(exercise_name.split()) > 1 or
+                    any(term in name_lower for term in exercise_terms)):
+                missing_exercise_names.append(exercise_name)
+
+    def replace_exercises_in_program(self, program: Dict, exercise_mapping: Dict, missing_exercise_names: list) -> Dict:
         """
         Recursively replaces exercise names with CrossfitExercise objects in the training program.
-        Handles both exercise-as-key and exercise-in-list formats, including numeric keys.
-
-        Args:
-            program (Dict): The training program structure
-            exercise_mapping (Dict): Mapping of exercise names to CrossfitExercise objects
         """
         if isinstance(program, dict):
             new_program = {}
             for key, value in program.items():
-                # Only try to map string keys to exercises
+                # Handle exercise keys
                 if isinstance(key, str):
+                    # Check if it's an exercise name
                     found, exercise_name = self.get_exercise_by_name(key)
-                    if found and isinstance(value, dict) and not any(isinstance(v, dict) for v in value.values()):
-                        matching_exercise = next(
-                            (ex for ex in exercise_mapping.values() if ex.name == exercise_name),
-                            None
-                        )
-                        new_key = matching_exercise if matching_exercise else CrossfitTmpExercise(exercise_name)
-                        new_program[new_key] = value
-                        continue
-
-                # Handle lists of exercise dictionaries
-                if isinstance(value, list):
-                    new_list = []
-                    for item in value:
-                        if isinstance(item, dict):
-                            exercise_key = next(iter(item)) if item else None
-                            if isinstance(exercise_key, str):
-                                found, mapped_name = self.get_exercise_by_name(exercise_key)
-                                if found:
-                                    matching_exercise = next(
-                                        (ex for ex in exercise_mapping.values() if ex.name == mapped_name),
-                                        None
-                                    )
-                                    if matching_exercise:
-                                        new_list.append({matching_exercise: item[exercise_key]})
-                                        continue
-                            new_list.append(self.replace_exercises_in_program(item, exercise_mapping))
+                    if found or key in exercise_mapping:
+                        # First check exercise mapping
+                        if key in exercise_mapping:
+                            exercise_obj = exercise_mapping[key]
                         else:
-                            new_list.append(item)
-                    new_program[key] = new_list
+                            # Get matching exercise from notion_exercises
+                            exercise_obj = next((ex for ex in self.notion_exercises if ex.name == exercise_name),
+                                                CrossfitTmpExercise(exercise_name))
+                            if isinstance(exercise_obj, CrossfitTmpExercise):
+                                self.add_to_missing_exercises(exercise_name, missing_exercise_names)
 
-                # Handle nested dictionaries
-                elif isinstance(value, dict):
-                    new_program[key] = self.replace_exercises_in_program(value, exercise_mapping)
-
-                # Keep original key-value pair for non-string keys
+                        # Process the value for this exercise
+                        processed_value = (
+                            self.replace_exercises_in_program(value, exercise_mapping, missing_exercise_names)
+                            if isinstance(value, (dict, list))
+                            else value
+                        )
+                        new_program[exercise_obj] = processed_value
+                    else:
+                        # Not an exercise, keep original key and process value
+                        processed_value = (
+                            self.replace_exercises_in_program(value, exercise_mapping, missing_exercise_names)
+                            if isinstance(value, (dict, list))
+                            else value
+                        )
+                        new_program[key] = processed_value
                 else:
-                    new_program[key] = value
+                    # Key is not a string (could be a CrossfitExercise already)
+                    processed_value = (
+                        self.replace_exercises_in_program(value, exercise_mapping, missing_exercise_names)
+                        if isinstance(value, (dict, list))
+                        else value
+                    )
+                    new_program[key] = processed_value
 
             return new_program
-
         elif isinstance(program, list):
-            return [self.replace_exercises_in_program(item, exercise_mapping) for item in program]
-
+            return [
+                self.replace_exercises_in_program(item, exercise_mapping, missing_exercise_names)
+                if isinstance(item, (dict, list))
+                else item
+                for item in program
+            ]
         return program
 
     def get_crossfit_workouts_in_notion(self):
@@ -1181,7 +1256,7 @@ class CrossfitManager:
                     create_page_with_db_dict_and_children_block(self.crossfit_workouts_db_id, workout.payload(),
                                                                 workout.page_content(),
                                                                 workout.get_property_overrides())
-
+                    workout.page_content()
                 except Exception as e:
                     logger.error(f"Error adding {workout.name} to Notion: {str(e)}")
                     continue
@@ -1189,4 +1264,4 @@ class CrossfitManager:
                 logger.debug(f"Added {workout.name} to Notion")
 
         if len(added_workouts) > 0:
-            logger.info(f"Successfully dded {len(added_workouts)} new exercises to Notion")
+            logger.info(f"Successfully שdded {len(added_workouts)} new exercises to Notion")

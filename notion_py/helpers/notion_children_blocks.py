@@ -94,14 +94,39 @@ def create_rich_text(content, link_url=None):
     return text_object
 
 
-def create_paragraph_block(content, link_url=None):
-    """Create a paragraph block"""
+def create_paragraph_block(content, bold_word=None):
+    """
+    Create a paragraph block with optional bold text.
+
+    Parameters:
+        content (str): The paragraph content.
+        bold_word (str, optional): A word to format as bold in the paragraph.
+
+    Returns:
+        dict: The Notion paragraph block.
+    """
+    rich_text = []
+
+    if bold_word and bold_word in content:
+        # Split content into parts: before, the bold word, and after
+        before, _, after = content.partition(bold_word)
+        if before:
+            rich_text.append({"type": "text", "text": {"content": before}})
+        rich_text.append({
+            "type": "text",
+            "text": {"content": bold_word},
+            "annotations": {"bold": True},
+        })
+        if after:
+            rich_text.append({"type": "text", "text": {"content": after}})
+    else:
+        # No bold word, default to plain text
+        rich_text.append({"type": "text", "text": {"content": content}})
+
     return {
         "object": "block",
         "type": "paragraph",
-        "paragraph": {
-            "rich_text": [create_rich_text(content, link_url)]
-        }
+        "paragraph": {"rich_text": rich_text}
     }
 
 
@@ -218,64 +243,24 @@ def create_notion_link(page_id, text):
     }
 
 
-def generate_children_block_for_crossfit_workout(title: str, exercises: list, notes: str = "",
-                                                 add_score: bool = False) -> dict:
+def generate_children_block_for_crossfit_workout(title: str, exercises: list, additional_info: list,
+                                                 original_program: str = "", add_score: bool = False) -> dict:
     """Generate workout block with optional score table."""
-    columns = [{"name": "Exercise", "type": "mention", "field": "id"}]
-    other_fields = [k for k in exercises[0].keys() if k != "id"]
-    columns.extend([{
-        "name": key.capitalize(),
-        "type": "text",
-        "field": key
-    } for key in other_fields])
 
-    workout_table = {
-        "object": "block",
-        "type": "table",
-        "table": {
-            "table_width": len(columns),
-            "has_column_header": True,
-            "has_row_header": False,
-            "children": [
-                            {
-                                "type": "table_row",
-                                "table_row": {
-                                    "cells": [[{
-                                        "type": "text",
-                                        "text": {"content": col["name"]},
-                                    }] for col in columns]
-                                }
-                            }
-                        ] + [
-                            {
-                                "type": "table_row",
-                                "table_row": {
-                                    "cells": [
-                                        [{
-                                            "type": "mention",
-                                            "mention": {"page": {"id": exercise[col["field"]]}}
-                                        }] if col["type"] == "mention" else
-                                        [{"type": "text", "text": {"content": str(exercise.get(col["field"], ""))}}]
-                                        for col in columns
-                                    ]
-                                }
-                            }
-                            for exercise in exercises
-                        ]
-        }
-    }
+    try:
+        columns = [{"name": "Exercise", "type": "mention", "field": "id"}]
+        other_fields = [k for k in exercises[0].keys() if k != "id"]
+        columns.extend([{
+            "name": key.capitalize(),
+            "type": "text",
+            "field": key
+        } for key in other_fields if isinstance(key, str)])
 
-    children_block = [create_heading_3_block(title), workout_table]
-    if notes:
-        children_block.append(create_toggle_block("Original Exercise", [create_paragraph_block(notes)]))
-    children_block.append(create_separator_block())
-
-    if add_score:
-        score_table = {
+        workout_table = {
             "object": "block",
             "type": "table",
             "table": {
-                "table_width": 2,
+                "table_width": len(columns),
                 "has_column_header": True,
                 "has_row_header": False,
                 "children": [
@@ -284,25 +269,74 @@ def generate_children_block_for_crossfit_workout(title: str, exercises: list, no
                                     "table_row": {
                                         "cells": [[{
                                             "type": "text",
-                                            "text": {"content": header},
-                                            "annotations": {"color": "green"}  # Added color to header
-                                        }] for header in ["Date", "Score"]]
+                                            "text": {"content": col["name"]},
+                                        }] for col in columns]
                                     }
                                 }
                             ] + [
                                 {
                                     "type": "table_row",
                                     "table_row": {
-                                        "cells": [[{"type": "text", "text": {"content": ""}}] for _ in range(2)]
+                                        "cells": [
+                                            [{
+                                                "type": "mention",
+                                                "mention": {"page": {"id": exercise[col["field"]]}}
+                                            }] if col["type"] == "mention" else
+                                            [{"type": "text", "text": {"content": str(exercise.get(col["field"], ""))}}]
+                                            for col in columns
+                                        ]
                                     }
-                                } for _ in range(2)  # Two empty rows
+                                }
+                                for exercise in exercises
                             ]
             }
         }
 
-        children_block.append(create_toggle_heading_block("My Score 💪", [score_table], color_background="green"))
+        children_block = [create_heading_3_block(title), workout_table]
+        if additional_info:
+            for info in additional_info:
+                children_block.append(create_paragraph_block(info, bold_word=info.split(" - ")[0]))
+            children_block.append(create_paragraph_block(""))
+        if original_program:
+            children_block.append(create_toggle_block("Original Exercise", [create_paragraph_block(original_program)]))
+        children_block.append(create_separator_block())
 
-    return {"children": children_block}
+        if add_score:
+            score_table = {
+                "object": "block",
+                "type": "table",
+                "table": {
+                    "table_width": 2,
+                    "has_column_header": True,
+                    "has_row_header": False,
+                    "children": [
+                                    {
+                                        "type": "table_row",
+                                        "table_row": {
+                                            "cells": [[{
+                                                "type": "text",
+                                                "text": {"content": header},
+                                                "annotations": {"color": "green"}  # Added color to header
+                                            }] for header in ["Date", "Score"]]
+                                        }
+                                    }
+                                ] + [
+                                    {
+                                        "type": "table_row",
+                                        "table_row": {
+                                            "cells": [[{"type": "text", "text": {"content": ""}}] for _ in range(2)]
+                                        }
+                                    } for _ in range(2)  # Two empty rows
+                                ]
+                }
+            }
+
+            children_block.append(create_toggle_heading_block("My Score 💪", [score_table], color_background="green"))
+
+        return {"children": children_block}
+    except Exception as e:
+        error_message = f"Error in generate_children_block_for_crossfit_workout: {e}"
+        raise Exception(error_message)
 
 
 def generate_children_block_for_crossfit_exercise(description_steps, tips):

@@ -52,47 +52,141 @@ class ScheduleResult:
 
 
 class ScheduleConstraints:
-    MIN_HOME_DAYS = 4  # Minimum consecutive days at home
+    """Unified constraint handling for both schedule generation and status display"""
+    MIN_HOME_DAYS = 5  # Minimum consecutive days at home (changed from 4 to 5 per requirements)
     MAX_SHIFT_DAYS = 14  # Maximum consecutive days on shift
     REQUIRED_SHIFT_SIZE = 8  # Required number of employees per shift
 
     @staticmethod
-    def check_mandatory_constraints(employee_state: EmployeeState, date: datetime.date) -> Tuple[bool, List[str], List[str]]:
-        """Check if all mandatory constraints are satisfied for an employee on a given date"""
+    def check_constraints(date: datetime.date, employee: Employee,
+                          current_schedule: Dict[datetime.date, Set[str]],
+                          employee_states: Dict[str, EmployeeState]) -> Tuple[List[str], List[str]]:
+        """
+        Check all constraints for an employee on a given date
+        Returns: (satisfied_constraints, violated_constraints)
+        """
         satisfied = []
         violated = []
 
-        # Check minimum consecutive home days
-        if (employee_state.consecutive_home_days > 0 and
-                employee_state.consecutive_home_days < ScheduleConstraints.MIN_HOME_DAYS):
-            violated.append(f"Must complete minimum {ScheduleConstraints.MIN_HOME_DAYS} days at home")
-        else:
-            satisfied.append("Minimum home days met")
+        # 1. Check availability
+        if date < employee.available_from:
+            violated.append(f"{employee.name} not available until {employee.available_from}")
+            return satisfied, violated
 
-        # Check maximum consecutive shift days
-        if employee_state.consecutive_shift_days >= ScheduleConstraints.MAX_SHIFT_DAYS - 1:
-            violated.append(f"Max consecutive shift days ({ScheduleConstraints.MAX_SHIFT_DAYS})")
-        else:
-            satisfied.append("Within shift limits")
-
-        # Check if employee has mandatory home days
-        for date_range in employee_state.employee.must_day_at_home:
-            if date_range.is_date_in_range(date):
-                violated.append(f"Mandatory home day {date_range}")
-                break
-
-        # For Shabbat-observant employees, check transitions
-        if employee_state.employee.is_shomer_shabat and date.weekday() == 5:
-            # Get yesterday's status
+        # 2. Check Shabbat constraints
+        if employee.is_shomer_shabat and date.weekday() == 5:  # Saturday
             yesterday = date - timedelta(days=1)
-            was_on_shift = any(shift_range.is_date_in_range(yesterday)
-                             for shift_range in employee_state.employee.days_at_shift)
-            will_be_on_shift = True  # Since we're checking for shift assignment
+            was_on_shift = yesterday in current_schedule and employee.name in current_schedule[yesterday]
+            will_be_on_shift = employee.name in current_schedule.get(date, set())
 
             if was_on_shift != will_be_on_shift:
-                violated.append("Cannot travel on Shabbat")
+                violated.append(f"{employee.name} cannot travel on Shabbat")
+            else:
+                satisfied.append(f"{employee.name} Shabbat observance respected")
 
-        return len(violated) == 0, satisfied, violated
+        # 3. Check mandatory home days
+        for date_range in employee.must_day_at_home:
+            if date_range.is_date_in_range(date):
+                if employee.name not in current_schedule.get(date, set()):
+                    satisfied.append(f"{employee.name} mandatory home day respected ({date_range})")
+                else:
+                    violated.append(f"{employee.name} must be home during {date_range}")
+                break
+
+        # 4. Check minimum consecutive home days
+        if employee.name in employee_states:
+            state = employee_states[employee.name]
+            min_days = employee.min_consecutive_home_days
+
+            if state.consecutive_home_days > 0 and state.consecutive_home_days < min_days:
+                # Only add violation if employee is being assigned to shift
+                if employee.name in current_schedule.get(date, set()):
+                    violated.append(f"{employee.name} must complete minimum {min_days} consecutive home days")
+
+        # 5. Check partner preferences
+        class ScheduleConstraints:
+            """Unified constraint handling for both schedule generation and status display"""
+            MIN_HOME_DAYS = 5  # Minimum consecutive days at home
+            MAX_SHIFT_DAYS = 14  # Maximum consecutive days on shift
+            REQUIRED_SHIFT_SIZE = 8  # Required number of employees per shift
+
+            @staticmethod
+            def check_constraints(date: datetime.date, employee: Employee,
+                                  current_schedule: Dict[datetime.date, Set[str]],
+                                  employee_states: Dict[str, EmployeeState]) -> Tuple[List[str], List[str]]:
+                """
+                Check all constraints for an employee on a given date
+                Returns: (satisfied_constraints, violated_constraints)
+                """
+                satisfied = []
+                violated = []
+
+                # 1. Check availability
+                if date < employee.available_from:
+                    violated.append(f"{employee.name} not available until {employee.available_from}")
+                    return satisfied, violated
+
+                # 2. Check Shabbat constraints
+                if employee.is_shomer_shabat and date.weekday() == 5:  # Saturday
+                    yesterday = date - timedelta(days=1)
+                    was_on_shift = yesterday in current_schedule and employee.name in current_schedule[yesterday]
+                    will_be_on_shift = employee.name in current_schedule.get(date, set())
+
+                    if was_on_shift != will_be_on_shift:
+                        violated.append(f"{employee.name} cannot travel on Shabbat")
+                    else:
+                        satisfied.append(f"{employee.name} Shabbat observance respected")
+
+                # 3. Check mandatory home days
+                for date_range in employee.must_day_at_home:
+                    if date_range.is_date_in_range(date):
+                        if employee.name not in current_schedule.get(date, set()):
+                            satisfied.append(f"{employee.name} mandatory home day respected ({date_range})")
+                        else:
+                            violated.append(f"{employee.name} must be home during {date_range}")
+                        break
+
+                # 4. Check minimum consecutive home days
+                if employee.name in employee_states:
+                    state = employee_states[employee.name]
+                    min_days = employee.min_consecutive_home_days
+
+                    if state.consecutive_home_days > 0 and state.consecutive_home_days < min_days:
+                        # Only add violation if employee is being assigned to shift (breaking home sequence)
+                        if employee.name in current_schedule.get(date, set()):
+                            violated.append(f"{employee.name} must complete minimum {min_days} consecutive home days")
+
+                # 5. Check partner preferences during travel
+                if employee.preferred_shift_partner:
+                    partner_name = employee.preferred_shift_partner
+                    yesterday = date - timedelta(days=1)
+
+                    # Only check partner preference if there's a transition (travel)
+                    if yesterday in current_schedule and date in current_schedule:
+                        was_on_shift = employee.name in current_schedule[yesterday]
+                        will_be_on_shift = employee.name in current_schedule[date]
+
+                        # If there's a transition (travel)
+                        if was_on_shift != will_be_on_shift:
+                            partner_was_on_shift = partner_name in current_schedule[yesterday]
+                            partner_will_be_on_shift = partner_name in current_schedule[date]
+
+                            # Check if partner is also transitioning
+                            if partner_was_on_shift != partner_will_be_on_shift:
+                                satisfied.append(f"{employee.name} traveling with preferred partner {partner_name}")
+                            else:
+                                violated.append(f"{employee.name} traveling without preferred partner {partner_name}")
+
+        # 6. Check for minimum 2 managers
+        if date in current_schedule:
+            managers_on_shift = sum(1 for emp_name in current_schedule[date]
+                                    if employee_states[emp_name].employee.is_manager)
+            if managers_on_shift < 1:
+                violated.append("No manager assigned to shift")
+            elif managers_on_shift >= 1:
+                satisfied.append("Manager requirement satisfied")
+
+        return satisfied, violated
 
 
 class WeightedConditions:
@@ -259,121 +353,113 @@ class ShiftScheduler:
                                                   states: Dict[str, EmployeeState],
                                                   weighted_conditions: WeightedConditions,
                                                   depth: int = 0) -> Tuple[Set[str], float, List[str], List[str]]:
-        """Select shift employees with partner preferences and day request tracking"""
+        """Select employees for shifts with improved streak handling"""
         if depth > 100:
             return set(), 0.0, [], ["Max recursion depth exceeded"]
 
         available_employees = []
-        satisfied_constraints = []
-        violated_constraints = []
-        avg_shifts = sum(state.total_shifts for state in states.values()) / len(states)
+        satisfied = []
+        violated = []
 
-        # Track day requests
-        day_request_status = {}
+        # Get current schedule state
+        schedule = self._get_current_schedule_dict()
 
+        # Calculate streaks
+        streaks = {}
+        for name in states.keys():
+            streaks[name] = {
+                'shift': self._calculate_streak(name, date, True),
+                'home': self._calculate_streak(name, date, False)
+            }
+
+        # Evaluate each employee
         for name, state in states.items():
-            emp = state.employee
-            can_be_scheduled = True
+            emp = self.employees[name]
 
-            # Check mandatory home days
-            for date_range in emp.must_day_at_home:
-                if date_range.is_date_in_range(date):
-                    violated_constraints.append(f"{name}: Must be home during {date_range}")
-                    day_request_status[name] = "Mandatory home day respected"
-                    can_be_scheduled = False
-                    break
-
-            if not can_be_scheduled:
+            # Basic availability check
+            if date < emp.available_from:
                 continue
 
-            # Calculate consecutive days using the strict method
-            consecutive_home_days = self._calculate_consecutive_days(name, date - timedelta(days=1), False)
-            consecutive_shift_days = self._calculate_consecutive_days(name, date - timedelta(days=1), True)
+            # Check Shabbat constraint
+            if emp.is_shomer_shabat and date.weekday() == 5:
+                violated.append(f"{name} cannot work on Shabbat")
+                continue
 
-            # Update state with accurate counts
-            state.consecutive_home_days = consecutive_home_days
-            state.consecutive_shift_days = consecutive_shift_days
+            # Check mandatory home days
+            must_be_home = any(dr.is_date_in_range(date) for dr in emp.must_day_at_home)
+            if must_be_home:
+                violated.append(f"{name} must be home on {date}")
+                continue
 
-            # Check minimum home days sequence
-            if consecutive_home_days > 0 and consecutive_home_days < ScheduleConstraints.MIN_HOME_DAYS:
-                violated_constraints.append(
-                    f"{name}: Must complete minimum {ScheduleConstraints.MIN_HOME_DAYS} days at home "
-                    f"(currently at {consecutive_home_days})"
-                )
-                can_be_scheduled = False
+            # Check min consecutive home days
+            if streaks[name]['home'] > 0 and streaks[name]['home'] < emp.min_consecutive_home_days:
+                violated.append(f"{name} needs {emp.min_consecutive_home_days} consecutive home days")
+                continue
 
-            # Check wish day at home
-            for date_range in emp.wish_day_at_home:
-                if date_range.is_date_in_range(date):
-                    day_request_status[name] = "Optional home day request denied"
-                    break
+            # Calculate score
+            base_score = 100
 
-            if can_be_scheduled:
-                # Add to available employees list
-                score, _ = weighted_conditions.calculate_score(state, date, avg_shifts)
-                is_manager = emp.is_manager
-                available_employees.append((score, name, state, is_manager))
+            # Penalize long shifts
+            if streaks[name]['shift'] >= 7:
+                base_score -= 50
+
+            # Bonus for continuing current state
+            if name in schedule.get(date - timedelta(days=1), set()):
+                base_score += min(streaks[name]['shift'] * 5, 25)
+
+            # Manager bonus
+            if emp.is_manager:
+                base_score += 50
+
+            # Available
+            available_employees.append((base_score, name, emp.is_manager))
 
         # Sort by score and manager status
-        available_employees.sort(key=lambda x: (-x[0], -x[3]))
+        available_employees.sort(key=lambda x: (-x[0], -x[2]))
 
-        def try_complete_schedule(partial_schedule: Set[str],
-                                  remaining_employees: List[tuple],
-                                  current_score: float) -> Tuple[Set[str], float]:
-            """Try to complete schedule while respecting partner preferences"""
-            if len(partial_schedule) == ScheduleConstraints.REQUIRED_SHIFT_SIZE:
-                # Check manager presence
-                has_manager = any(states[emp].employee.is_manager for emp in partial_schedule)
-                if not has_manager:
-                    violated_constraints.append("No manager assigned to shift")
-                    return set(), 0.0
+        # Select employees
+        selected = set()
+        total_score = 0
+        manager_selected = False
 
-                # Check partner preferences
-                for emp_name in partial_schedule:
-                    if not self._check_partner_preference(emp_name, partial_schedule):
-                        violated_constraints.append(f"{emp_name}: Preferred partner not in shift")
-                        return set(), 0.0
+        for score, name, is_manager in available_employees:
+            if len(selected) >= 8:
+                break
 
-                return partial_schedule, current_score
+            selected.add(name)
+            total_score += score
 
-            if not remaining_employees:
-                return set(), 0.0
+            if is_manager:
+                manager_selected = True
 
-            for i, (score, name, state, is_manager) in enumerate(remaining_employees):
-                new_schedule = partial_schedule | {name}
+        # Verify constraints
+        if len(selected) != 8:
+            violated.append(f"Could not find 8 employees (found {len(selected)})")
 
-                # Early check for partner preference
-                if not self._check_partner_preference(name, new_schedule):
-                    continue
+        if not manager_selected:
+            violated.append("No manager assigned")
 
-                result_schedule, result_score = try_complete_schedule(
-                    new_schedule,
-                    remaining_employees[i + 1:],
-                    current_score + score
-                )
-                if result_schedule:
-                    return result_schedule, result_score
+        return selected, total_score, satisfied, violated
 
-            return set(), 0.0
+    def _get_current_schedule_dict(self) -> Dict[datetime.date, Set[str]]:
+        """Get current schedule as dictionary"""
+        cursor = self.conn.cursor()
+        cursor.execute('''
+            SELECT cs.shift_date, e.name, cs.is_on_shift
+            FROM current_schedule cs
+            JOIN employees e ON cs.employee_id = e.id
+            ORDER BY cs.shift_date
+        ''')
 
-        final_schedule, final_score = try_complete_schedule(set(), available_employees, 0.0)
+        schedule = {}
+        for date_str, name, is_shift in cursor.fetchall():
+            date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            if date not in schedule:
+                schedule[date] = set()
+            if is_shift:
+                schedule[date].add(name)
 
-        # Add day request status to constraints
-        for name, status in day_request_status.items():
-            if "respected" in status.lower():
-                satisfied_constraints.append(f"{name}: {status}")
-            else:
-                violated_constraints.append(f"{name}: {status}")
-
-        if len(final_schedule) != ScheduleConstraints.REQUIRED_SHIFT_SIZE:
-            final_schedule, final_score, relaxed_satisfied, relaxed_violated = (
-                self._select_shift_employees_with_relaxed_constraints(
-                    date, states, weighted_conditions
-                )
-            )
-            violated_constraints.extend(relaxed_violated)
-
-        return final_schedule, final_score, satisfied_constraints, violated_constraints
+        return schedule
 
     def _select_shift_employees_with_relaxed_constraints(self, date: datetime.date,
                                                          states: Dict[str, EmployeeState],
@@ -424,7 +510,7 @@ class ShiftScheduler:
         return selected, total_score, satisfied_constraints, violated_constraints
 
     def _calculate_consecutive_days(self, emp_name: str, target_date: datetime.date, is_shift: bool) -> int:
-        """Calculate consecutive days strictly by walking backwards from target date"""
+        """Calculate consecutive days by walking backwards from target date"""
         cursor = self.conn.cursor()
         current_date = target_date
         count = 0
@@ -438,16 +524,21 @@ class ShiftScheduler:
             ''', (emp_name, current_date.strftime('%Y-%m-%d')))
 
             result = cursor.fetchone()
-            if not result:
-                break
 
-            if (is_shift and not result[0]) or (not is_shift and result[0]):
+            # Break if no record found or status doesn't match what we're counting
+            if not result or result[0] != is_shift:
                 break
 
             count += 1
             current_date -= timedelta(days=1)
 
         return count
+
+    def _are_consecutive_dates(self, date1_str: str, date2_str: str) -> bool:
+        """Check if two dates are consecutive"""
+        date1 = datetime.strptime(date1_str, '%Y-%m-%d').date()
+        date2 = datetime.strptime(date2_str, '%Y-%m-%d').date()
+        return (date2 - date1).days == 1
 
     def _check_partner_preference(self, emp_name: str, current_schedule: Set[str]) -> bool:
         """Check if preferred partner condition is satisfied"""
@@ -562,28 +653,55 @@ class ShiftScheduler:
             datetime.strptime(end_date_str, '%Y-%m-%d').date()
         )
 
-    def _calculate_streak(self, employee_name: str, current_date: datetime.date, is_on_shift: bool) -> int:
+    def _calculate_streak(self, emp_name: str, target_date: datetime.date, is_shift: bool) -> int:
+        """Calculate current streak length, handling past and future dates"""
         cursor = self.conn.cursor()
         cursor.execute('''
             SELECT shift_date, is_on_shift
             FROM current_schedule cs
             JOIN employees e ON cs.employee_id = e.id
-            WHERE e.name = ? AND shift_date <= ?
-            ORDER BY shift_date DESC
-        ''', (employee_name, current_date.strftime('%Y-%m-%d')))
+            WHERE e.name = ?
+            ORDER BY shift_date
+        ''', (emp_name,))
 
-        streak = 1
-        previous_records = cursor.fetchall()
+        records = cursor.fetchall()
+        if not records:
+            return 0
 
-        for i in range(1, len(previous_records)):
-            if (previous_records[i][1] == is_on_shift and
-                    datetime.strptime(previous_records[i - 1][0], '%Y-%m-%d').date() -
-                    datetime.strptime(previous_records[i][0], '%Y-%m-%d').date() == timedelta(days=1)):
-                streak += 1
+        streak = 0
+        target_state = 1 if is_shift else 0
+        dates = []
+
+        # Convert records to dates
+        for date_str, state in records:
+            if state == target_state:
+                dates.append(datetime.strptime(date_str, '%Y-%m-%d').date())
+
+        if not dates:
+            return 0
+
+        # Find streak containing target date
+        streak_start = None
+        current_streak = 1
+
+        for i in range(len(dates)):
+            if i == 0:
+                streak_start = dates[i]
+                continue
+
+            if (dates[i] - dates[i - 1]).days == 1:
+                current_streak += 1
             else:
-                break
+                if target_date >= streak_start and target_date <= dates[i - 1]:
+                    return current_streak
+                streak_start = dates[i]
+                current_streak = 1
 
-        return streak
+        # Check if target date is in final streak
+        if target_date >= streak_start and target_date <= dates[-1]:
+            return current_streak
+
+        return 0
 
     def verify_schedule_constraints(self, period_start, period_end):
         cursor = self.conn.cursor()
@@ -747,13 +865,63 @@ class ShiftScheduler:
 
         return satisfied, violated
 
-    def print_daily_schedule(self, start_date: datetime.date = None, end_date: datetime.date = None):
-        """Print the current schedule from the database
+    def _format_schedule_table(self, start_date: datetime.date, end_date: datetime.date,
+                               schedule: Dict[datetime.date, Set[str]],
+                               satisfied_constraints: Dict[datetime.date, List[str]],
+                               violated_constraints: Dict[datetime.date, List[str]]) -> List[List[str]]:
+        """Format schedule data into a table format with unified constraint handling"""
+        WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        table_data = []
+        current_date = start_date
 
-        Args:
-            start_date: Optional start date. If None, uses first date in schedule
-            end_date: Optional end date. If None, uses last date in schedule
-        """
+        while current_date <= end_date:
+            weekday = WEEKDAYS[current_date.weekday()]
+            shift_emps = []
+            home_emps = []
+
+            # Process employees on shift
+            on_shift = schedule.get(current_date, set())
+            for name in sorted(on_shift):
+                emp = self.employees[name]
+                if current_date < emp.available_from:
+                    continue
+                prefix = '*' if emp.is_manager else ''
+                consecutive_days = self._calculate_consecutive_days(name, current_date, True)
+                shift_emps.append(f"{prefix}{name} ({consecutive_days}d)")
+
+            # Get employees at home
+            all_emps = set(self.employees.keys())
+            for name in sorted(all_emps - on_shift):
+                emp = self.employees[name]
+                if current_date < emp.available_from:
+                    home_emps.append(f"{name} (N/A until {emp.available_from.strftime('%Y-%m-%d')})")
+                else:
+                    consecutive_days = self._calculate_consecutive_days(name, current_date, False)
+                    home_emps.append(f"{name} ({consecutive_days}d)")
+
+            # Format constraints
+            constraints_text = []
+            if current_date in violated_constraints:
+                constraints_text.extend(f"✗ {v}" for v in violated_constraints[current_date])
+
+            if current_date in satisfied_constraints:
+                if constraints_text:
+                    constraints_text.append("")
+                constraints_text.extend(f"✓ {s}" for s in satisfied_constraints[current_date])
+
+            table_data.append([
+                f"{current_date.strftime('%d/%m/%Y')} ({weekday})",
+                '\n'.join(shift_emps) if shift_emps else "-",
+                '\n'.join(home_emps) if home_emps else "-",
+                '\n'.join(constraints_text) if constraints_text else "No special constraints"
+            ])
+
+            current_date += timedelta(days=1)
+
+        return table_data
+
+    def print_daily_schedule(self, start_date: datetime.date = None, end_date: datetime.date = None):
+        """Print the current schedule from the database with unified constraint handling"""
         if start_date is None or end_date is None:
             db_start, db_end = self._get_current_schedule_range()
             start_date = start_date or db_start
@@ -763,7 +931,6 @@ class ShiftScheduler:
             print("No schedule found in database")
             return
 
-        # Create a ScheduleResult object from the current schedule
         schedule = {}
         satisfied_constraints = {}
         violated_constraints = {}
@@ -776,71 +943,18 @@ class ShiftScheduler:
             violated_constraints[current_date] = violated
             current_date += timedelta(days=1)
 
-        schedule_result = ScheduleResult(
-            schedule=schedule,
-            satisfied_constraints=satisfied_constraints,
-            violated_constraints=violated_constraints,
-            overall_score=0.0  # We don't recalculate score for existing schedule
+        table_data = self._format_schedule_table(
+            start_date, end_date, schedule, satisfied_constraints, violated_constraints
         )
-
-        # Use the existing print function
-        self.print_daily_schedule_result(schedule_result, start_date, end_date)
+        headers = ['Date', 'On Shift', 'At Home', 'Constraints']
+        print("\nDaily Schedule")
+        print(tabulate(table_data, headers=headers, tablefmt='grid'))
 
     def print_daily_schedule_result(self, schedule_result: ScheduleResult, start_date: datetime.date,
                                     end_date: datetime.date):
-        """Print function with improved constraint reporting"""
-        WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        table_data = []
-        current_date = start_date
-
-        while current_date <= end_date:
-            weekday = WEEKDAYS[current_date.weekday()]
-            shift_emps = []
-            home_emps = []
-
-            # Process employees on shift
-            for name in sorted(schedule_result.schedule.get(current_date, set())):
-                emp = self.employees[name]
-                if current_date < emp.available_from:
-                    continue
-                prefix = '*' if emp.is_manager else ''
-                consecutive_days = self._calculate_consecutive_days(name, current_date, True)
-                shift_emps.append(f"{prefix}{name} ({consecutive_days}d)")
-
-            # Get employees at home
-            all_emps = set(self.employees.keys())
-            home_names = sorted(all_emps - set(schedule_result.schedule.get(current_date, set())))
-            for name in home_names:
-                emp = self.employees[name]
-                if current_date < emp.available_from:
-                    home_emps.append(f"{name} (N/A)")
-                else:
-                    consecutive_days = self._calculate_consecutive_days(name, current_date, False)
-                    home_emps.append(f"{name} ({consecutive_days}d)")
-
-            # Format constraints
-            constraints_text = []
-            if current_date in schedule_result.violated_constraints:
-                violations = schedule_result.violated_constraints[current_date]
-                if violations:
-                    constraints_text.extend(f"✗ {v}" for v in violations)
-
-            if current_date in schedule_result.satisfied_constraints:
-                satisfied = schedule_result.satisfied_constraints[current_date]
-                if satisfied:
-                    if constraints_text:
-                        constraints_text.append("")
-                    constraints_text.extend(f"✓ {s}" for s in satisfied)
-
-            table_data.append([
-                f"{current_date.strftime('%d/%m/%Y')} ({weekday})",
-                '\n'.join(shift_emps) if shift_emps else "-",
-                '\n'.join(home_emps) if home_emps else "-",
-                '\n'.join(constraints_text) if constraints_text else "No special constraints"
-            ])
-
-            current_date += timedelta(days=1)
-
+        """Print schedule results using the unified formatting function"""
+        # Format and print the table using the unified method
+        table_data = self._format_schedule_table(start_date, end_date, schedule_result.schedule)
         headers = ['Date', 'On Shift', 'At Home', 'Constraints']
         print(f"\nDaily Schedule (Score: {schedule_result.overall_score})")
         print(tabulate(table_data, headers=headers, tablefmt='grid'))

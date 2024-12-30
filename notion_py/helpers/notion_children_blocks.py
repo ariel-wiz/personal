@@ -244,7 +244,8 @@ def create_notion_link(page_id, text):
 
 
 def generate_children_block_for_crossfit_workout(title: str, exercises: list, additional_info: list,
-                                                 original_program: str = "", add_score: bool = False) -> dict:
+                                                 original_program: str = "", add_score: bool = False,
+                                                 add_original_program: bool = True) -> dict:
     """Generate workout block with optional score table."""
 
     try:
@@ -297,7 +298,7 @@ def generate_children_block_for_crossfit_workout(title: str, exercises: list, ad
             for info in additional_info:
                 children_block.append(create_paragraph_block(info, bold_word=info.split(" - ")[0]))
             children_block.append(create_paragraph_block(""))
-        if original_program:
+        if add_original_program and original_program:
             children_block.append(create_toggle_block("Original Exercise", [create_paragraph_block(original_program)]))
         children_block.append(create_separator_block())
 

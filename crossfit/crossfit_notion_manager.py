@@ -305,7 +305,7 @@ class CrossfitWorkout:
                 additional_info = [f"{key.capitalize()} - {value}" for key, value in self.program.items() if 'note' in key.lower() or 'rest' in key.lower()]
             children_block = generate_children_block_for_crossfit_workout(workout_name, formatted, additional_info,
                                                                           json.dumps(self.original_program),
-                                                                          add_score=False)
+                                                                          add_score=True, add_original_program=False)
             return children_block
         except Exception as e:
             error_message = f"Error generating workout content: {str(e)}"

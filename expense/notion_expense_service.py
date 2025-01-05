@@ -462,21 +462,37 @@ class NotionExpenseService:
         return mapping
 
     def update_monthly_pages(self, monthly_pages: List[Dict], month_expenses: List[Expense]) -> Dict[str, float]:
-        """Updates monthly category pages with their respective expense relations and totals"""
+        """Updates monthly category pages with expenses and recalculates averages"""
         try:
             expenses_by_category = group_expenses_by_category(month_expenses)
             category_totals = {}
+
+            target_date = datetime.strptime(monthly_pages[0]['properties']['Date']['date']['start'], '%Y-%m-%d')
 
             for category, expenses in expenses_by_category.items():
                 try:
                     category_page = find_matching_category_page(category, monthly_pages)
                     if category_page:
+                        # Update expenses
                         expense_ids = [exp.page_id for exp in expenses if exp.page_id]
                         self._update_category_page(category, expense_ids, category_page['id'])
 
-                        # Calculate total for this category
+                        # Calculate total
                         total = sum(exp.charged_amount for exp in expenses)
                         category_totals[category] = total
+
+                        # Recalculate and update average
+                        logger.debug(f"Recalculating average for {category}")
+                        average = self.get_month_average(category, target_date)
+                        if average is not None:
+                            update_payload = {
+                                "properties": {
+                                    "4 Months Average": {"number": average}
+                                }
+                            }
+                            update_page(category_page['id'], update_payload)
+                            logger.info(f"Updated {category} average to {average:.2f}")
+
                         logger.debug(f"Updated category {category} with {len(expense_ids)} expenses, total: {total}")
 
                 except Exception as e:
@@ -671,13 +687,31 @@ class NotionExpenseService:
         return payload
 
     def get_month_average(self, category: str, current_date: datetime, months_back: int = 4) -> Optional[float]:
-        """Gets the N-month average for a category"""
+        """Gets the N-month average for a category, excluding current month"""
         try:
-            date_range = calculate_date_range(current_date, months_back)
-            historical_pages = self._get_historical_pages(category, *date_range)
+            # For January, we want Sept-Dec, for February we want Oct-Jan, etc
+            # So we need to first go back to end of previous month
+            end_date = current_date.replace(day=1) - timedelta(days=1)  # Last day of previous month
+            start_date = (end_date - relativedelta(months=months_back - 1)).replace(day=1)  # First day of start month
+
+            logger.debug(f"Calculating {months_back}-month average for {category} from {start_date} to {end_date}")
+
+            # Get historical pages for this category within the date range
+            historical_pages = self._get_historical_pages(category, start_date, end_date)
+            if not historical_pages:
+                logger.info(f"No historical data found for {category} between {start_date} and {end_date}")
+                return None
+
             monthly_totals = extract_monthly_totals(category, historical_pages)
 
-            return calculate_average(monthly_totals, category, months_back)
+            # Calculate the average
+            if not monthly_totals:
+                return None
+
+            average = sum(monthly_totals) / len(monthly_totals)
+            logger.debug(f"Found {len(monthly_totals)} months of data for {category}, average: {average:.2f}")
+
+            return round(average, 2)
 
         except Exception as e:
             logger.error(f"Error calculating {months_back}-month average for {category}: {str(e)}")
@@ -820,19 +854,33 @@ class NotionExpenseService:
         log_creation_completion(date_info, created_pages)
         return created_pages[0] if created_pages else None
 
-    def _create_single_category_page(self, category_dict: Dict, date_info: Dict,
-                                     previous_targets: Dict[str, float]) -> Optional[Dict]:
+    def _create_single_category_page(self, category_dict: Dict, date_info: Dict, previous_targets: Dict[str, float]) -> \
+    Optional[Dict]:
         """Creates a single category page with its average and target"""
         category, icon_url = list(category_dict.items())[0]
 
         # Calculate average for the category
+        logger.debug(f"Calculating average for {category}")
         average = self.get_month_average(category, date_info['target_date'])
+        if average is not None:
+            logger.info(f"Calculated {category} average: {average:.2f}")
+        else:
+            logger.info(f"No average available for {category}")
 
         # Get target from previous month if exists
         target = previous_targets.get(category)
 
         # Prepare page data
-        page_data = prepare_page_data(category, icon_url, date_info, average)
+        page_data = {
+            "Category": category,
+            "Month": date_info['month_formatted'],
+            "Date": [date_info['first_day'].isoformat(), date_info['last_day'].isoformat()],
+            "Icon": icon_url
+        }
+
+        # Add average if exists
+        if average is not None:
+            page_data["4 Months Average"] = average
 
         # Add target if exists
         if target is not None:

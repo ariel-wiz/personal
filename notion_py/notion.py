@@ -363,6 +363,22 @@ def get_expenses_to_notion():
     expense_service.add_all_expenses_to_notion()
 
 
+def update_historical_monthly_expenses():
+    expense_service = NotionExpenseService(
+        expense_tracker_db_id=expense_tracker_db_id,
+        monthly_category_expense_db_id=monthly_category_expense_db
+    )
+
+    # This will update the past 4 months of expenses
+    monthly_summaries = expense_service.backfill_monthly_expenses(months_back=4)
+
+    # Log the results
+    for month, category_sums in monthly_summaries.items():
+        logger.info(f"\nMonth {month} summaries:")
+        for category, total in category_sums.items():
+            logger.info(f"{category}: {total:.2f}")
+
+
 def run_functions(functions):
     # Loop through each function
     for func in functions:
@@ -383,12 +399,14 @@ def main(selected_tasks):
                     task_function()
         else:
             # Manually call the functions here
-            crossfit_manager = CrossfitManager(crossfit_exercises_db_id="16aafca4f80780bcb93dcf952a50bb19",
-                                               crossfit_workout_db_id="16aafca4f807804f8fadc0ab2a9218b3")
-            # crossfit_manager.add_crossfit_exercises_to_notion()
-            crossfit_manager.add_crossfit_workouts_to_notion()
+            # crossfit_manager = CrossfitManager(crossfit_exercises_db_id="16aafca4f80780bcb93dcf952a50bb19",
+            #                                    crossfit_workout_db_id="16aafca4f807804f8fadc0ab2a9218b3")
+            # # crossfit_manager.add_crossfit_exercises_to_notion()
+            # crossfit_manager.add_crossfit_workouts_to_notion()
 
             # get_expenses_to_notion()
+
+            update_historical_monthly_expenses()
             logger.info("End of manual run")
 
     except Exception as e:
@@ -417,6 +435,7 @@ if __name__ == '__main__':
         'create_daily_pages': create_daily_pages,
         'copy_pages': copy_pages_from_other_db_if_needed,
         'get_expenses': get_expenses_to_notion,
+        'update_historical_monthly_expenses': update_historical_monthly_expenses,
         'copy_book_summary': copy_book_summary,
     }
 

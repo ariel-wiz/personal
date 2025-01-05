@@ -17,6 +17,7 @@ class Frequency(Enum):
     WEEKLY_WEDNESDAY = "wednesday"
     WEEKLY_THURSDAY = "thursday"
     WEEKLY_FRIDAY = "friday"
+    ONCE_A_MONTH = ["7/*"]
     TWICE_A_MONTH = ["7/*", "22/*"]
 
 
@@ -149,11 +150,19 @@ NOTION_SCRIPTS = [
         python_path="/Users/ariel/PycharmProjects/personal",
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     ),
+    # ScriptConfig(
+    #     name="Copy Book Summaries",
+    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+    #     arg="--copy_book_summary",
+    #     frequency=Frequency.TWICE_A_MONTH.value,
+    #     python_path="/Users/ariel/PycharmProjects/personal",
+    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    # )
     ScriptConfig(
-        name="Copy Book Summaries",
+        name="Update Historical Monthly Expenses",
         path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--copy_book_summary",
-        frequency=Frequency.TWICE_A_MONTH.value,
+        arg="--update_historical_monthly_expenses",
+        frequency=Frequency.ONCE_A_MONTH.value,
         python_path="/Users/ariel/PycharmProjects/personal",
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     )

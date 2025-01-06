@@ -144,15 +144,84 @@ def create_number_block(numbered_list_items):
     } for step in numbered_list_items]
 
 
-def create_heading_3_block(content):
-    """Create a heading 3 block"""
+def create_table_row(cells: list) -> dict:
+    """Create a table row with the given cells"""
+    return {
+        "type": "table_row",
+        "table_row": {
+            "cells": [[{"type": "text", "text": {"content": str(cell)}}] for cell in cells]
+        }
+    }
+
+
+def create_table_block(headers: list, rows: list) -> dict:
+    """Create a table block with the given headers and rows"""
     return {
         "object": "block",
-        "type": "heading_3",
-        "heading_3": {
+        "type": "table",
+        "table": {
+            "table_width": len(headers),
+            "has_column_header": True,
+            "has_row_header": False,
+            "children": [create_table_row(headers)] + [create_table_row(row) for row in rows]
+
+        }
+    }
+
+def create_heading_1_block(content):
+    """Create a heading 3 block"""
+    return _create_heading_block(content, heading_number=1)
+
+
+def create_heading_2_block(content):
+    """Create a heading 3 block"""
+    return _create_heading_block(content, heading_number=2)
+
+
+def create_heading_3_block(content):
+    """Create a heading 3 block"""
+    return _create_heading_block(content, heading_number=3)
+
+
+def _create_heading_block(content, heading_number=3):
+    """Create a heading block"""
+    heading = f"heading_{heading_number}"
+    return {
+        "object": "block",
+        "type": heading,
+        heading: {
             "rich_text": [create_rich_text(content)]
         }
     }
+
+
+def create_section_text_with_bullet(title: str, bullet_points: list) -> list:
+    """Create a section with title and bullet points"""
+    blocks = [
+        {
+            "object": "block",
+            "type": "paragraph",
+            "paragraph": {
+                "rich_text": [{"type": "text", "text": {"content": f"{title}"}}]
+            }
+        }
+    ]
+    blocks.extend(create_bullet_list(bullet_points))
+    return blocks
+
+
+def create_bullet_list(items: list) -> list:
+    """Create a list of bullet points"""
+    return [
+        {
+            "object": "block",
+            "type": "bulleted_list_item",
+            "bulleted_list_item": {
+                "rich_text": [{"type": "text", "text": {"content": item}}]
+            }
+        }
+        for item in items
+    ]
 
 
 def create_toggle_block(content, children_blocks):
@@ -208,23 +277,86 @@ def create_separator_block():
         "divider": {}
     }
 
+def create_column_block(title: str, content_blocks: list) -> dict:
+    """Create a column block with a title and content blocks"""
+    return {
+        "object": "block",
+        "type": "column",
+        "column": {
+            "children": [
+                create_heading_2_block(title),
+                *content_blocks
+            ]
+        }
+    }
 
-def create_columns(column_blocks):
-    """Create a column list with multiple columns"""
+
+def create_metrics_single_paragraph(metrics_list: list) -> dict:
+    """Create a paragraph block with metrics data"""
+    return {
+        "object": "block",
+        "type": "paragraph",
+        "paragraph": {
+            "rich_text": [
+                {"type": "text", "text": {"content": line}}
+                for line in metrics_list
+            ]
+        }
+    }
+
+
+def create_metrics_paragraph(metric: str) -> dict:
+    """Create a single paragraph block for a metric"""
+    return {
+        "object": "block",
+        "type": "paragraph",
+        "paragraph": {
+            "rich_text": [
+                {"type": "text", "text": {"content": metric}}
+            ]
+        }
+    }
+
+def create_stats_list(stats_list: list) -> list:
+    """Create a list of bullet points from stats data"""
+    return [
+        {
+            "object": "block",
+            "type": "bulleted_list_item",
+            "bulleted_list_item": {
+                "rich_text": [
+                    {"type": "text", "text": {"content": stat}}
+                ]
+            }
+        }
+        for stat in stats_list
+    ]
+
+
+def create_two_column_section(left_column: dict, right_column: dict) -> dict:
+    """Create a two-column section with provided column data"""
     return {
         "object": "block",
         "type": "column_list",
         "column_list": {
-            "children": [
+            "children": [left_column, right_column]
+        }
+    }
+
+
+def create_toggle_stats_block(title: str, stats_list: list) -> dict:
+    """Create a toggle block with stats list"""
+    return {
+        "object": "block",
+        "type": "toggle",
+        "toggle": {
+            "rich_text": [
                 {
-                    "object": "block",
-                    "type": "column",
-                    "column": {
-                        "children": [block] if not isinstance(block, list) else block
-                    }
+                    "type": "text",
+                    "text": {"content": title}
                 }
-                for block in column_blocks
-            ]
+            ],
+            "children": create_stats_list(stats_list)
         }
     }
 

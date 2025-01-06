@@ -23,6 +23,7 @@ insurance_db_id = Keys.insurance_db_id
 expense_tracker_db_id = Keys.expense_tracker_db_id
 book_summaries_db_id = Keys.book_summaries_db_id
 monthly_category_expense_db = Keys.monthly_category_expense_db
+monthly_summaries_db_id = Keys.monthly_summaries_db_id
 
 
 class NotionPropertyType:
@@ -62,6 +63,8 @@ class NotionAPIOperation:
     COPY_PAGES = "Copy Pages"
     UNCHECK_DONE = "Uncheck Done"
     GET_EXPENSES = "Get Expenses"
+    CREATE_MONTHLY_SUMMARY = "Create Monthly Summary"
+
 
 
 class DaySummaryCheckbox:

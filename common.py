@@ -1,7 +1,7 @@
 import os
 import re
-from datetime import datetime, timedelta, date
-from typing import Callable
+from datetime import datetime, timedelta, date, time
+from typing import Callable, List, Optional
 
 from logger import logger
 
@@ -284,3 +284,46 @@ def capitalize_text_or_list(text_or_list):
     if isinstance(text_or_list, list):
         return [text.capitalize() for text in text_or_list]
     return text_or_list.capitalize()
+
+
+def calculate_average_time(times: List[time]) -> Optional[time]:
+    """
+    Calculates average time from a list of time objects.
+    Handles times around midnight by treating early morning hours (0-4) as late night hours (24-28).
+    """
+    if not times:
+        return None
+
+    # Convert times to minutes past midnight, adjusting early morning times
+    total_minutes = 0
+    for t in times:
+        minutes = t.hour * 60 + t.minute
+        # If time is between 00:00 and 04:00, treat it as 24:00-28:00
+        if t.hour < 4:
+            minutes += 24 * 60
+        total_minutes += minutes
+
+    avg_minutes = total_minutes / len(times)
+
+    # Convert back to 24-hour format
+    hours = int(avg_minutes // 60) % 24  # Use modulo to wrap around to 24-hour format
+    minutes = int(avg_minutes % 60)
+
+    return time(hours, minutes)
+
+
+def parse_duration_to_seconds(duration_str: str) -> int:
+    """Converts duration string (e.g., '1h30m' or '45m') to seconds"""
+    total_seconds = 0
+
+    # Match hours
+    hours_match = re.search(r'(\d+)h', duration_str)
+    if hours_match:
+        total_seconds += int(hours_match.group(1)) * 3600
+
+    # Match minutes
+    minutes_match = re.search(r'(\d+)m', duration_str)
+    if minutes_match:
+        total_seconds += int(minutes_match.group(1)) * 60
+
+    return total_seconds

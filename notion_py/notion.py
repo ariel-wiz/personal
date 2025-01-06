@@ -17,6 +17,7 @@ from notion_py.helpers.notion_common import create_page_with_db_dict_and_childre
     get_db_pages, track_operation, create_daily_summary_pages, create_daily_api_pages, \
     update_page, create_page, copy_pages_to_daily, get_daily_tasks, \
     get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url, manage_daily_summary_pages
+from notion_py.summary.summary import create_monthly_summary_page
 from variables import Paths
 
 
@@ -369,15 +370,23 @@ def update_historical_monthly_expenses():
         monthly_category_expense_db_id=monthly_category_expense_db
     )
 
-    # This will update the past 4 months of expenses
     monthly_summaries = expense_service.backfill_monthly_expenses(months_back=4)
 
-    # Log the results
     for month, category_sums in monthly_summaries.items():
         logger.info(f"\nMonth {month} summaries:")
         for category, total in category_sums.items():
             logger.info(f"{category}: {total:.2f}")
 
+
+def create_monthly_summary():
+    """Creates the monthly summary page"""
+    try:
+        create_monthly_summary_page(monthly_summaries_db_id, garmin_db_id, daily_tasks_db_id, tasks_db_id,
+                                    expense_tracker_db_id,book_summaries_db_id)
+        logger.info("Successfully created monthly summary")
+    except Exception as e:
+        logger.error(f"Error creating monthly summary: {e}")
+        raise
 
 def run_functions(functions):
     # Loop through each function
@@ -406,7 +415,7 @@ def main(selected_tasks):
 
             # get_expenses_to_notion()
 
-            update_historical_monthly_expenses()
+            create_monthly_summary()
             logger.info("End of manual run")
 
     except Exception as e:

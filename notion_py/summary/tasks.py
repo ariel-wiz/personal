@@ -34,9 +34,7 @@ class TasksComponent(BaseComponent):
     def _initialize_metrics(self):
         """Initialize task metrics for current and previous months"""
         self._current_metrics = self._get_month_metrics(self.target_date)
-
-        previous_month = self.target_date.replace(day=1) - timedelta(days=1)
-        self._previous_metrics = self._get_month_metrics(previous_month)
+        self._previous_metrics = self._get_month_metrics(self.previous_month)
 
     def _get_month_metrics(self, target_date: date) -> Dict:
         """Get all metrics for a given month"""
@@ -163,7 +161,7 @@ class TasksComponent(BaseComponent):
         metrics = self.get_metrics()
         return {
             "current": metrics[TaskFields.DAILY_INSPIRATION_RATE]['current']['rate'],
-            "prevous": metrics[TaskFields.DAILY_INSPIRATION_RATE]['previous']['rate'],
+            "previous": metrics[TaskFields.DAILY_INSPIRATION_RATE]['previous']['rate'],
             "change": self.format_change_value(TaskFields.DAILY_INSPIRATION_RATE)
         }
 

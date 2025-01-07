@@ -265,7 +265,7 @@ def create_toggle_block(content, children_blocks):
     }
 
 
-def create_toggle_heading_block(content, children_blocks, heading_number=3, color_background="", link_url=None):
+def create_toggle_heading_block(content, children_blocks: list, heading_number=3, color_background="", link_url=None):
     """
     Create a toggle heading block with an optional hyperlink on a subpart of the text.
 
@@ -687,3 +687,81 @@ def generate_children_block_for_shabbat(shabat_cities, parasha_summary, parasha_
     children_blocks = [toggle_block] + summary_blocks + [link_block]
 
     return {"children": children_blocks}
+
+
+def create_three_column_layout(left_content: dict, middle_content: dict, right_content: dict) -> dict:
+    """Creates a three column layout with equal width columns"""
+    return {
+        "object": "block",
+        "type": "column_list",
+        "column_list": {
+            "children": [
+                {
+                    "object": "block",
+                    "type": "column",
+                    "column": {
+                        "children": [left_content]
+                    }
+                },
+                {
+                    "object": "block",
+                    "type": "column",
+                    "column": {
+                        "children": [middle_content]
+                    }
+                },
+                {
+                    "object": "block",
+                    "type": "column",
+                    "column": {
+                        "children": [right_content]
+                    }
+                }
+            ]
+        }
+    }
+
+
+def create_callout_block(children: list = None,
+                         title: str = None,
+                         background: str = "default",
+                         emoji: str = "⭐",
+                         link: str = None) -> dict:
+    """
+    Creates a callout block with customizable properties
+
+    Args:
+        children (list): List of child blocks to include in the callout
+        title (str): The main text content of the callout
+        background (str): Color of the callout background (e.g., "blue_background", "default")
+        emoji (str): Emoji to use as the callout icon
+        link (str): Optional URL to make the text a hyperlink
+
+    Returns:
+        dict: Notion API compatible callout block structure
+    """
+    # Initialize the base callout structure
+    callout_block = {
+        "object": "block",
+        "type": "callout",
+        "callout": {
+            "rich_text": [{
+                "type": "text",
+                "text": {
+                    "content": title,
+                    "link": {"url": link} if link else None
+                }
+            }],
+            "icon": {
+                "type": "emoji",
+                "emoji": emoji
+            },
+            "color": background
+        }
+    }
+
+    # Add children blocks if provided
+    if children:
+        callout_block["callout"]["children"] = children
+
+    return callout_block

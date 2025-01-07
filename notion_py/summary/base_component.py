@@ -41,6 +41,8 @@ class BaseComponent:
         self._previous_metrics = None
         self.target_date = self._get_target_date(target_date)
         self.field_class = field_class
+        self.previous_month = self.target_date.replace(day=1) - timedelta(days=1)
+
 
     def _get_target_date(self, target_date: Optional[date] = None) -> date:
         if target_date is None:

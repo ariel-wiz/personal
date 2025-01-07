@@ -381,8 +381,7 @@ def update_historical_monthly_expenses():
 def create_monthly_summary():
     """Creates the monthly summary page"""
     try:
-        create_monthly_summary_page(monthly_summaries_db_id, garmin_db_id, daily_tasks_db_id, tasks_db_id,
-                                    expense_tracker_db_id,book_summaries_db_id)
+        create_monthly_summary_page()
         logger.info("Successfully created monthly summary")
     except Exception as e:
         logger.error(f"Error creating monthly summary: {e}")

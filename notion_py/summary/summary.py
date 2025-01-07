@@ -16,8 +16,7 @@ from notion_py.summary.development import DevelopmentComponent
 from notion_py.summary.finances import FinancesComponent
 from notion_py.summary.health import HealthComponent
 from notion_py.summary.tasks import TasksComponent
-
-
+from variables import Keys
 
 
 @dataclass
@@ -44,37 +43,24 @@ class MonthlySummary:
         """Generates Notion blocks for the monthly summary"""
         return {
             "children": [
-                # Header section
-                create_heading_1_block(f"Monthly Summary - {self.target_date.strftime('%B %Y')}"),
-                # Component sections
-                self.health_component.create_notion_section(),
+                # self.health_component.create_notion_section(),
+                # create_separator_block(),
+                self.tasks_component.create_notion_section(),
                 create_separator_block(),
-                # self.tasks_component.create_notion_section(),
+
                 # self.finances_component.create_notion_section(),
+                # create_separator_block(),
+
                 # self.development_component.create_notion_section()
             ]
         }
 
 
 @track_operation(NotionAPIOperation.CREATE_MONTHLY_SUMMARY)
-def create_monthly_summary_page(
-        monthly_summaries_db_id: str,
-        garmin_db_id: str,
-        daily_tasks_db_id: str,
-        tasks_db_id: str,
-        expense_tracker_db_id: str,
-        book_summaries_db_id: str,
-        target_date: Optional[date] = None
-) -> Dict:
+def create_monthly_summary_page(target_date: Optional[date] = None) -> Dict:
     """Creates a monthly summary page in Notion
 
     Args:
-        monthly_summaries_db_id: ID of the monthly summaries database
-        garmin_db_id: ID of the Garmin tracking database
-        daily_tasks_db_id: ID of the daily tasks database
-        tasks_db_id: ID of the regular tasks database
-        expense_tracker_db_id: ID of the expense tracker database
-        book_summaries_db_id: ID of the book summaries database
         target_date: Optional target date (defaults to previous month)
     """
     if target_date is None:
@@ -87,10 +73,11 @@ def create_monthly_summary_page(
 
     try:
         # Initialize components
-        health_component = HealthComponent(garmin_db_id, target_date=target_date)
-        tasks_component = TasksComponent(daily_tasks_db_id, tasks_db_id, target_date=target_date)
-        finances_component = FinancesComponent(expense_tracker_db_id, target_date=target_date)
-        development_component = DevelopmentComponent(book_summaries_db_id, daily_tasks_db_id, target_date=target_date)
+        health_component = HealthComponent(Keys.garmin_db_id, target_date=target_date)
+        tasks_component = TasksComponent(Keys.daily_tasks_db_id, Keys.tasks_db_id, target_date=target_date)
+        finances_component = FinancesComponent(Keys.expense_tracker_db_id, Keys.monthly_category_expense_db,
+                                               Keys.monthly_expenses_summary_previous_month_view_link, target_date=target_date)
+        development_component = DevelopmentComponent(Keys.book_summaries_db_id, Keys.daily_tasks_db_id, target_date=target_date)
 
         # Create summary object
         summary = MonthlySummary(
@@ -109,7 +96,7 @@ def create_monthly_summary_page(
         }
 
         response = create_page_with_db_dict_and_children_block(
-            monthly_summaries_db_id,
+            Keys.monthly_summaries_db_id,
             page_data,
             summary.generate_children_block()
         )

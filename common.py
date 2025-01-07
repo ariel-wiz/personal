@@ -1,7 +1,7 @@
 import os
 import re
 from datetime import datetime, timedelta, date, time
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Tuple
 
 from logger import logger
 
@@ -327,3 +327,32 @@ def parse_duration_to_seconds(duration_str: str) -> int:
         total_seconds += int(minutes_match.group(1)) * 60
 
     return total_seconds
+
+
+def format_duration_days(seconds: float) -> str:
+    """Format duration in days and hours"""
+    days = int(seconds // (24 * 3600))
+    remaining_seconds = seconds % (24 * 3600)
+    hours = int(remaining_seconds // 3600)
+
+    if days > 0:
+        return f"{days}d {hours}h"
+    return f"{hours}h"
+
+
+def calculate_month_boundaries(target_date) -> Tuple[date, date]:
+    """Calculates first and last day of the month"""
+    # Convert datetime to date if needed
+    if isinstance(target_date, datetime):
+        target_date = target_date.date()
+
+    # Get first day of month
+    first_day = target_date.replace(day=1)
+
+    # Calculate last day
+    if target_date.month == 12:
+        last_day = first_day.replace(year=target_date.year + 1, month=1, day=1) - timedelta(days=1)
+    else:
+        last_day = first_day.replace(month=target_date.month + 1, day=1) - timedelta(days=1)
+
+    return first_day, last_day

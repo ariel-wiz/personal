@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from typing import Dict, List, Optional
 
-from common import today
+from common import today, seconds_to_hours_minutes, parse_duration_to_seconds, calculate_month_boundaries
 from notion_py.helpers.notion_common import get_db_pages
 from logger import logger
 
@@ -97,34 +97,33 @@ class BaseComponent:
             date_property: Name of the date property in the database
             additional_filter: Optional additional filter to apply
         """
-        start_date = target_date.replace(day=1)
-        if start_date.month == 12:
-            end_date = target_date.replace(year=start_date.year + 1, month=1, day=1) - timedelta(days=1)
-        else:
-            end_date = target_date.replace(month=start_date.month + 1, day=1) - timedelta(days=1)
+        first_day, last_day = calculate_month_boundaries(target_date)
 
+        # Create date filter for the entire month
         date_filter = {
             "and": [
                 {
                     "property": date_property,
                     "date": {
-                        "on_or_after": start_date.isoformat()
+                        "on_or_after": first_day.isoformat()
                     }
                 },
                 {
                     "property": date_property,
                     "date": {
-                        "on_or_before": end_date.isoformat()
+                        "on_or_before": last_day.isoformat()
                     }
                 }
             ]
         }
-
+        # Add any additional filters
         if additional_filter:
             date_filter["and"].append(additional_filter)
 
         try:
-            return get_db_pages(db_id, {"filter": date_filter})
+            pages = get_db_pages(db_id, {"filter": date_filter})
+            logger.debug(f"Retrieved {len(pages)} pages for {target_date.strftime('%B %Y')}")
+            return pages
         except Exception as e:
             logger.error(f"Error getting pages from database {db_id}: {str(e)}")
             return []
@@ -132,57 +131,68 @@ class BaseComponent:
     def _format_comparison(self, current_value: float, previous_value: float,
                            metric_name: str, is_currency: bool = False,
                            reverse_comparison: bool = False) -> str:
-        """
-        Formats comparison between current and previous values
-        Args:
-            reverse_comparison: If True, treats decrease as positive (e.g., for completion times)
-        """
+        """Formats comparison between current and previous values"""
         if previous_value == 0:
             return "no previous data"
 
-        change = ((current_value - previous_value) / previous_value) * 100
-        prefix = "$" if is_currency else ""
+        change = current_value - previous_value
+        percentage = (change / previous_value) * 100
 
         # Adjust change direction if reverse_comparison is True
         if reverse_comparison:
             change = -change
+            percentage = -percentage
 
-        if change > 0:
-            return f"↑ {prefix}{abs(current_value - previous_value):.2f} ({change:.1f}% increase)"
-        elif change < 0:
-            return f"↓ {prefix}{abs(current_value - previous_value):.2f} ({abs(change):.1f}% decrease)"
-        return "no change"
+        prefix = "$" if is_currency else ""
+        direction = "↑" if change > 0 else "↓"
 
-    def format_change_value(self, metric_name: str, format_type: str = "number") -> str:
+        return f"{direction} {prefix}{abs(change):.1f} ({abs(percentage):.1f}% {'increase' if change > 0 else 'decrease'})"
+
+    def format_change_value(self, metric_name: str, format_type: str = "number",
+                            invert_comparison: bool = False) -> str:
         """
-        Format change value with appropriate indicators and percentages
-
-        Args:
-            metric_name: Name of the metric in the dictionary
-            metrics: Dictionary containing current and previous values
-            format_type: Type of formatting ("number", "time", "percentage")
+        Format change value with appropriate indicators and percentages.
         """
         current = self.current_metrics[metric_name]
         previous = self.previous_metrics[metric_name]
 
+        # Handle dictionary metrics (like daily inspiration rate)
+        if isinstance(current, dict) and 'rate' in current:
+            current = current['rate']
+        if isinstance(previous, dict) and 'rate' in previous:
+            previous = previous['rate']
+
         if previous == 0:
-            return "No previous data"
+            return "no previous data"
+
+        # Convert time format if needed
+        if format_type == "time":
+            current = parse_duration_to_seconds(current)
+            previous = parse_duration_to_seconds(previous)
 
         # Calculate absolute change and percentage
         abs_change = current - previous
         pct_change = ((current - previous) / previous) * 100
 
-        # Determine direction
-        is_increase = abs_change > 0
-        direction = "↑" if is_increase else "↓"
+        # Determine if this is an improvement
+        if invert_comparison:
+            is_improvement = pct_change < 0  # Lower is better
+            pct_change = -pct_change  # Invert the percentage
+        else:
+            is_improvement = pct_change > 0  # Higher is better
 
-        # Format the change string
-        change_str = f"{abs(abs_change):.2f}"
+        # Format the change value based on type
+        if format_type == "time":
+            change_str = seconds_to_hours_minutes(abs(abs_change))
+        else:
+            change_str = f"{abs(abs_change):.2f}"
+
+        # Determine the direction indicator and word
+        direction = "↑" if is_improvement else "↓"
+        change_word = "faster" if format_type == "time" else "increase" if is_improvement else "decrease"
 
         # Create the full comparison string
-        comparison = f"{direction} {change_str} ({abs(pct_change):.1f}% {'increase' if is_increase else 'decrease'})"
-
-        return comparison
+        return f"{direction} {change_str} ({abs(pct_change):.1f}% {change_word})"
 
     def generate_metrics(self, metrics_list):
         result = {}

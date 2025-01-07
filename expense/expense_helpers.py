@@ -5,11 +5,12 @@ import json
 import os
 import re
 from collections import defaultdict
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 from typing import Dict, Optional, List, Tuple, DefaultDict
 
 from dateutil.relativedelta import relativedelta
 
+from common import calculate_month_boundaries
 from logger import logger
 from expense.expense_constants import MODIFIED_NAMES, ENGLISH_CATEGORY, DEFAULT_CATEGORY, ENGLISH_SUB_CATEGORIES, \
     CASPION_FILE_PATH
@@ -267,19 +268,6 @@ def get_date_info(target_date: datetime) -> Dict:
         'last_day': last_day,
         'target_date': target_date
     }
-
-
-def calculate_month_boundaries(target_date: datetime) -> Tuple[date, date]:
-    """Calculates first and last day of the month"""
-    first_day = target_date.replace(day=1).date()
-
-    if first_day.month == 12:
-        last_day = first_day.replace(year=first_day.year + 1, month=1, day=1) - timedelta(days=1)
-    else:
-        next_month = first_day.replace(month=first_day.month + 1)
-        last_day = (next_month - timedelta(days=1))
-
-    return first_day, last_day
 
 
 def generate_target_dates(months_back: int) -> List[datetime]:

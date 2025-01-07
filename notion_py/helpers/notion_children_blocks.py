@@ -94,34 +94,62 @@ def create_rich_text(content, link_url=None):
     return text_object
 
 
-def create_paragraph_block(content, bold_word=None):
+def create_paragraph_block(content, bold_word=None, color_list=None, code_words=None):
     """
-    Create a paragraph block with optional bold text.
+    Create a paragraph block with optional bold text, color, and code formatting.
 
     Parameters:
         content (str): The paragraph content.
         bold_word (str, optional): A word to format as bold in the paragraph.
+        color_list (list, optional): A list of dictionaries with color mappings,
+                                     e.g., [{"color": "red", "words": "error"}]
+        code_words (list, optional): A list of words to format as inline code.
 
     Returns:
         dict: The Notion paragraph block.
     """
     rich_text = []
 
-    if bold_word and bold_word in content:
-        # Split content into parts: before, the bold word, and after
-        before, _, after = content.partition(bold_word)
-        if before:
-            rich_text.append({"type": "text", "text": {"content": before}})
+    def apply_color(text):
+        """Finds the corresponding color for a given text if it exists."""
+        for color_dict in color_list or []:
+            if text in color_dict.get("words", []):
+                return color_dict["color"]
+        return "default"
+
+    words = content.split()
+    for i, word in enumerate(words):
+        # Prepare annotations dictionary
+        annotations = {}
+
+        # Apply color
+        word_color = apply_color(word)
+        if word_color != "default":
+            annotations["color"] = word_color
+
+        # Apply bold formatting
+        if bold_word and word in bold_word:
+            annotations["bold"] = True
+
+        # Apply code formatting
+        is_code_word = code_words and word in code_words
+        if is_code_word:
+            annotations["code"] = True
+
+        # Create rich text entry for the word
         rich_text.append({
             "type": "text",
-            "text": {"content": bold_word},
-            "annotations": {"bold": True},
+            "text": {"content": word},
+            "annotations": annotations
         })
-        if after:
-            rich_text.append({"type": "text", "text": {"content": after}})
-    else:
-        # No bold word, default to plain text
-        rich_text.append({"type": "text", "text": {"content": content}})
+
+        # Always add a normal space after the word (except for the last word)
+        if i < len(words) - 1:
+            rich_text.append({
+                "type": "text",
+                "text": {"content": " "},
+                "annotations": {}
+            })
 
     return {
         "object": "block",
@@ -167,6 +195,7 @@ def create_table_block(headers: list, rows: list) -> dict:
 
         }
     }
+
 
 def create_heading_1_block(content):
     """Create a heading 3 block"""
@@ -236,24 +265,94 @@ def create_toggle_block(content, children_blocks):
     }
 
 
-def create_toggle_heading_block(content, children_blocks, heading_number=3, color_background=""):
-    """Create a toggle heading block."""
+def create_toggle_heading_block(content, children_blocks, heading_number=3, color_background="", link_url=None):
+    """
+    Create a toggle heading block with an optional hyperlink on a subpart of the text.
+
+    :param content: Full text of the heading
+    :param children_blocks: Blocks to be nested under the toggle
+    :param heading_number: Level of heading (default is 3)
+    :param color_background: Optional background color
+    :param link_url: Dictionary with 'url' and optional 'subword' keys
+    """
     heading_number_str = f"heading_{heading_number}"
+
+    # Create rich text elements
+    rich_text = []
+
+    # Process link if provided
+    if link_url and isinstance(link_url, dict) and 'url' in link_url:
+        url = link_url['url']
+        subword = link_url.get('subword', '')
+
+        # Calculate start and end indices for linking
+        if subword:
+            start_index = content.find(subword)
+            if start_index != -1:
+                end_index = start_index + len(subword)
+
+                # Text before the link
+                if start_index > 0:
+                    rich_text.append({
+                        "type": "text",
+                        "text": {"content": content[:start_index]}
+                    })
+
+                # Linked text
+                rich_text.append({
+                    "type": "text",
+                    "text": {
+                        "content": content[start_index:end_index],
+                        "link": {"url": url}
+                    }
+                })
+
+                # Text after the link
+                if end_index < len(content):
+                    rich_text.append({
+                        "type": "text",
+                        "text": {"content": content[end_index:]}
+                    })
+            else:
+                # If subword not found, create a single text element with link
+                rich_text = [{
+                    "type": "text",
+                    "text": {
+                        "content": content,
+                        "link": {"url": url}
+                    }
+                }]
+        else:
+            # If no subword, link the entire content
+            rich_text = [{
+                "type": "text",
+                "text": {
+                    "content": content,
+                    "link": {"url": url}
+                }
+            }]
+    else:
+        # No link
+        rich_text = [{
+            "type": "text",
+            "text": {"content": content}
+        }]
+
+    # Add color background if specified
+    if color_background:
+        for text_elem in rich_text:
+            text_elem["annotations"] = {"color": f"{color_background}_background"}
+
     block = {
         "object": "block",
         "type": heading_number_str,
         heading_number_str: {
-            "rich_text": [
-                {
-                    "type": "text",
-                    "text": {"content": content},
-                    "annotations": {"color": f"{color_background}_background"} if color_background else {}
-                }
-            ],
+            "rich_text": rich_text,
             "is_toggleable": True,
             "children": children_blocks
         }
     }
+
     return block
 
 
@@ -276,6 +375,26 @@ def create_separator_block():
         "type": "divider",
         "divider": {}
     }
+
+
+def create_db_block(db_id: str) -> dict:
+    """Create a block with a link to a Notion database"""
+    return {
+        "object": "block",
+        "type": "paragraph",
+        "paragraph": {
+            "rich_text": [{
+                "type": "mention",
+                "mention": {
+                    "type": "database",
+                    "database": {
+                        "id": db_id
+                    }
+                }
+            }]
+        }
+    }
+
 
 def create_column_block(title: str, content_blocks: list) -> dict:
     """Create a column block with a title and content blocks"""
@@ -316,6 +435,7 @@ def create_metrics_paragraph(metric: str) -> dict:
             ]
         }
     }
+
 
 def create_stats_list(stats_list: list) -> list:
     """Create a list of bullet points from stats data"""

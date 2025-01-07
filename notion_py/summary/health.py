@@ -20,6 +20,7 @@ class HealthFields:
     AVG_BED_TIME = "avg_bed_time"
     AVG_WAKE_TIME = "avg_wake_time"
     MISSING_DAYS = "missing_days"
+    AVG_CALORIES = "avg_calories"
 
 
 class HealthComponent(BaseComponent):
@@ -46,6 +47,7 @@ class HealthComponent(BaseComponent):
         activities = defaultdict(lambda: {'sessions': 0, 'duration': 0})
         sleep_times = []
         wake_times = []
+        calories = []
 
         # Get total days in month
         if pages:
@@ -58,6 +60,9 @@ class HealthComponent(BaseComponent):
 
         for page in pages:
             props = page['properties']
+
+            if props.get('Calories', {}).get('number'):
+                calories.append(props['Calories']['number'])
 
             # Track sleep/wake times
             if props.get('Sleep Start', {}).get('rich_text'):
@@ -107,6 +112,7 @@ class HealthComponent(BaseComponent):
         return {
             HealthFields.TOTAL_WORKOUTS: sum(activity['sessions'] for activity in formatted_activities),
             HealthFields.AVG_STEPS: round(total_steps / days_count) if days_count > 0 else 0,
+            HealthFields.AVG_CALORIES: round(sum(calories) / len(calories)) if calories else 0,
             HealthFields.AVG_SLEEP_DURATION: seconds_to_hours_minutes(total_sleep_seconds / days_count) if days_count > 0 else "0h",
             HealthFields.ACTIVITIES: sorted(formatted_activities, key=lambda x: x['sessions'], reverse=True),
             HealthFields.AVG_BED_TIME: avg_sleep_time.strftime('%H:%M') if avg_sleep_time else "N/A",
@@ -122,6 +128,7 @@ class HealthComponent(BaseComponent):
         main_metrics = [
             ["🏃 Workouts", metrics[HealthFields.TOTAL_WORKOUTS]['current'], self.format_change_value(HealthFields.TOTAL_WORKOUTS)],
             ["👣 Average Steps", metrics[HealthFields.AVG_STEPS]['current'], self.format_change_value(HealthFields.AVG_STEPS)],
+            ["💦 Average Calories", metrics[HealthFields.AVG_CALORIES]['current'], self.format_change_value(HealthFields.AVG_CALORIES)],
             ["😴 Sleep Duration", metrics[HealthFields.AVG_SLEEP_DURATION]['current'], f"⏰ Previous: {metrics[HealthFields.AVG_SLEEP_DURATION]['previous']}"],
             ["🌙 Bedtime", metrics[HealthFields.AVG_BED_TIME]['current'], f"⏰ Previous: {metrics[HealthFields.AVG_BED_TIME]['previous']}"],
             ["☀️ Wake Time", metrics[HealthFields.AVG_WAKE_TIME]['current'], f"⏰ Previous: {metrics[HealthFields.AVG_WAKE_TIME]['previous']}"],
@@ -138,4 +145,4 @@ class HealthComponent(BaseComponent):
                    create_heading_3_block("Activities Breakdown"),
                ] + create_stats_list(activities_stats)
 
-        return create_toggle_heading_block("🏃‍♂️ Health & Activity", blocks)
+        return create_toggle_heading_block("🏃‍♂️ Health & Activity", blocks, heading_number=2)

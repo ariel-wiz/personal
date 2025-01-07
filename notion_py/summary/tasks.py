@@ -2,169 +2,213 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import List, Dict, Optional
 
-
-from common import seconds_to_hours_minutes, parse_duration_to_seconds
+from common import seconds_to_hours_minutes, parse_duration_to_seconds, format_duration_days
 from notion_py.helpers.notion_children_blocks import create_column_block, create_metrics_single_paragraph, \
-    create_toggle_stats_block, create_two_column_section, create_section_text_with_bullet
+    create_toggle_stats_block, create_two_column_section, create_section_text_with_bullet, create_toggle_heading_block
 from notion_py.helpers.notion_common import get_db_pages
 from notion_py.summary.base_component import BaseComponent
 
 
+class TaskFields:
+    """Constants for task field names"""
+    DAILY_COMPLETED = "daily_completed"
+    DAILY_TOTAL = "daily_total"
+    DAILY_COMPLETION_RATE = "daily_completion_rate"
+    DAILY_CREATED = "daily_created"
+    REGULAR_COMPLETED = "regular_completed"
+    REGULAR_TOTAL = "regular_total"
+    REGULAR_COMPLETION_RATE = "regular_completion_rate"
+    AVG_COMPLETION_TIME = "avg_completion_time"
+    NEW_TASKS = "new_tasks"
+    OVERDUE_TASKS = "overdue_tasks"
+    PROJECTS = "projects"
+    DAILY_INSPIRATION_RATE = "daily_inspiration_rate"
+
+
 class TasksComponent(BaseComponent):
     def __init__(self, daily_tasks_db_id: str, tasks_db_id: str, target_date: Optional[date] = None):
-        super().__init__(target_date)
+        super().__init__(target_date, TaskFields)
         self.daily_tasks_db_id = daily_tasks_db_id
         self.tasks_db_id = tasks_db_id
 
     def _initialize_metrics(self):
-        """Initializes task metrics for the target date"""
-        current_month_tasks = self._get_pages_for_month(self.tasks_db_id, self.target_date, date_property="Due")
-        current_month_daily = self._get_pages_for_month(self.daily_tasks_db_id, self.target_date, date_property="Due")
+        """Initialize task metrics for current and previous months"""
+        self._current_metrics = self._get_month_metrics(self.target_date)
 
-        # Get previous month data
         previous_month = self.target_date.replace(day=1) - timedelta(days=1)
-        previous_month_tasks = self._get_pages_for_month(self.tasks_db_id, previous_month, date_property="Due")
-        previous_month_daily = self._get_pages_for_month(self.daily_tasks_db_id, previous_month, date_property="Due")
+        self._previous_metrics = self._get_month_metrics(previous_month)
 
-        # Calculate metrics for current month
-        self._current_metrics = {
-            **self._calculate_task_metrics(current_month_tasks, current_month_daily),
-            'projects': self._get_project_breakdown(current_month_tasks)
-        }
+    def _get_month_metrics(self, target_date: date) -> Dict:
+        """Get all metrics for a given month"""
+        regular_tasks = self._get_pages_for_month(self.tasks_db_id, target_date, date_property="Due")
+        daily_tasks = self._get_pages_for_month(self.daily_tasks_db_id, target_date, date_property="Due")
 
-        # Calculate metrics for previous month
-        self._previous_metrics = {
-            **self._calculate_task_metrics(previous_month_tasks, previous_month_daily),
-            'projects': self._get_project_breakdown(previous_month_tasks)
+        return {
+            **self._calculate_task_metrics(regular_tasks, daily_tasks),
+            TaskFields.PROJECTS: self._get_project_breakdown(regular_tasks)
         }
 
     def _calculate_task_metrics(self, regular_tasks: List[Dict], daily_tasks: List[Dict]) -> Dict:
-        """Calculates combined task metrics"""
-        daily_stats = self._calculate_task_completion(daily_tasks)
-        regular_stats = self._calculate_task_completion(regular_tasks)
+        """Calculate core task metrics"""
+        daily_stats = self._calculate_completion_stats(daily_tasks)
+        regular_stats = self._calculate_completion_stats(regular_tasks)
         daily_creation_stats = self._get_daily_task_creation_stats(daily_tasks)
 
         return {
-            'daily_completed': daily_stats['completed'],
-            'daily_total': daily_stats['total'],
-            'daily_completion_rate': daily_stats['completion_rate'],
-            'daily_created': daily_creation_stats['total_created'],
-            'regular_completed': regular_stats['completed'],
-            'regular_total': regular_stats['total'],
-            'regular_completion_rate': regular_stats['completion_rate'],
-            'avg_completion_time': regular_stats['avg_completion_time'],
-            'new_tasks': len(self._get_new_tasks_in_period(self.tasks_db_id, self.target_date)),
-            'overdue_tasks': len(self._get_overdue_tasks(self.tasks_db_id))
+            TaskFields.DAILY_COMPLETED: daily_stats['completed'],
+            TaskFields.DAILY_TOTAL: daily_stats['total'],
+            TaskFields.DAILY_COMPLETION_RATE: daily_stats['completion_rate'],
+            TaskFields.DAILY_CREATED: daily_creation_stats['total_created'],
+            TaskFields.REGULAR_COMPLETED: regular_stats['completed'],
+            TaskFields.REGULAR_TOTAL: regular_stats['total'],
+            TaskFields.REGULAR_COMPLETION_RATE: regular_stats['completion_rate'],
+            TaskFields.AVG_COMPLETION_TIME: regular_stats['avg_completion_time'],
+            TaskFields.NEW_TASKS: len(self._get_new_tasks_in_period(self.tasks_db_id, self.target_date)),
+            TaskFields.OVERDUE_TASKS: len(self._get_overdue_tasks(self.tasks_db_id)),
+            TaskFields.DAILY_INSPIRATION_RATE: self._calculate_daily_inspiration_rate(daily_tasks)
         }
 
-    def get_metrics(self) -> Dict:
-        """Returns task metrics with comparisons"""
+    def _calculate_completion_stats(self, tasks: List[Dict]) -> Dict:
+        """Calculate task completion statistics"""
+        total = len(tasks)
+        completed_tasks = []
+        completion_times = []
+
+        for task in tasks:
+            if self._is_task_completed(task):
+                completed_tasks.append(task)
+                completion_time = self._calculate_task_completion_time(task)
+                if completion_time:
+                    completion_times.append(completion_time)
+
         return {
-            'daily_completed': {
-                'current': self.current_metrics['daily_completed'],
-                'total': self.current_metrics['daily_total'],
-                'rate': self.current_metrics['daily_completion_rate'],
-                'comparison': self._format_comparison(
-                    self.current_metrics['daily_completion_rate'],
-                    self.previous_metrics['daily_completion_rate'],
-                    'completion rate'
-                )
-            },
-            'non_calendar_tasks': {
-                'current': self.current_metrics['daily_created'],
-                'comparison': self._format_comparison(
-                    self.current_metrics['daily_created'],
-                    self.previous_metrics['daily_created'],
-                    'tasks created'
-                )
-            },
-            'regular_tasks': {
-                'completed': self.current_metrics['regular_completed'],
-                'total': self.current_metrics['regular_total'],
-                'rate': self.current_metrics['regular_completion_rate'],
-                'avg_completion_time': self.current_metrics['avg_completion_time'],
-                'completion_time_comparison': self._format_comparison(
-                    parse_duration_to_seconds(self.current_metrics['avg_completion_time']),
-                    parse_duration_to_seconds(self.previous_metrics['avg_completion_time']),
-                    'completion time',
-                    reverse_comparison=True
-                )
-            },
-            'projects': self.current_metrics['projects']
+            'completed': len(completed_tasks),
+            'total': total,
+            'completion_rate': self._calculate_completion_rate(len(completed_tasks), total),
+            'avg_completion_time': self._calculate_avg_time(completion_times)
+        }
+
+    def _is_task_completed(self, task: Dict) -> bool:
+        """Check if a task is marked as completed"""
+        return task['properties'].get('Done', {}).get('checkbox', False)
+
+    def _calculate_task_completion_time(self, task: Dict) -> Optional[float]:
+        """Calculate time from due date to completion"""
+        try:
+            if not self._is_task_completed(task):
+                return None
+
+            due_date = datetime.fromisoformat(task['properties'].get('Due', {}).get('date', {}).get('start'))
+            completed_time = datetime.fromisoformat(task['last_edited_time'].replace('Z', '+00:00'))
+
+            # Calculate days
+            time_diff = completed_time - due_date
+            return time_diff.total_seconds()
+        except Exception:
+            return None
+
+    def _calculate_completion_rate(self, completed: int, total: int) -> float:
+        """Calculate completion rate percentage"""
+        return round((completed / total * 100) if total > 0 else 0, 1)
+
+    def _calculate_avg_time(self, completion_times: List[float]) -> float:
+        """Calculate average completion time from a list of times"""
+        """Calculate average completion time from a list of times"""
+        if not completion_times:
+            return 0
+        return sum(completion_times) / len(completion_times)
+
+    def _get_daily_task_creation_stats(self, tasks: List[Dict]) -> Dict:
+        """Get statistics about non-calendar daily tasks"""
+        return {
+            'total_created': len([
+                task for task in tasks
+                if not self._is_calendar_task(task)
+            ])
+        }
+
+    def _is_calendar_task(self, task: Dict) -> bool:
+        """Check if a task is a calendar task"""
+        return task['properties'].get('is_calendar', {}).get('formula', {}).get('string') == 'true'
+
+    def _get_project_breakdown(self, tasks: List[Dict]) -> List[Dict]:
+        """Get task completion breakdown by project"""
+        projects = defaultdict(lambda: {'completed': 0, 'total': 0})
+
+        for task in tasks:
+            project = self._get_task_project(task)
+            projects[project]['total'] += 1
+            if self._is_task_completed(task):
+                projects[project]['completed'] += 1
+
+        return self._format_project_stats(projects)
+
+    def _get_task_project(self, task: Dict) -> str:
+        """Get project name for a task"""
+        return task['properties'].get('Project', {}).get('select', {}).get('name', 'Unassigned')
+
+    def _format_project_stats(self, projects: Dict) -> List[Dict]:
+        """Format project statistics for output"""
+        return [
+            {
+                'name': project,
+                'completed': stats['completed'],
+                'total': stats['total']
+            }
+            for project, stats in sorted(projects.items(), key=lambda x: x[1]['total'], reverse=True)
+        ]
+
+    def get_daily_inspiration_rate(self) -> Dict:
+        """Get completion rate for Daily Inspiration tasks"""
+        metrics = self.get_metrics()
+        return {
+            "current": metrics[TaskFields.DAILY_INSPIRATION_RATE]['current']['rate'],
+            "prevous": metrics[TaskFields.DAILY_INSPIRATION_RATE]['previous']['rate'],
+            "change": self.format_change_value(TaskFields.DAILY_INSPIRATION_RATE)
         }
 
     def create_notion_section(self) -> dict:
+        """Create Notion section for tasks summary"""
         metrics = self.get_metrics()
 
         daily_section_bullets = [
-            f"Completed: {metrics['daily_completed']['current']}/{metrics['daily_completed']['total']} "
-            f"({metrics['daily_completed']['rate']}% {metrics['daily_completed']['comparison']})",
-            f"Non-Calendar Tasks Created: {metrics['non_calendar_tasks']['current']} "
-            f"({metrics['non_calendar_tasks']['comparison']})"
+            f"Completed: {metrics[TaskFields.DAILY_COMPLETED]['current']}/{metrics[TaskFields.DAILY_TOTAL]['current']} "
+            f"({metrics[TaskFields.DAILY_COMPLETION_RATE]['current']}% {self.format_change_value(TaskFields.DAILY_COMPLETION_RATE)})",
+
+            f"Daily Inspiration: {metrics[TaskFields.DAILY_INSPIRATION_RATE]['current']['completed']}/"
+            f"{metrics[TaskFields.DAILY_INSPIRATION_RATE]['current']['total']} "
+            f"({metrics[TaskFields.DAILY_INSPIRATION_RATE]['current']['rate']}% {self.format_change_value(TaskFields.DAILY_INSPIRATION_RATE)})",
+
+            f"Non-Calendar Tasks: {metrics[TaskFields.DAILY_CREATED]['current']} "
+            f"({self.format_change_value(TaskFields.DAILY_CREATED)})"
         ]
 
+        avg_time = metrics[TaskFields.AVG_COMPLETION_TIME]['current']
+        avg_time_formatted = format_duration_days(avg_time) if avg_time > 0 else "N/A"
+
         regular_section_bullets = [
-            f"Completed: {metrics['regular_tasks']['completed']}/{metrics['regular_tasks']['total']} "
-            f"({metrics['regular_tasks']['rate']}%)",
-            f"Average Completion Time: {metrics['regular_tasks']['avg_completion_time']} "
-            f"({metrics['regular_tasks']['completion_time_comparison']})"
+            f"Completed: {metrics[TaskFields.REGULAR_COMPLETED]['current']}/{metrics[TaskFields.REGULAR_TOTAL]['current']} "
+            f"({metrics[TaskFields.REGULAR_COMPLETION_RATE]['current']}%)",
         ]
+
+        # Only add completion time if we have valid data
+        if avg_time > 0:
+            regular_section_bullets.append(
+                f"Average Completion Time: {avg_time_formatted} "
+                f"({self.format_change_value(TaskFields.AVG_COMPLETION_TIME, format_type='time', invert_comparison=True)})"
+            )
+        else:
+            regular_section_bullets.append(f"Average Completion Time: {avg_time_formatted}")
 
         daily_blocks = create_section_text_with_bullet("Daily Tasks:", daily_section_bullets)
         regular_blocks = create_section_text_with_bullet("Regular Tasks:", regular_section_bullets)
 
-        project_stats = [
-            f"{project['name']}: {project['completed']}/{project['total']} completed "
-            f"({round((project['completed'] / project['total']) * 100 if project['total'] > 0 else 0, 1)}%)"
-            for project in metrics['projects']
-        ]
-
-        left_column = create_column_block(
+        return create_toggle_heading_block(
             "✅ Task Completion",
-            [*daily_blocks, *regular_blocks]  # Unpack both sections' blocks
+            [*daily_blocks, *regular_blocks],
+            heading_number=2
         )
 
-        right_column = create_column_block(
-            "Projects",
-            [create_toggle_stats_block("Project Breakdown", project_stats)]
-        )
-
-        return create_two_column_section(left_column, right_column)
-    def _create_project_breakdown_block(self, projects: List[Dict]) -> dict:
-        """Creates a project breakdown toggle block for Notion
-
-        Args:
-            projects: List of project dictionaries with name, completed, and total stats
-        """
-        return {
-            "object": "block",
-            "type": "toggle",
-            "toggle": {
-                "rich_text": [
-                    {
-                        "type": "text",
-                        "text": {"content": "Project Breakdown"}
-                    }
-                ],
-                "children": [
-                    {
-                        "object": "block",
-                        "type": "bulleted_list_item",
-                        "bulleted_list_item": {
-                            "rich_text": [
-                                {
-                                    "type": "text",
-                                    "text": {
-                                        "content": f"{project['name']}: {project['completed']}/{project['total']} completed ({round((project['completed'] / project['total']) * 100 if project['total'] > 0 else 0, 1)}%)"
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                    for project in projects
-                ]
-            }
-        }
     def _calculate_task_completion(self, tasks: List[Dict]) -> Dict:
         """Calculates task completion statistics with completion time"""
         total = len(tasks)
@@ -192,25 +236,6 @@ class TasksComponent(BaseComponent):
             'completion_rate': round((len(completed_tasks) / total * 100) if total > 0 else 0, 1),
             'avg_completion_time': avg_completion_time
         }
-
-    def _get_project_breakdown(self, tasks: List[Dict]) -> List[Dict]:
-        """Gets task completion breakdown by project"""
-        projects = defaultdict(lambda: {'completed': 0, 'total': 0})
-
-        for task in tasks:
-            project = task['properties'].get('Project', {}).get('select', {}).get('name', 'Unassigned')
-            projects[project]['total'] += 1
-            if task['properties'].get('Done', {}).get('checkbox', False):
-                projects[project]['completed'] += 1
-
-        return [
-            {
-                'name': project,
-                'completed': stats['completed'],
-                'total': stats['total']
-            }
-            for project, stats in sorted(projects.items(), key=lambda x: x[1]['total'], reverse=True)
-        ]
 
     def _get_new_tasks_in_period(self, db_id: str, target_date: date) -> List[Dict]:
         """Gets tasks created in the specified month"""
@@ -322,17 +347,6 @@ class TasksComponent(BaseComponent):
             return seconds_to_hours_minutes(avg_seconds)
         return "N/A"
 
-    def _get_daily_task_creation_stats(self, tasks: List[Dict]) -> Dict:
-        """Gets statistics about daily task creation excluding calendar tasks"""
-        calendar_tasks = [
-            task for task in tasks
-            if task['properties'].get('is_calendar', {}).get('formula', {}).get('string') != 'true'
-        ]
-
-        return {
-            'total_created': len(calendar_tasks)
-        }
-
     def _calculate_avg_completion_time(self, tasks: List[Dict]) -> str:
         """Calculates average completion time for tasks with due dates in current month"""
         completion_times = []
@@ -348,3 +362,20 @@ class TasksComponent(BaseComponent):
             avg_seconds = sum(completion_times) / len(completion_times)
             return seconds_to_hours_minutes(avg_seconds)
         return "N/A"
+
+    def _calculate_daily_inspiration_rate(self, daily_tasks: List[Dict]) -> Dict:
+        """Calculate completion rate for Daily Inspiration tasks"""
+        inspiration_tasks = [
+            task for task in daily_tasks
+            if 'Daily Inspiration' in task['properties'].get('Project', {}).get('select', {}).get('name')
+        ]
+
+        total = len(inspiration_tasks)
+        completed = sum(1 for task in inspiration_tasks
+                        if task['properties'].get('Done', {}).get('checkbox', False))
+
+        return {
+            'completed': completed,
+            'total': total,
+            'rate': round((completed / total * 100) if total > 0 else 0, 1)
+        }

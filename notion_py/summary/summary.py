@@ -46,13 +46,14 @@ class MonthlySummary:
 
     def generate_children_block(self) -> dict:
         """Generates Notion blocks for the monthly summary"""
-        daily_inspiration_rate = self.tasks_component.get_daily_inspiration_rate()
+        # daily_inspiration_rate = self.tasks_component.get_daily_inspiration_rate()
         return {
             "children": [
-                self.create_intro_section_block(int(daily_inspiration_rate['current']), int(daily_inspiration_rate['previous'])),
-                self.create_my_input_section_block(),
+                # self.create_intro_section_block(int(daily_inspiration_rate['current']), int(daily_inspiration_rate['previous'])),
+                # self.create_my_input_section_block(),
 
-                # self.goal_component.create_notion_section(),
+                self.goal_component.create_notion_section(),
+
                 # self.health_component.create_notion_section(),
                 # create_separator_block(),
                 # self.tasks_component.create_notion_section(),
@@ -109,7 +110,7 @@ def create_monthly_summary_page(target_date: Optional[date] = None) -> Dict:
                                                target_date=target_date)
         development_component = DevelopmentComponent(Keys.book_summaries_db_id, Keys.daily_tasks_db_id,
                                                      target_date=target_date)
-        goal_component = GoalComponent(Keys.goals_db_id, target_date=target_date)
+        goal_component = GoalComponent(Keys.goals_db_id, Keys.goals_view_link, target_date=target_date)
 
         # Create summary object
         summary = MonthlySummary(

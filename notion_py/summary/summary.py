@@ -47,9 +47,11 @@ class MonthlySummary:
     def generate_children_block(self) -> dict:
         """Generates Notion blocks for the monthly summary"""
         daily_inspiration_rate = self.tasks_component.get_daily_inspiration_rate()
+        api_success_rate = self.development_component.get_daily_api_success_rate()
         return {
             "children": [
-                self.create_intro_section_block(int(daily_inspiration_rate['current']), int(daily_inspiration_rate['previous'])),
+                self.create_intro_section_block(int(daily_inspiration_rate['current']), int(daily_inspiration_rate['previous']),
+                                                int(api_success_rate['current']), int(api_success_rate['previous'])),
                 self.create_my_input_section_block(),
                 create_separator_block(),
                 create_separator_block(),
@@ -70,21 +72,32 @@ class MonthlySummary:
                 self.finances_component.create_notion_section(),
                 create_separator_block(),
                 create_paragraph_block(""),
-
+                #
                 # self.development_component.create_notion_section()
             ]
         }
 
-    def create_intro_section_block(self, daily_inspiration_rate, previous_inspiration_rate):
+
+
+    def create_intro_section_block(self, daily_inspiration_rate, previous_inspiration_rate,
+                                   current_api_success_rate, previous_api_success_rate):
         icon = "🆙" if daily_inspiration_rate >= previous_inspiration_rate else "🔽"
         daily_inspiration_str = f"{daily_inspiration_rate}%"
         previous_inspiration_str = f"{previous_inspiration_rate}%"
+
+        api_icon = "🆙" if current_api_success_rate >= previous_api_success_rate else "🔽"
+        current_api_str = f"{current_api_success_rate}%"
+        previous_api_str = f"{previous_api_success_rate}%"
+
         return create_three_column_layout(
             create_callout_block([create_heading_2_block(daily_inspiration_str),
                                   create_paragraph_block(f"{icon} Previous rate: {previous_inspiration_str}",
                                                          bold_word=previous_inspiration_str)],
                                  "Open Notion Daily"),
-            create_paragraph_block(""),
+            create_callout_block([create_heading_2_block(current_api_str),
+                                  create_paragraph_block(f"{api_icon} Previous rate: {previous_api_str}",
+                                                         bold_word=previous_inspiration_str)],
+                                 "API Success Rate", emoji="🌐"),
             create_paragraph_block(""))
 
     def create_my_input_section_block(self):
@@ -117,7 +130,7 @@ def create_monthly_summary_page(target_date: Optional[date] = None) -> Dict:
         finances_component = FinancesComponent(Keys.expense_tracker_db_id, Keys.monthly_category_expense_db,
                                                Keys.monthly_expenses_summary_previous_month_view_link,
                                                target_date=target_date)
-        development_component = DevelopmentComponent(Keys.book_summaries_db_id, Keys.daily_tasks_db_id,
+        development_component = DevelopmentComponent(Keys.book_summaries_db_id, Keys.api_db_id,
                                                      target_date=target_date)
         goal_component = GoalComponent(Keys.goals_db_id, Keys.goals_view_link, target_date=target_date)
 

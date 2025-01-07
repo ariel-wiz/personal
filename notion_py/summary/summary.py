@@ -46,21 +46,30 @@ class MonthlySummary:
 
     def generate_children_block(self) -> dict:
         """Generates Notion blocks for the monthly summary"""
-        # daily_inspiration_rate = self.tasks_component.get_daily_inspiration_rate()
+        daily_inspiration_rate = self.tasks_component.get_daily_inspiration_rate()
         return {
             "children": [
-                # self.create_intro_section_block(int(daily_inspiration_rate['current']), int(daily_inspiration_rate['previous'])),
-                # self.create_my_input_section_block(),
+                self.create_intro_section_block(int(daily_inspiration_rate['current']), int(daily_inspiration_rate['previous'])),
+                self.create_my_input_section_block(),
+                create_separator_block(),
+                create_separator_block(),
+                create_paragraph_block(""),
 
                 self.goal_component.create_notion_section(),
+                create_separator_block(),
+                create_paragraph_block(""),
 
-                # self.health_component.create_notion_section(),
-                # create_separator_block(),
-                # self.tasks_component.create_notion_section(),
-                # create_separator_block(),
+                self.health_component.create_notion_section(),
+                create_separator_block(),
+                create_paragraph_block(""),
 
-                # self.finances_component.create_notion_section(),
-                # create_separator_block(),
+                self.tasks_component.create_notion_section(),
+                create_separator_block(),
+                create_paragraph_block(""),
+
+                self.finances_component.create_notion_section(),
+                create_separator_block(),
+                create_paragraph_block(""),
 
                 # self.development_component.create_notion_section()
             ]

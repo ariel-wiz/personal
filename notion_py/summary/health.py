@@ -25,9 +25,10 @@ class HealthFields:
 
 
 class HealthComponent(BaseComponent):
-    def __init__(self, garmin_db_id, target_date: Optional[date] = None):
+    def __init__(self, garmin_db_id, garmin_view_link, target_date: Optional[date] = None):
         super().__init__(target_date, HealthFields)
         self.garmin_db_id = garmin_db_id
+        self.garmin_view_link = garmin_view_link
 
     def _initialize_metrics(self):
         """Initializes health metrics for the target date"""
@@ -165,4 +166,8 @@ class HealthComponent(BaseComponent):
                      create_heading_3_block("Activities Breakdown"),
                  ] + create_stats_list(activities_stats)
 
-        return create_toggle_heading_block("🏃‍♂️ Health & Activity", blocks, heading_number=2)
+        return create_toggle_heading_block("🏃‍♂️ Health & Activity - 🔗", blocks, heading_number=2,
+                                           link_url={
+                                               "url": self.garmin_view_link,
+                                               "subword": "🔗"
+                                           })

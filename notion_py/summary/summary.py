@@ -58,9 +58,9 @@ class MonthlySummary:
 
                 *self.tasks_component.get_notion_section(),
 
-                *self.finances_component.get_notion_section()
+                *self.finances_component.get_notion_section(),
 
-                # self.development_component.create_notion_section()
+                self.development_component.create_notion_section()
             ]
         }
 
@@ -117,14 +117,18 @@ def create_monthly_summary_page(target_date: Optional[date] = None) -> Dict:
 
     try:
         # Initialize components
-        health_component = HealthComponent(Keys.garmin_db_id, target_date=target_date)
-        tasks_component = TasksComponent(Keys.daily_tasks_db_id, Keys.tasks_db_id, target_date=target_date)
+        api_status_view_link = 'https://www.notion.so/127afca4f80780f89bd9d2f616487023?v=175afca4f80780ea83e5000c12635be7&pvs=4'
+        daily_tasks_viw_link = 'https://www.notion.so/10bafca4f807800fbb53ebf0c7ebbb0f?v=fffafca4f80781a887ea000cc44ae3f2&pvs=4'
+
+        goal_component = GoalComponent(Keys.goals_db_id, Keys.goals_view_link, target_date=target_date)
+        health_component = HealthComponent(Keys.garmin_db_id, Keys.garmin_view_link, target_date=target_date)
+        tasks_component = TasksComponent(Keys.daily_tasks_db_id, Keys.tasks_db_id, Keys.daily_tasks_viw_link,
+                                         target_date=target_date)
         finances_component = FinancesComponent(Keys.expense_tracker_db_id, Keys.monthly_category_expense_db,
                                                Keys.monthly_expenses_summary_previous_month_view_link,
                                                target_date=target_date)
         development_component = DevelopmentComponent(Keys.book_summaries_db_id, Keys.api_db_id,
-                                                     target_date=target_date)
-        goal_component = GoalComponent(Keys.goals_db_id, Keys.goals_view_link, target_date=target_date)
+                                                     Keys.api_status_view_link,target_date=target_date)
 
         # Create summary object
         summary = MonthlySummary(
@@ -138,7 +142,7 @@ def create_monthly_summary_page(target_date: Optional[date] = None) -> Dict:
 
         # Create page
         page_data = {
-            "Name": f"Monthly Summary - {target_date.strftime('%B %Y')}",
+            "Name": f"{target_date.strftime('%B %Y')}",
             "Date": target_date.isoformat(),
             "Icon": generate_icon_url(IconType.CHECKLIST, IconColor.BLUE)
         }

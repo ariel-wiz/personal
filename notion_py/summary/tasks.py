@@ -26,10 +26,11 @@ class TaskFields:
 
 
 class TasksComponent(BaseComponent):
-    def __init__(self, daily_tasks_db_id: str, tasks_db_id: str, target_date: Optional[date] = None):
+    def __init__(self, daily_tasks_db_id: str, tasks_db_id: str, daily_tasks_view_link: str, target_date: Optional[date] = None):
         super().__init__(target_date, TaskFields)
         self.daily_tasks_db_id = daily_tasks_db_id
         self.tasks_db_id = tasks_db_id
+        self.daily_tasks_view_link = daily_tasks_view_link
 
     def _initialize_metrics(self):
         """Initialize task metrics for current and previous months"""
@@ -202,9 +203,14 @@ class TasksComponent(BaseComponent):
         regular_blocks = create_section_text_with_bullet("Regular Tasks:", regular_section_bullets)
 
         return create_toggle_heading_block(
-            "✅ Task Completion",
+            "✅ Task Completion - 🔗",
             [*daily_blocks, *regular_blocks],
-            heading_number=2
+            heading_number=2,
+            link_url={
+                "url": self.daily_tasks_view_link,
+                "subword": "🔗"
+            }
+
         )
 
     def _calculate_task_completion(self, tasks: List[Dict]) -> Dict:

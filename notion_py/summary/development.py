@@ -44,10 +44,12 @@ class DevelopmentFields:
 
 
 class DevelopmentComponent(BaseComponent):
-    def __init__(self, book_summaries_db_id: str, api_db_id: str, target_date: Optional[date] = None):
+    def __init__(self, book_summaries_db_id: str, api_db_id: str, api_status_view_link: str,
+                 target_date: Optional[date] = None):
         super().__init__(target_date, DevelopmentFields)
-        self.book_summaries_db_id = book_summaries_db_id
+        self.book_summaries_db_id = book_summaries_db_id,
         self.api_db_id = api_db_id
+        self.api_status_view_link = api_status_view_link
 
     def _initialize_metrics(self):
         """Initialize metrics for current and previous months"""
@@ -76,62 +78,39 @@ class DevelopmentComponent(BaseComponent):
 
     def _get_api_metrics(self, target_date: date) -> Dict:
         """Calculate API-related metrics for the month"""
-        import calendar
-        from datetime import date as date_class
-
         api_pages = self._get_pages_for_month(
             self.api_db_id,
             target_date,
             date_property="Date"
         )
 
-        # Get total days in month
         total_days = calendar.monthrange(target_date.year, target_date.month)[1]
-
-        # Initialize daily state tracking
         daily_states = {}
         daily_failures = []
 
-        # Process each day's status
         for page in api_pages:
             date = page['properties']['Date']['date']['start']
-
-            # Get overall state for the day
             state = self._determine_daily_state(page['properties'])
-
-            # Get failure reason - only get the error operations from ExtendedState
-            failure_reason = None
-            if state == 'Failure':
-                failure_reason = self._extract_error_operations(page['properties'])
-
             daily_states[date] = state
 
-            # Track failures with details
-            if state == 'Failure' and failure_reason:
-                daily_failures.append({
+            # Only process failures
+            if state == 'Failure':
+                failure_details = {
                     'date': date,
-                    'reason': failure_reason
-                })
-
-        # Calculate states for all days in month
-        all_states = []
-        for day in range(1, total_days + 1):
-            current_date = date_class(target_date.year, target_date.month, day).isoformat()
-            state = daily_states.get(current_date, 'No Data')
-            all_states.append({
-                'date': current_date,
-                'state': state
-            })
-
-        # Calculate success rate
-        success_days = len([state for state in daily_states.values() if state == 'Success'])
+                    'operations': self._extract_error_operations(page['properties'])
+                }
+                if failure_details['operations']:
+                    daily_failures.append(failure_details)
 
         return {
-            DevelopmentFields.API_SUCCESS_RATE: self._calculate_rate(success_days, total_days),
-            DevelopmentFields.API_TOTAL_RUNS: total_days,
-            DevelopmentFields.API_SUCCESS_RUNS: success_days,
-            DevelopmentFields.API_FAILURES: daily_failures,
-            DevelopmentFields.API_STATES: all_states
+            'api_success_rate': self._calculate_rate(
+                len([s for s in daily_states.values() if s == 'Success']),
+                total_days
+            ),
+            'api_total_runs': total_days,
+            'api_success_runs': len([s for s in daily_states.values() if s == 'Success']),
+            'api_failures': daily_failures,
+            'api_states': [{'date': d, 'state': s} for d, s in daily_states.items()]
         }
 
     def _extract_error_operations(self, properties: Dict) -> str:
@@ -282,19 +261,23 @@ class DevelopmentComponent(BaseComponent):
         # Add failure details if any
         if metrics[DevelopmentFields.API_FAILURES]['current']:
             api_metrics.extend([
-                                   f"Failures ({len(metrics[DevelopmentFields.API_FAILURES]['current'])}):"
+                                   "Failures:"
                                ] + [
-                                   f"- {failure['operation']} ({failure['date']}): {failure['reason']}"
+                                   f"- {failure['date']}: {failure['operations']}"
                                    for failure in metrics[DevelopmentFields.API_FAILURES]['current']
                                ])
 
         return create_toggle_heading_block(
-            "📚 Development & API Status",
+            "📚 Development & API Status - 🔗",
             [
                 *create_section_text_with_bullet("Book Progress:", book_metrics),
                 *create_section_text_with_bullet("🔄 API Status:", api_metrics)
             ],
-            heading_number=2
+            heading_number=2,
+            link_url={
+                "url": self.api_status_view_link,
+                "subword": "🔗"
+            }
         )
 
     def get_metrics(self) -> Dict:

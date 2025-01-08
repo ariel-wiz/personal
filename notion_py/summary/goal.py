@@ -199,12 +199,11 @@ class GoalComponent(BaseComponent):
         if len(metrics[GoalFields.ALL_PENDING]['current']) > 0:
             for i, pending_goal in enumerate(metrics[GoalFields.ALL_PENDING]['current']):
                 first_part, second_part = pending_goal.split(" ➡️")
-                days_part = "(" + second_part.split("(")[1].split(")")[0] + ")"
-                if "overdue" in days_part:
-                    color = "red"
-                else:
-                    color = "default"
-                color_data = [{"color": color, "words": days_part}]
+                days_part = second_part.split("(")[1].split(")")[0]
+
+                color = "red" if "overdue" in days_part.lower() else "default"
+
+                color_data = [{"color": color, "words": f"({days_part})"}]
 
                 blocks.append(
                     create_paragraph_block(f"{i} - {pending_goal}", bold_word=first_part, color_list=color_data)

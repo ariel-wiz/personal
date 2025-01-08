@@ -320,8 +320,10 @@ class FinancesComponent(BaseComponent):
             "emoji": "💰",
             "list": [create_heading_2_block(ratio_str),
                      create_paragraph_block(previous_ratio_avg_str,
-                                            bold_word=previous_ratio_str)]
+                                            bold_word=previous_ratio_str)],
+            "color_background": "green" if current_ratio > 0 else "red"
             }
+
         return self.generate_callout_block(callout_element)
 
 

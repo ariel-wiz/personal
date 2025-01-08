@@ -220,7 +220,8 @@ class BaseComponent:
             element['list'],  # The list is passed as children
             element['title'],
             emoji=element.get('emoji'),
-            bold_title=bold_title
+            bold_title=bold_title,
+            color_background=element.get('color_background'),
         )
 
     def generate_column_callouts(self, callout_elements_list, column_size=3):

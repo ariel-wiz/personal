@@ -21,6 +21,7 @@ class HealthFields:
     AVG_WAKE_TIME = "avg_wake_time"
     MISSING_DAYS = "missing_days"
     AVG_CALORIES = "avg_calories"
+    AVG_WEIGHT = "avg_weight"
 
 
 class HealthComponent(BaseComponent):
@@ -96,6 +97,14 @@ class HealthComponent(BaseComponent):
                     if not props.get('Activities'):  # Only count days without activities
                         days_count += 1
 
+            weights = []
+            for page in pages:
+                weight = page['properties'].get('Weight', {}).get('number')
+                if weight:
+                    weights.append(weight)
+
+            avg_weight = round(sum(weights) / len(weights), 1) if weights else 0
+
         # Format activities for output
         formatted_activities = [
             {
@@ -113,11 +122,13 @@ class HealthComponent(BaseComponent):
             HealthFields.TOTAL_WORKOUTS: sum(activity['sessions'] for activity in formatted_activities),
             HealthFields.AVG_STEPS: round(total_steps / days_count) if days_count > 0 else 0,
             HealthFields.AVG_CALORIES: round(sum(calories) / len(calories)) if calories else 0,
-            HealthFields.AVG_SLEEP_DURATION: seconds_to_hours_minutes(total_sleep_seconds / days_count) if days_count > 0 else "0h",
+            HealthFields.AVG_SLEEP_DURATION: seconds_to_hours_minutes(
+                total_sleep_seconds / days_count) if days_count > 0 else "0h",
             HealthFields.ACTIVITIES: sorted(formatted_activities, key=lambda x: x['sessions'], reverse=True),
             HealthFields.AVG_BED_TIME: avg_sleep_time.strftime('%H:%M') if avg_sleep_time else "N/A",
             HealthFields.AVG_WAKE_TIME: avg_wake_time.strftime('%H:%M') if avg_wake_time else "N/A",
-            HealthFields.MISSING_DAYS: missing_days
+            HealthFields.MISSING_DAYS: missing_days,
+            HealthFields.AVG_WEIGHT: avg_weight
         }
 
     def create_notion_section(self):
@@ -126,13 +137,22 @@ class HealthComponent(BaseComponent):
         main_metrics_headers = ["Metric", "Value", "Change"]
 
         main_metrics = [
-            ["🏃 Workouts", metrics[HealthFields.TOTAL_WORKOUTS]['current'], self.format_change_value(HealthFields.TOTAL_WORKOUTS)],
-            ["👣 Average Steps", metrics[HealthFields.AVG_STEPS]['current'], self.format_change_value(HealthFields.AVG_STEPS)],
-            ["💦 Average Calories", metrics[HealthFields.AVG_CALORIES]['current'], self.format_change_value(HealthFields.AVG_CALORIES)],
-            ["😴 Sleep Duration", metrics[HealthFields.AVG_SLEEP_DURATION]['current'], f"⏰ Previous: {metrics[HealthFields.AVG_SLEEP_DURATION]['previous']}"],
-            ["🌙 Bedtime", metrics[HealthFields.AVG_BED_TIME]['current'], f"⏰ Previous: {metrics[HealthFields.AVG_BED_TIME]['previous']}"],
-            ["☀️ Wake Time", metrics[HealthFields.AVG_WAKE_TIME]['current'], f"⏰ Previous: {metrics[HealthFields.AVG_WAKE_TIME]['previous']}"],
-            ["📅 Missing Days", metrics[HealthFields.MISSING_DAYS]['current'], f"📅 Previous: {metrics[HealthFields.MISSING_DAYS]['previous']}"]
+            ["🏃 Workouts", metrics[HealthFields.TOTAL_WORKOUTS]['current'],
+             self.format_change_value(HealthFields.TOTAL_WORKOUTS)],
+            ["⚖️ Average Weight", f"{metrics[HealthFields.AVG_WEIGHT]['current']}kg",
+             self.format_change_value(HealthFields.AVG_WEIGHT)],
+            ["👣 Average Steps", metrics[HealthFields.AVG_STEPS]['current'],
+             self.format_change_value(HealthFields.AVG_STEPS)],
+            ["💦 Average Calories", metrics[HealthFields.AVG_CALORIES]['current'], self.format_change_value(
+                HealthFields.AVG_CALORIES)],
+            ["😴 Sleep Duration", metrics[HealthFields.AVG_SLEEP_DURATION]['current'],
+             f"⏰ Previous: {metrics[HealthFields.AVG_SLEEP_DURATION]['previous']}"],
+            ["🌙 Bedtime", metrics[HealthFields.AVG_BED_TIME]['current'],
+             f"⏰ Previous: {metrics[HealthFields.AVG_BED_TIME]['previous']}"],
+            ["☀️ Wake Time", metrics[HealthFields.AVG_WAKE_TIME]['current'],
+             f"⏰ Previous: {metrics[HealthFields.AVG_WAKE_TIME]['previous']}"],
+            ["📅 Missing Days", metrics[HealthFields.MISSING_DAYS]['current'],
+             f"📅 Previous: {metrics[HealthFields.MISSING_DAYS]['previous']}"]
         ]
 
         activities_stats = [
@@ -141,8 +161,8 @@ class HealthComponent(BaseComponent):
         ]
 
         blocks = [
-                   create_table_block(main_metrics_headers, main_metrics),
-                   create_heading_3_block("Activities Breakdown"),
-               ] + create_stats_list(activities_stats)
+                     create_table_block(main_metrics_headers, main_metrics),
+                     create_heading_3_block("Activities Breakdown"),
+                 ] + create_stats_list(activities_stats)
 
         return create_toggle_heading_block("🏃‍♂️ Health & Activity", blocks, heading_number=2)

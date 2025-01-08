@@ -84,17 +84,19 @@ class MonthlySummary:
             create_callout_block([create_heading_2_block(daily_inspiration_str),
                                   create_paragraph_block(f"{icon} Previous rate: {previous_inspiration_str}",
                                                          bold_word=previous_inspiration_str)],
-                                 "Open Notion Daily"),
+                                 "Open Notion Daily", color_background="orange"),
             create_callout_block([create_heading_2_block(current_api_str),
                                   create_paragraph_block(f"{api_icon} Previous rate: {previous_api_str}",
                                                          bold_word=previous_inspiration_str)],
-                                 "API Success Rate", emoji="🌐"),
+                                 "API Success Rate", emoji="🌐", color_background="blue"),
             self.finances_component.get_summary_category_block(),
         )
 
     def create_my_input_section_block(self):
-        return [create_toggle_heading_block("👮🏼 My monthly input", [create_paragraph_block("")], heading_number=2),
-                create_separator_block(),
+        return [create_separator_block(),
+                create_toggle_heading_block("👮🏼 My monthly input", [create_paragraph_block(""),
+                                                                    create_paragraph_block("")], heading_number=2,
+                                            color_background="yellow"),
                 create_paragraph_block("")]
 
 

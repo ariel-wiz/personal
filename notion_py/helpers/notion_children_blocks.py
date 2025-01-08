@@ -345,15 +345,11 @@ def create_toggle_heading_block(content, children_blocks: list, heading_number=3
             "text": {"content": content}
         }]
 
-    # Add color background if specified
-    if color_background:
-        for text_elem in rich_text:
-            text_elem["annotations"] = {"color": f"{color_background}_background"}
-
     block = {
         "object": "block",
         "type": heading_number_str,
         heading_number_str: {
+            "color": f"{color_background}_background" if color_background else "default",
             "rich_text": rich_text,
             "is_toggleable": True,
             "children": children_blocks
@@ -734,7 +730,8 @@ def create_callout_block(children: list = None,
                          background: str = "default",
                          emoji: str = "⭐",
                          link: str = None,
-                         bold_title: bool = False) -> dict:
+                         bold_title: bool = False,
+                         color_background="") -> dict:
     """
     Creates a callout block with customizable properties
 
@@ -765,11 +762,11 @@ def create_callout_block(children: list = None,
         "type": "callout",
         "callout": {
             "rich_text": [rich_text_content],
+            "color": f"{color_background}_background" if color_background else "default",
             "icon": {
                 "type": "emoji",
                 "emoji": emoji
-            },
-            "color": background
+            }
         }
     }
 

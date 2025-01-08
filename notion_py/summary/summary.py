@@ -46,45 +46,36 @@ class MonthlySummary:
 
     def generate_children_block(self) -> dict:
         """Generates Notion blocks for the monthly summary"""
-        daily_inspiration_rate = self.tasks_component.get_daily_inspiration_rate()
-        api_success_rate = self.development_component.get_daily_api_success_rate()
         return {
             "children": [
-                self.create_intro_section_block(int(daily_inspiration_rate['current']), int(daily_inspiration_rate['previous']),
-                                                int(api_success_rate['current']), int(api_success_rate['previous'])),
-                self.create_my_input_section_block(),
-                create_separator_block(),
-                create_separator_block(),
-                create_paragraph_block(""),
+                self.create_intro_section_block(),
 
-                self.goal_component.create_notion_section(),
-                create_separator_block(),
-                create_paragraph_block(""),
+                *self.create_my_input_section_block(),
 
-                self.health_component.create_notion_section(),
-                create_separator_block(),
-                create_paragraph_block(""),
+                *self.goal_component.get_notion_section(),
 
-                self.tasks_component.create_notion_section(),
-                create_separator_block(),
-                create_paragraph_block(""),
+                *self.health_component.get_notion_section(),
 
-                self.finances_component.create_notion_section(),
-                create_separator_block(),
-                create_paragraph_block(""),
-                #
+                *self.tasks_component.get_notion_section(),
+
+                *self.finances_component.get_notion_section()
+
                 # self.development_component.create_notion_section()
             ]
         }
 
+    def create_intro_section_block(self):
+        daily_inspiration_rate = self.tasks_component.get_daily_inspiration_rate()
+        api_success_rate = self.development_component.get_daily_api_success_rate()
 
-
-    def create_intro_section_block(self, daily_inspiration_rate, previous_inspiration_rate,
-                                   current_api_success_rate, previous_api_success_rate):
-        icon = "🆙" if daily_inspiration_rate >= previous_inspiration_rate else "🔽"
-        daily_inspiration_str = f"{daily_inspiration_rate}%"
+        current_inspiration_rate = int(daily_inspiration_rate['current'])
+        previous_inspiration_rate = int(daily_inspiration_rate['previous'])
+        icon = "🆙" if current_inspiration_rate >= previous_inspiration_rate else "🔽"
+        daily_inspiration_str = f"{current_inspiration_rate}%"
         previous_inspiration_str = f"{previous_inspiration_rate}%"
 
+        current_api_success_rate = int(api_success_rate['current'])
+        previous_api_success_rate = int(api_success_rate['previous'])
         api_icon = "🆙" if current_api_success_rate >= previous_api_success_rate else "🔽"
         current_api_str = f"{current_api_success_rate}%"
         previous_api_str = f"{previous_api_success_rate}%"
@@ -98,14 +89,13 @@ class MonthlySummary:
                                   create_paragraph_block(f"{api_icon} Previous rate: {previous_api_str}",
                                                          bold_word=previous_inspiration_str)],
                                  "API Success Rate", emoji="🌐"),
-            create_paragraph_block(""))
+            self.finances_component.get_summary_category_block(),
+        )
 
     def create_my_input_section_block(self):
-        return create_toggle_heading_block(
-            "👮🏼 My monthly input",
-            [create_paragraph_block("")],
-            heading_number=2
-        )
+        return [create_toggle_heading_block("👮🏼 My monthly input", [create_paragraph_block("")], heading_number=2),
+                create_separator_block(),
+                create_paragraph_block("")]
 
 
 @track_operation(NotionAPIOperation.CREATE_MONTHLY_SUMMARY)

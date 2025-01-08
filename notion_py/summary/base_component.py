@@ -2,6 +2,8 @@ from datetime import date, timedelta
 from typing import Dict, List, Optional
 
 from common import today, seconds_to_hours_minutes, parse_duration_to_seconds, calculate_month_boundaries
+from notion_py.helpers.notion_children_blocks import create_three_column_layout, create_callout_block, \
+    create_paragraph_block, create_separator_block
 from notion_py.helpers.notion_common import get_db_pages
 from logger import logger
 
@@ -43,7 +45,6 @@ class BaseComponent:
         self.field_class = field_class
         self.previous_month = self.target_date.replace(day=1) - timedelta(days=1)
 
-
     def _get_target_date(self, target_date: Optional[date] = None) -> date:
         if target_date is None:
             if today.month == 1:
@@ -67,6 +68,13 @@ class BaseComponent:
 
     def create_notion_section(self) -> dict:
         raise NotImplementedError()
+
+    def get_notion_section(self) -> list:
+        return [
+            create_separator_block(),
+            self.create_notion_section(),
+            create_paragraph_block("")
+        ]
 
     @property
     def current_metrics(self):
@@ -206,3 +214,35 @@ class BaseComponent:
             }
 
         return result
+
+    def generate_callout_block(self, element, bold_title=False):
+        return create_callout_block(
+            element['list'],  # The list is passed as children
+            element['title'],
+            emoji=element.get('emoji'),
+            bold_title=bold_title
+        )
+
+    def generate_column_callouts(self, callout_elements_list, column_size=3):
+        """
+        Generate blocks of callouts arranged in columns.
+        Each callout should be a top-level block within a column.
+        """
+        result_blocks = []
+        current_blocks = []
+
+        for element in callout_elements_list:
+            current_blocks.append(self.generate_callout_block(element, bold_title=True))
+
+            # When we have enough blocks for a row
+            if len(current_blocks) == column_size:
+                result_blocks.append(create_three_column_layout(*current_blocks))
+                current_blocks = []
+
+        # Handle any remaining blocks
+        if current_blocks:
+            while len(current_blocks) < column_size:
+                current_blocks.append(create_paragraph_block(""))
+            result_blocks.append(create_three_column_layout(*current_blocks))
+
+        return result_blocks

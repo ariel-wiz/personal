@@ -7,6 +7,7 @@ from expense.expense_constants import ENGLISH_CATEGORY
 from notion_py.helpers.notion_children_blocks import (
     create_toggle_heading_block,
     create_section_text_with_bullet, create_db_block, create_heading_3_block, create_paragraph_block,
+    create_heading_2_block,
 )
 from notion_py.summary.base_component import BaseComponent
 
@@ -19,6 +20,7 @@ class FinanceFields:
     CATEGORY_CHANGES = "category_changes"
     MONTHLY_EXPENSES = "monthly_expenses"
     INCOME = "income"
+    SAVING = "saving"
     RECURRING_EXPENSES = "recurring_expenses"
 
 
@@ -157,6 +159,7 @@ class FinancesComponent(BaseComponent):
         """Calculate metrics from monthly category pages"""
         total_expenses = 0
         total_income = 0
+        total_saving = 0
 
         for page in month_pages:
             if self._is_expense_category(page):
@@ -167,10 +170,15 @@ class FinancesComponent(BaseComponent):
                 amount = self._get_category_amount(page)
                 if amount:
                     total_income += amount
+            elif self._is_saving_category(page):
+                amount = self._get_category_amount(page)
+                if amount:
+                    total_saving += amount
 
         return {
             FinanceFields.TOTAL_EXPENSES: round(total_expenses, 2),
-            FinanceFields.INCOME: round(total_income, 2)
+            FinanceFields.INCOME: round(total_income, 2),
+            FinanceFields.SAVING: round(total_saving, 2)
         }
 
     def _get_category_amount(self, page: Dict) -> float:
@@ -179,13 +187,20 @@ class FinancesComponent(BaseComponent):
 
     def _is_expense_category(self, page: Dict) -> bool:
         """Check if page is an expense category"""
-        category = page['properties']['Category']['title'][0]['plain_text']
-        return category == "Expenses"
+        return self.is_category(page, "Expenses")
 
     def _is_income_category(self, page: Dict) -> bool:
         """Check if page is an income category"""
+        return self.is_category(page, "Income")
+
+    def _is_saving_category(self, page: Dict) -> bool:
+        """Check if page is an income category"""
+        return self.is_category(page, "Saving")
+
+    def is_category(self, page: Dict, category_name) -> bool:
+        """Check if page is an income category"""
         category = page['properties']['Category']['title'][0]['plain_text']
-        return category == "Income"
+        return category == category_name
 
     def _get_category_summary(self, month_pages: List[Dict]) -> List[Dict]:
         """Get summary of all categories with their totals and performance"""
@@ -225,6 +240,116 @@ class FinancesComponent(BaseComponent):
             if clean_category in full_category:
                 return full_category.split(' ')[-1]
         return "📌"
+
+    def get_main_categories_list(self):
+        metrics = self.get_metrics()
+
+        # Separate main categories and other categories
+        main_categories = []
+
+        for category in metrics[FinanceFields.TOP_CATEGORIES]['current']:
+            if not category['amount']:
+                continue
+
+            # Format strings with integers
+            amount_str = f"₪{int(abs(category['amount'])):,}"
+            avg_str = f"₪{int(abs(category['average'])):,}" if category['average'] else "No average"
+
+            # Calculate performance indicator
+            percentage = category['percentage']
+            if percentage is not None:
+                is_expense = category['name'] == "Expenses"
+                is_above_average = percentage > 100
+
+                # For expenses, flip the interpretation
+                if is_expense:
+                    is_above_average = not is_above_average
+
+                arrow = "⬆️" if is_above_average else "⬇️"
+                comparison = "above" if is_above_average else "below"
+                performance = f"{arrow} {int(abs(percentage))}% {comparison} average"
+
+                # Determine color
+                if abs(percentage) > 5:  # Only color if difference is significant
+                    if category['name'] in ['Income', 'Saving']:
+                        color = "green" if is_above_average else "red"
+                    else:
+                        color = "red" if is_above_average else "green"
+                else:
+                    color = None
+
+                # Bold the percentage part
+                bold_part = f"{int(abs(percentage))}% {comparison} average"
+            else:
+                performance = "➖ On average"
+                color = None
+
+            # Format bullet point
+            icon = self._get_category_icon(category['name'])
+
+            # Sort into main or other categories
+            if category['name'] in ['Income', 'Expenses', 'Saving']:
+                main_categories.append({"category": category['name'],
+                                        "amount": amount_str,
+                                        "average": avg_str,
+                                        "performance": performance,
+                                        "icon": icon,
+                                        "color": color})
+
+        return main_categories
+
+    def get_summary_category_block(self):
+        metrics = self.get_metrics()
+        current_ratio = metrics[FinanceFields.INCOME]['current'] - metrics[FinanceFields.TOTAL_EXPENSES]['current']
+        previous_ratio = metrics[FinanceFields.INCOME]['previous'] - metrics[FinanceFields.TOTAL_EXPENSES]['previous']
+        #
+        # current_expense = metrics[FinanceFields.TOTAL_EXPENSES]['current']
+        # previous_expense = metrics[FinanceFields.TOTAL_EXPENSES]['previous']
+        #
+        # current_saving = metrics[FinanceFields.SAVING]['current']
+        # previous_saving = metrics[FinanceFields.SAVING]['previous']
+
+        title = "Financial Summary"
+        arrow = "⬆️" if current_ratio > previous_ratio else "⬇️"
+        ratio_str = f"+{int(abs(current_ratio)):,} ₪"
+        previous_ratio_str = f"{int(abs(previous_ratio)):,} ₪"
+        previous_ratio_avg_str = f"{arrow} Average: {previous_ratio_str}"
+
+        callout_element = {
+            "title": title,
+            "emoji": "💰",
+            "list": [create_heading_2_block(ratio_str),
+                     create_paragraph_block(previous_ratio_avg_str,
+                                            bold_word=previous_ratio_str)]
+            }
+        return self.generate_callout_block(callout_element)
+
+
+
+    def get_main_categories_blocks(self) -> List[Dict]:
+        main_categories = self.get_main_categories_list()
+        element_to_add = []
+
+        for element in main_categories:
+            category = element['category']
+            amount = element['amount']
+            avg = element['average']
+            performance = element['performance']
+            icon = element['icon']
+            color = element['color']
+
+            performance_icon = "⬆️" if "above" in performance else "⬇️"
+
+            element_dict = {
+                "title": category,
+                "emoji": icon,
+                "list": [create_heading_2_block(amount, color=color),
+                         create_paragraph_block(f"{performance_icon} Average: {avg}",
+                                                bold_word=avg)]
+            }
+            element_to_add.append(element_dict)
+
+        return self.generate_column_callouts(element_to_add, column_size=3)
 
     def create_notion_section(self) -> dict:
         """Create Notion section for financial summary"""

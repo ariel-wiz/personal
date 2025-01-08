@@ -202,26 +202,33 @@ def create_heading_1_block(content):
     return _create_heading_block(content, heading_number=1)
 
 
-def create_heading_2_block(content):
+def create_heading_2_block(content, color="default"):
     """Create a heading 3 block"""
-    return _create_heading_block(content, heading_number=2)
+    return _create_heading_block(content, heading_number=2, color=color)
 
 
-def create_heading_3_block(content):
+def create_heading_3_block(content, color="default"):
     """Create a heading 3 block"""
-    return _create_heading_block(content, heading_number=3)
+    return _create_heading_block(content, heading_number=3, color=color)
 
 
-def _create_heading_block(content, heading_number=3):
-    """Create a heading block"""
+def _create_heading_block(content, heading_number=3, color="default"):
+    """Create a heading block with an optional color."""
     heading = f"heading_{heading_number}"
     return {
         "object": "block",
         "type": heading,
         heading: {
-            "rich_text": [create_rich_text(content)]
+            "rich_text": [
+                {
+                    "type": "text",
+                    "text": {"content": content},
+                    "annotations": {"color": color} if color != "default" else {}
+                }
+            ]
         }
     }
+
 
 
 def create_section_text_with_bullet(title: str, bullet_points: list) -> list:
@@ -726,7 +733,8 @@ def create_callout_block(children: list = None,
                          title: str = None,
                          background: str = "default",
                          emoji: str = "⭐",
-                         link: str = None) -> dict:
+                         link: str = None,
+                         bold_title: bool = False) -> dict:
     """
     Creates a callout block with customizable properties
 
@@ -736,22 +744,27 @@ def create_callout_block(children: list = None,
         background (str): Color of the callout background (e.g., "blue_background", "default")
         emoji (str): Emoji to use as the callout icon
         link (str): Optional URL to make the text a hyperlink
+        bold_title (bool): Whether the title should be bold
 
     Returns:
         dict: Notion API compatible callout block structure
     """
+    # Initialize rich_text content with optional bold formatting
+    rich_text_content = {
+        "type": "text",
+        "text": {
+            "content": title,
+            "link": {"url": link} if link else None
+        },
+        "annotations": {"bold": bold_title} if bold_title else {}
+    }
+
     # Initialize the base callout structure
     callout_block = {
         "object": "block",
         "type": "callout",
         "callout": {
-            "rich_text": [{
-                "type": "text",
-                "text": {
-                    "content": title,
-                    "link": {"url": link} if link else None
-                }
-            }],
+            "rich_text": [rich_text_content],
             "icon": {
                 "type": "emoji",
                 "emoji": emoji

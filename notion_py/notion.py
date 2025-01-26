@@ -9,7 +9,7 @@ from garmin.garmin_manager import GarminManager
 from jewish_calendar import JewishCalendarAPI
 from logger import logger
 from notion_py.helpers.notion_children_blocks import generate_children_block_for_daily_inspirations, \
-    generate_children_block_for_shabbat
+    generate_children_block_for_shabbat, generate_page_content_page_notion_link
 from notion_py.notion_globals import *
 from notion_py.helpers.notion_payload import generate_payload, get_trading_payload, uncheck_done_set_today_payload, \
     check_done_payload, uncheck_copied_to_daily_payload, check_copied_to_daily_payload
@@ -359,6 +359,37 @@ def copy_pages_from_other_db_if_needed():
     run_functions(functions)
 
 
+def create_monthly_summary_and_daily_task():
+    """Creates monthly summary page and adds a daily task for review"""
+    update_historical_monthly_expenses()
+    try:
+        # Create monthly summary
+        summary_response = create_monthly_summary_page()
+        summary_page_id = summary_response['id']
+
+        # Create daily task for review
+        task_dict = {
+            "Task": "Review Monthly Summary",
+            "Project": Projects.notion,
+            "Due": today.isoformat(),
+            "Icon": generate_icon_url(IconType.CHECKLIST, IconColor.BLUE)
+        }
+
+        # Create daily task with link to summary
+        children_block = generate_page_content_page_notion_link(summary_page_id)
+        response = create_page_with_db_dict_and_children_block(
+            daily_tasks_db_id,
+            task_dict,
+            children_block
+        )
+
+        logger.info(f"Created monthly summary review task with ID {response['id']}")
+        return summary_page_id, response['id']
+
+    except Exception as e:
+        logger.error(f"Error creating monthly summary and daily task: {str(e)}")
+        raise
+
 def get_expenses_to_notion():
     expense_service = NotionExpenseService(expense_tracker_db_id, monthly_category_expense_db)
     expense_service.add_all_expenses_to_notion()
@@ -412,9 +443,9 @@ def main(selected_tasks):
             # # crossfit_manager.add_crossfit_exercises_to_notion()
             # crossfit_manager.add_crossfit_workouts_to_notion()
 
-            # get_expenses_to_notion()
+            get_expenses_to_notion()
 
-            create_monthly_summary()
+            # create_monthly_summary_and_daily_task()
             logger.info("End of manual run")
 
     except Exception as e:

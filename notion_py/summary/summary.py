@@ -116,10 +116,6 @@ def create_monthly_summary_page(target_date: Optional[date] = None) -> Dict:
             target_date = date(today.year, today.month - 1, 1)
 
     try:
-        # Initialize components
-        api_status_view_link = 'https://www.notion.so/127afca4f80780f89bd9d2f616487023?v=175afca4f80780ea83e5000c12635be7&pvs=4'
-        daily_tasks_viw_link = 'https://www.notion.so/10bafca4f807800fbb53ebf0c7ebbb0f?v=fffafca4f80781a887ea000cc44ae3f2&pvs=4'
-
         goal_component = GoalComponent(Keys.goals_db_id, Keys.goals_view_link, target_date=target_date)
         health_component = HealthComponent(Keys.garmin_db_id, Keys.garmin_view_link, target_date=target_date)
         tasks_component = TasksComponent(Keys.daily_tasks_db_id, Keys.tasks_db_id, Keys.daily_tasks_viw_link,

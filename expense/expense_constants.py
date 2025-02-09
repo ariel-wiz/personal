@@ -40,13 +40,13 @@ ENGLISH_SUB_CATEGORIES = ["Saving 💰", "Insurance 🛡️", "Subscriptions �
 # Categories with their keywords
 ENGLISH_CATEGORY: Dict[str, List[str]] = {
     "Insurance & Monthly Fees 🔄": [
-        "גן", "צהרון", "ביטוח", "לאומי", "ועד", "הפקדות", "מים", 
-        "מי חדרה", "חשמל", "סלולר", "סלקום", "פרטנר", "עיריית", 
+        "גן", "צהרון", "ביטוח", "לאומי", "ועד", "הפקדות", "מים",
+        "מי חדרה", "חשמל", "סלולר", "סלקום", "פרטנר", "עיריית",
         "פזגז", "פז גז", "משכנתא", "מי חדרה"
     ],
     "Food 🍽️": [
         "מזון", "צריכה", "משקאות", "מסעדות", "קפה", "מסעדה", "ברים",
-        "סופרמרקט", "שופרסל", "רמי לוי", "מעדניה", "מקדונלדס", 
+        "סופרמרקט", "שופרסל", "רמי לוי", "מעדניה", "מקדונלדס",
         "ארומה", "מסעדה", "רמי לוי", "nespresso", "מאפה", "דוכן"
     ],
     "Banking & Finance 💳": [
@@ -170,12 +170,29 @@ current_months_expense_filter = {
     }
 }
 
-last_4_months_expense_filter = {
-    "property": "Processed Date",
-    "date": {
-        "on_or_after": (today - timedelta(days=145)).isoformat()
+
+def last_4_months_expense_filter() -> Dict:
+    # Get the current date
+    today = datetime.now()
+
+    # Get the first day of the current month
+    first_day_of_current_month = today.replace(day=1)
+
+    # Get the last day of the previous month (which is the day before the first day of the current month)
+    last_day_of_previous_month = first_day_of_current_month - timedelta(days=1)
+
+    # Calculate 4 months back from the last day of the previous month
+    first_day_of_4_months_back = last_day_of_previous_month.replace(day=1)
+
+    last_4_full_months_expense_filter = {
+        "property": "Processed Date",
+        "date": {
+            "on_or_after": first_day_of_4_months_back.isoformat(),
+            "on_or_before": last_day_of_previous_month.isoformat()
+        }
     }
-}
+    return last_4_full_months_expense_filter
+
 
 last_4_months_months_expense_filter = {
     "property": "Date",

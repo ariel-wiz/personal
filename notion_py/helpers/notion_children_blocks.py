@@ -390,6 +390,7 @@ def create_block_with_db_view(view_url: str) -> dict:
       }
     }
 
+
 def create_column_block(title: str, content_blocks: list) -> dict:
     """Create a column block with a title and content blocks"""
     return {

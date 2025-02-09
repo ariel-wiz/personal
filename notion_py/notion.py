@@ -43,7 +43,7 @@ class SchedulingManager:
             # Run monthly summary tasks with retry capability
             if self.expense_service.should_create_monthly_summary():
                 logger.info("Running monthly summary task:")
-                # self._update_monthly_categories()
+                self._update_monthly_categories()
                 self.create_monthly_summary_and_daily_task()
 
             if self.tasks_run:

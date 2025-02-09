@@ -930,12 +930,11 @@ class NotionExpenseService:
             Dict mapping months to their category sums
         """
         try:
-            current_date = datetime.now()
             monthly_summaries = {}
 
             # Get all expenses for the period
             existing_expenses = self.get_expenses_from_notion(
-                filter_by=last_4_months_expense_filter
+                filter_by=last_4_months_expense_filter()
             )
 
             if not existing_expenses:

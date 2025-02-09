@@ -115,13 +115,7 @@ class SchedulingManager:
     def _update_monthly_categories(self):
         """Run monthly summary and expense tasks"""
         try:
-            monthly_summaries = self.expense_service.backfill_monthly_expenses(months_back=4)
-            logger.debug("Monthly summaries processed:")
-            for month, category_sums in monthly_summaries.items():
-                logger.debug(f"\nMonth {month} summaries:")
-                for category, total in category_sums.items():
-                    logger.debug(f"{category}: {total:.2f}")
-
+            self.expense_service.backfill_monthly_expenses(months_back=4)
             self.tasks_run.append("Updated monthly categories")
 
         except Exception as e:
@@ -503,29 +497,6 @@ def get_expenses_to_notion():
     expense_service.add_all_expenses_to_notion()
 
 
-def update_historical_monthly_expenses():
-    try:
-        expense_service = NotionExpenseService(
-            expense_tracker_db_id=expense_tracker_db_id,
-            monthly_category_expense_db_id=monthly_category_expense_db
-        )
-
-        # Only proceed if update is needed
-        if expense_service.should_create_monthly_summary():
-            monthly_summaries = expense_service.backfill_monthly_expenses(months_back=4)
-
-            for month, category_sums in monthly_summaries.items():
-                logger.info(f"\nMonth {month} summaries:")
-                for category, total in category_sums.items():
-                    logger.info(f"{category}: {total:.2f}")
-        else:
-            logger.debug("Monthly summaries are up to date, no update needed")
-
-    except Exception as e:
-        logger.error(f"Error updating historical monthly expenses: {e}")
-        raise
-
-
 def create_monthly_summary():
     """Creates the monthly summary page"""
     try:
@@ -534,6 +505,7 @@ def create_monthly_summary():
     except Exception as e:
         logger.error(f"Error creating monthly summary: {e}")
         raise
+
 
 def run_functions(functions):
     # Loop through each function

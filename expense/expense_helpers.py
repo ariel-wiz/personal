@@ -421,15 +421,29 @@ def find_expenses_page(monthly_pages: List[Dict]) -> Optional[Dict]:
     return None
 
 
-def extract_monthly_totals(category: str, pages: List[Dict]) -> List[float]:
-    """Extracts monthly totals from historical pages"""
-    monthly_totals = []
-
+def extract_monthly_totals(category: str, pages: List[Dict], months_back: int) -> List[float]:
+    """
+    Extracts monthly totals from historical pages, limited to specified number of months.
+    Returns the most recent months_back totals in chronological order.
+    """
+    # Process pages and extract totals with their dates
+    dated_totals = []
     for page in pages:
         amount = get_amount_from_page(category, page)
         if amount:
-            monthly_totals.append(amount)
+            date = datetime.strptime(page['properties']['Date']['date']['start'], '%Y-%m-%d')
+            dated_totals.append((date, amount))
             log_monthly_total(amount, page)
+
+    # Sort by date in descending order (most recent first) and take only months_back items
+    dated_totals.sort(key=lambda x: x[0], reverse=True)
+    dated_totals = dated_totals[:months_back]
+
+    # Sort back by date in ascending order for consistency
+    dated_totals.sort(key=lambda x: x[0])
+
+    # Extract just the amounts
+    monthly_totals = [total for _, total in dated_totals]
 
     return monthly_totals
 

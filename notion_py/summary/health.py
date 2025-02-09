@@ -7,7 +7,8 @@ from common import calculate_average_time, seconds_to_hours_minutes, parse_durat
 from logger import logger
 from notion_py.helpers.notion_children_blocks import create_stats_list, create_table_block, create_heading_3_block, \
     create_toggle_heading_block
-from notion_py.helpers.notion_common import generate_icon_url, create_page_with_db_dict
+from notion_py.helpers.notion_common import generate_icon_url, create_page_with_db_dict, get_db_pages
+from notion_py.helpers.notion_payload import generate_payload
 from notion_py.notion_globals import IconType, IconColor, NotionPropertyType
 from notion_py.summary.base_component import BaseComponent
 
@@ -43,7 +44,24 @@ class HealthComponent(BaseComponent):
         self._current_metrics = self._calculate_health_metrics(current_month_pages, update_monthly_metrics=True)
         self._previous_metrics = self._calculate_health_metrics(previous_month_pages)
 
+    def _is_monthly_metrics_exist(self):
+        filter_payload = {
+            "property": "Name",
+            "title": {
+                "equals": self.target_date.strftime('%B %Y')
+            }
+        }
+
+        existing_pages = get_db_pages(self.monthly_health_metrics_db_id, generate_payload(filter_payload))
+
+        if existing_pages:
+            logger.info(f"Monthly health metrics for {self.target_date.strftime('%B %Y')} already exist")
+            return True
+        return False
+
     def _update_monthly_metrics(self, health_metrics: Dict):
+        if self._is_monthly_metrics_exist():
+            return
 
         monthly_health_dict = {
             "Name": self.target_date.strftime('%B %Y'),

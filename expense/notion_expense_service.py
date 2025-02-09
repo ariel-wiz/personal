@@ -497,6 +497,8 @@ class NotionExpenseService:
                         # Recalculate and update average
                         logger.debug(f"Recalculating average for {category} ({month_str})")
                         average = self.get_month_average(category, target_date)
+                        if "saving" in category.lower():
+                            print('Ariel')
                         if average is not None:
                             update_payload = {
                                 "properties": {
@@ -703,10 +705,20 @@ class NotionExpenseService:
     def get_month_average(self, category: str, current_date: datetime, months_back: int = 4) -> Optional[float]:
         """Gets the N-month average for a category, excluding current month"""
         try:
-            # For January, we want Sept-Dec, for February we want Oct-Jan, etc
-            # So we need to first go back to end of previous month
-            end_date = current_date.replace(day=1) - timedelta(days=1)  # Last day of previous month
-            start_date = (end_date - relativedelta(months=months_back - 1)).replace(day=1)  # First day of start month
+            # For current month, use previous month as end date
+            # For past months, use their own date as end date
+            today = datetime.now()
+            is_current_month = (current_date.year == today.year and current_date.month == today.month)
+
+            if is_current_month:
+                # If we're calculating for current month, use previous month as end date
+                end_date = current_date.replace(day=1) - timedelta(days=1)  # Last day of previous month
+            else:
+                # For past months, use their own date
+                end_date = current_date.replace(day=1) - timedelta(days=1)
+
+            # Calculate start date
+            start_date = (end_date - relativedelta(months=months_back - 1)).replace(day=1)
 
             logger.debug(f"Calculating {months_back}-month average for {category} from {start_date} to {end_date}")
 
@@ -716,7 +728,7 @@ class NotionExpenseService:
                 logger.info(f"No historical data found for {category} between {start_date} and {end_date}")
                 return None
 
-            monthly_totals = extract_monthly_totals(category, historical_pages)
+            monthly_totals = extract_monthly_totals(category, historical_pages, months_back)
 
             # Calculate the average
             if not monthly_totals:
@@ -971,10 +983,49 @@ class NotionExpenseService:
     def _process_historical_month(self, target_date: datetime, expenses: List[Expense]) -> Dict[str, float]:
         """Processes expenses for a single historical month"""
         try:
-            return self.process_monthly_expenses(target_date, expenses)
+            # Get monthly pages for this month, creating if needed
+            monthly_pages = self._get_or_create_monthly_pages(target_date)
+            if not monthly_pages:
+                return {}
+
+            # Get filtered expenses for this month
+            month_expenses = self._get_filtered_month_expenses(target_date, expenses)
+
+            # Even if no expenses, we should still update averages
+            if not month_expenses:
+                logger.info(f"No expenses found for {target_date.strftime('%B %Y')}, updating averages only")
+                self._update_monthly_averages(monthly_pages, target_date)
+                return {}
+
+            # Process expenses and update pages
+            return self.update_monthly_pages(monthly_pages, month_expenses, target_date.strftime('%B %Y'))
+
         except Exception as e:
             logger.error(f"Error processing month {target_date.strftime('%B %Y')}: {str(e)}")
             return {}
+
+    def _update_monthly_averages(self, monthly_pages: List[Dict], target_date: datetime) -> None:
+        """Updates averages for all category pages even when no expenses exist"""
+        for page in monthly_pages:
+            try:
+                category = page['properties']['Category']['title'][0]['plain_text']
+
+                # Recalculate and update average
+                logger.debug(f"Recalculating average for {category} ({target_date.strftime('%B %Y')})")
+                average = self.get_month_average(category, target_date)
+
+                if average is not None:
+                    update_payload = {
+                        "properties": {
+                            "4 Months Average": {"number": average}
+                        }
+                    }
+                    update_page(page['id'], update_payload)
+                    logger.info(f"Updated {category} average to {average:.2f} for {target_date.strftime('%B %Y')}")
+
+            except Exception as e:
+                logger.error(f"Error updating average for category {category}: {str(e)}")
+                continue
 
     def update_monthly_category_expenses(self, month_year: str):
         """Update monthly category expenses for a specific month/year"""

@@ -4,6 +4,8 @@ Configuration file for expense tracking system containing constants and settings
 from datetime import datetime, date, timedelta
 from typing import Dict, List
 
+from dateutil.relativedelta import relativedelta
+
 from common import today
 from variables import PRICE_VAAD_BAIT, PRICE_GAN_TAMAR, PRICE_MASHKANTA, HAFKADA_GEMEL_CHILDREN, PRICE_TSEHARON_NOYA, \
     ARIEL_SALARY_AVG
@@ -172,26 +174,23 @@ current_months_expense_filter = {
 
 
 def last_4_months_expense_filter() -> Dict:
-    # Get the current date
-    today = datetime.now()
+    # Get the first day of current month at midnight
+    first_day_current = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-    # Get the first day of the current month
-    first_day_of_current_month = today.replace(day=1)
+    # Get last day of previous month at midnight
+    last_day_previous = first_day_current - timedelta(days=1)
 
-    # Get the last day of the previous month (which is the day before the first day of the current month)
-    last_day_of_previous_month = first_day_of_current_month - timedelta(days=1)
+    # Get first day exactly 4 months before the last day of previous month at midnight
+    first_day_start = last_day_previous - relativedelta(months=3)
+    first_day_start = first_day_start.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-    # Calculate 4 months back from the last day of the previous month
-    first_day_of_4_months_back = last_day_of_previous_month.replace(day=1)
-
-    last_4_full_months_expense_filter = {
+    return {
         "property": "Processed Date",
         "date": {
-            "on_or_after": first_day_of_4_months_back.isoformat(),
-            "on_or_before": last_day_of_previous_month.isoformat()
+            "on_or_after": first_day_start.isoformat(),
+            "on_or_before": last_day_previous.isoformat()
         }
     }
-    return last_4_full_months_expense_filter
 
 
 last_4_months_months_expense_filter = {

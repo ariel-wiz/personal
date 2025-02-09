@@ -4,10 +4,11 @@ from datetime import date, datetime, timedelta
 from typing import List, Dict, Optional
 
 from common import calculate_average_time, seconds_to_hours_minutes, parse_duration_to_seconds
-from notion_py.helpers.notion_children_blocks import create_column_block, create_metrics_single_paragraph, \
-    create_stats_list, \
-    create_two_column_section, create_paragraph_block, create_table_block, create_heading_2_block, \
-    create_heading_3_block, create_toggle_heading_block
+from logger import logger
+from notion_py.helpers.notion_children_blocks import create_stats_list, create_table_block, create_heading_3_block, \
+    create_toggle_heading_block
+from notion_py.helpers.notion_common import generate_icon_url, create_page_with_db_dict
+from notion_py.notion_globals import IconType, IconColor, NotionPropertyType
 from notion_py.summary.base_component import BaseComponent
 
 
@@ -25,10 +26,12 @@ class HealthFields:
 
 
 class HealthComponent(BaseComponent):
-    def __init__(self, garmin_db_id, garmin_view_link, target_date: Optional[date] = None):
+    def __init__(self, garmin_db_id, garmin_view_link, monthly_health_metrics_db_id,
+                 target_date: Optional[date] = None):
         super().__init__(target_date, HealthFields)
         self.garmin_db_id = garmin_db_id
         self.garmin_view_link = garmin_view_link
+        self.monthly_health_metrics_db_id = monthly_health_metrics_db_id
 
     def _initialize_metrics(self):
         """Initializes health metrics for the target date"""
@@ -37,12 +40,46 @@ class HealthComponent(BaseComponent):
         previous_month_pages = self._get_pages_for_month(self.garmin_db_id, previous_month, date_property="Date")
 
         # Current month metrics
-        self._current_metrics = self._calculate_health_metrics(current_month_pages)
+        self._current_metrics = self._calculate_health_metrics(current_month_pages, update_monthly_metrics=True)
         self._previous_metrics = self._calculate_health_metrics(previous_month_pages)
 
-    def _calculate_health_metrics(self, pages: List[Dict]) -> Dict:
+    def _update_monthly_metrics(self, health_metrics: Dict):
+
+        monthly_health_dict = {
+            "Name": self.target_date.strftime('%B %Y'),
+            "Month": self.target_date.strftime("%Y-%m-%d"),
+            "Workouts": health_metrics[HealthFields.TOTAL_WORKOUTS],
+            "Avg Weight": health_metrics[HealthFields.AVG_WEIGHT],
+            "Avg Steps": health_metrics[HealthFields.AVG_STEPS],
+            "Avg Calories": health_metrics[HealthFields.AVG_CALORIES],
+            "Avg Sleep Duration": health_metrics[HealthFields.AVG_SLEEP_DURATION],
+            "Avg Bed Time": health_metrics[HealthFields.AVG_BED_TIME],
+            "Avg Wake Time": health_metrics[HealthFields.AVG_WAKE_TIME],
+            "Missing Days": health_metrics[HealthFields.MISSING_DAYS],
+            "Icon": generate_icon_url(IconType.HEART_RATE, IconColor.BLUE)
+        }
+
+        property_override = {
+            "Month": NotionPropertyType.DATE,
+            "Workouts": NotionPropertyType.NUMBER,
+            "Avg Weight": NotionPropertyType.NUMBER,
+            "Avg Steps": NotionPropertyType.NUMBER,
+            "Avg Calories": NotionPropertyType.NUMBER,
+            "Avg Sleep Duration": NotionPropertyType.TEXT,
+            "Avg Bed Time": NotionPropertyType.TEXT,
+            "Avg Wake Time": NotionPropertyType.TEXT,
+            "Missing Days": NotionPropertyType.NUMBER,
+        }
+
+        create_page_with_db_dict(
+            self.monthly_health_metrics_db_id,
+            monthly_health_dict,
+            property_override
+        )
+
+    def _calculate_health_metrics(self, pages: List[Dict], update_monthly_metrics=False) -> Dict:
         """Calculates health metrics from Garmin pages"""
-        total_workouts = 0
+        avg_weight = 0
         total_steps = 0
         total_sleep_seconds = 0
         days_count = 0
@@ -119,7 +156,7 @@ class HealthComponent(BaseComponent):
         avg_sleep_time = calculate_average_time(sleep_times) if sleep_times else None
         avg_wake_time = calculate_average_time(wake_times) if wake_times else None
 
-        return {
+        health_metrics = {
             HealthFields.TOTAL_WORKOUTS: sum(activity['sessions'] for activity in formatted_activities),
             HealthFields.AVG_STEPS: round(total_steps / days_count) if days_count > 0 else 0,
             HealthFields.AVG_CALORIES: round(sum(calories) / len(calories)) if calories else 0,
@@ -131,6 +168,10 @@ class HealthComponent(BaseComponent):
             HealthFields.MISSING_DAYS: missing_days,
             HealthFields.AVG_WEIGHT: avg_weight
         }
+        if update_monthly_metrics:
+            self._update_monthly_metrics(health_metrics)
+
+        return health_metrics
 
     def create_notion_section(self):
         metrics = self.get_metrics()

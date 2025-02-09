@@ -47,7 +47,7 @@ class DevelopmentComponent(BaseComponent):
     def __init__(self, book_summaries_db_id: str, api_db_id: str, api_status_view_link: str,
                  target_date: Optional[date] = None):
         super().__init__(target_date, DevelopmentFields)
-        self.book_summaries_db_id = book_summaries_db_id,
+        self.book_summaries_db_id = book_summaries_db_id
         self.api_db_id = api_db_id
         self.api_status_view_link = api_status_view_link
 

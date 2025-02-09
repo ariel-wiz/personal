@@ -89,67 +89,67 @@ class ScriptManager:
         for script in self.scripts:
             if script.should_run_today(self.today_date, self.today_weekday):
                 try:
-                    logger.info(f" ---- Running {script.name}: {script.path} with arguments {script.arg} ----")
+                    logger.debug(f" ---- Running {script.name}: {script.path} with arguments {script.arg} ----")
                     self.run_script(script)
                 except Exception as e:
                     logger.error(f"There was an error in cron when attempting to run {script}: {str(e)}\n"
                                  f"Running the next script")
                     continue
             else:
-                logger.info(f" ---- Skipping {script.name}: {script.path} with arguments {script.arg} ----")
+                logger.debug(f" ---- Skipping {script.name}: {script.path} with arguments {script.arg} ----")
 
 
 # Configuration
 NOTION_SCRIPTS = [
-    ScriptConfig(
-        name="Garmin Update",
-        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--garmin",
-        frequency=Frequency.DAILY.value,
-        python_path="/Users/ariel/PycharmProjects/personal",
-        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    ),
-    ScriptConfig(
-        name="Uncheck Done Tasks",
-        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--uncheck_done",
-        frequency=Frequency.WEEKLY_SATURDAY.value,
-        python_path="/Users/ariel/PycharmProjects/personal",
-        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    ),
-    ScriptConfig(
-        name="Handle Done Tasks",
-        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--handle_done_tasks",
-        frequency=Frequency.DAILY.value,
-        python_path="/Users/ariel/PycharmProjects/personal",
-        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    ),
-    ScriptConfig(
-        name="Create Daily Pages",
-        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--create_daily_pages",
-        frequency=Frequency.WEEKLY_TUESDAY.value,
-        python_path="/Users/ariel/PycharmProjects/personal",
-        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    ),
-    ScriptConfig(
-        name="Copy Pages",
-        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--copy_pages",
-        # frequency="15/*",  # Runs on the 15th of every month
-        frequency=Frequency.WEEKLY_TUESDAY.value,
-        python_path="/Users/ariel/PycharmProjects/personal",
-        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    ),
-    ScriptConfig(
-        name="Get Expenses",
-        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--get_expenses",
-        frequency=Frequency.DAILY.value,
-        python_path="/Users/ariel/PycharmProjects/personal",
-        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    ),
+    # ScriptConfig(
+    #     name="Garmin Update",
+    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+    #     arg="--garmin",
+    #     frequency=Frequency.DAILY.value,
+    #     python_path="/Users/ariel/PycharmProjects/personal",
+    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    # ),
+    # ScriptConfig(
+    #     name="Uncheck Done Tasks",
+    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+    #     arg="--uncheck_done",
+    #     frequency=Frequency.WEEKLY_SATURDAY.value,
+    #     python_path="/Users/ariel/PycharmProjects/personal",
+    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    # ),
+    # ScriptConfig(
+    #     name="Handle Done Tasks",
+    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+    #     arg="--handle_done_tasks",
+    #     frequency=Frequency.DAILY.value,
+    #     python_path="/Users/ariel/PycharmProjects/personal",
+    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    # ),
+    # ScriptConfig(
+    #     name="Create Daily Pages",
+    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+    #     arg="--create_daily_pages",
+    #     frequency=Frequency.WEEKLY_TUESDAY.value,
+    #     python_path="/Users/ariel/PycharmProjects/personal",
+    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    # ),
+    # ScriptConfig(
+    #     name="Copy Pages",
+    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+    #     arg="--copy_pages",
+    #     # frequency="15/*",  # Runs on the 15th of every month
+    #     frequency=Frequency.WEEKLY_TUESDAY.value,
+    #     python_path="/Users/ariel/PycharmProjects/personal",
+    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    # ),
+    # ScriptConfig(
+    #     name="Get Expenses",
+    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+    #     arg="--get_expenses",
+    #     frequency=Frequency.DAILY.value,
+    #     python_path="/Users/ariel/PycharmProjects/personal",
+    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    # ),
     # ScriptConfig(
     #     name="Copy Book Summaries",
     #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
@@ -159,10 +159,10 @@ NOTION_SCRIPTS = [
     #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     # )
     ScriptConfig(
-        name="Update Historical Monthly Expenses",
+        name="Scheduled Tasks",
         path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--update_historical_monthly_expenses",
-        frequency=Frequency.ONCE_A_MONTH.value,
+        arg="--scheduled_tasks",
+        frequency=Frequency.DAILY.value,
         python_path="/Users/ariel/PycharmProjects/personal",
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     )

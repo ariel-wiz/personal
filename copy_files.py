@@ -1,6 +1,12 @@
 import os
 import shutil
 
+
+class ScriptPath:
+    FRONTEND = "/Users/ariel/Documents/travel-card/frontend"
+    BACKUP = "/Users/ariel/Desktop/tmp/backup"
+    PERSONAL = "/Users/ariel/PycharmProjects/personal"
+
 def copy_files(src, dest, exclude_dirs, exclude_files):
    """
    Copy files from src to dest, excluding specific file types, directories, and specific files.
@@ -42,11 +48,10 @@ def copy_files(src, dest, exclude_dirs, exclude_files):
 
 if __name__ == "__main__":
    # Define variables
-   path1 = "/Users/ariel/PycharmProjects/personal/crossfit"  # Replace with your source directory
-   # path1 = "/Users/ariel/Desktop/tmp/frontend"  # Replace with your source directory
-   path2 = "/Users/ariel/Desktop/tmp/backup"  # Replace with your destination directory
+   src_path = ScriptPath.PERSONAL
+   dst_path = ScriptPath.BACKUP
    exclude_dirs = ["images", "migrations", ".git", "crossfit", "shifts"]  # Replace with your list of excluded directories
    exclude_files = ["package-lock.json", "yarn.lock", ".env.local", ".DS_Store", "variables.py"]  # Replace with your list of excluded files
 
    # Run the copy function
-   copy_files(path1, path2, set(exclude_dirs), exclude_files)
+   copy_files(src_path, dst_path, set(exclude_dirs), exclude_files)

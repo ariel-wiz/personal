@@ -14,6 +14,7 @@ trading_db_id = Keys.trading_db_id
 garmin_db_id = Keys.garmin_db_id
 daily_tasks_db_id = Keys.daily_tasks_db_id
 weekly_task_page_id = Keys.weekly_task_page_id
+goals_recap_page_id = Keys.goals_recap_page_id
 weight_page_id = Keys.weight_page_id
 birthday_db_id = Keys.birthday_db_id
 api_db_id = Keys.api_db_id
@@ -63,8 +64,7 @@ class NotionAPIOperation:
     COPY_PAGES = "Copy Pages"
     UNCHECK_DONE = "Uncheck Done"
     GET_EXPENSES = "Get Expenses"
-    CREATE_MONTHLY_SUMMARY = "Create Monthly Summary"
-
+    SCHEDULED_TASKS = "Scheduled Tasks"
 
 
 class DaySummaryCheckbox:
@@ -93,6 +93,7 @@ class IconType:
     SYNC = 'sync'
     PHONE_CALL = 'phone-call'
     CHECKLIST = 'checklist'
+    HEART_RATE = 'heart-rate'
     CURRENCY = 'currency'
     SIGNATURE = 'signature'
     CHAT = 'chat'

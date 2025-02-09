@@ -12,7 +12,7 @@ from notion_py.helpers.notion_children_blocks import generate_simple_page_conten
     generate_page_content_page_notion_link
 from notion_py.notion_globals import date_descending_sort, api_db_id, day_summary_db_id, \
     Method, NotionAPIStatus, TaskConfig, daily_tasks_db_id, tasks_db_id, next_filter, first_created_sorts, \
-    default_tasks_filter, default_tasks_sorts, on_or_after_today_filter, IconType, IconColor
+    default_tasks_filter, default_tasks_sorts, on_or_after_today_filter, IconType, IconColor, NotionAPIOperation
 from notion_py.helpers.notion_payload import generate_payload, generate_create_page_payload, get_relation_payload, \
     get_api_status_payload
 from variables import Keys
@@ -396,17 +396,16 @@ def track_operation(operation):
                 set_start_api_status(operation)
                 try:
                     result = func(*args, **kwargs)
-                    set_success_api_status(operation)
+                    # For scheduled tasks, only set success if tasks were actually run
+                    if operation != NotionAPIOperation.SCHEDULED_TASKS or result:
+                        set_success_api_status(operation)
                     return result
                 except Exception as e:
                     set_error_api_status(operation, str(e))
                     raise
             else:
-                # Run without tracking if should_track is False
                 return func(*args, **kwargs)
-
         return wrapper
-
     return decorator
 
 

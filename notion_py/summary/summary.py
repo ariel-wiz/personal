@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timedelta
 from typing import Dict, Optional
 
 from logger import logger
@@ -9,8 +9,9 @@ from notion_py.helpers.notion_children_blocks import create_heading_1_block, cre
 from notion_py.helpers.notion_common import (
     create_page_with_db_dict_and_children_block,
     generate_icon_url,
-    track_operation
+    track_operation, get_db_pages
 )
+from notion_py.helpers.notion_payload import generate_payload
 from notion_py.notion_globals import (
     NotionAPIOperation, IconType, IconColor
 )
@@ -100,7 +101,6 @@ class MonthlySummary:
                 create_paragraph_block("")]
 
 
-@track_operation(NotionAPIOperation.CREATE_MONTHLY_SUMMARY)
 def create_monthly_summary_page(target_date: Optional[date] = None) -> Dict:
     """Creates a monthly summary page in Notion
 
@@ -117,14 +117,15 @@ def create_monthly_summary_page(target_date: Optional[date] = None) -> Dict:
 
     try:
         goal_component = GoalComponent(Keys.goals_db_id, Keys.goals_view_link, target_date=target_date)
-        health_component = HealthComponent(Keys.garmin_db_id, Keys.garmin_view_link, target_date=target_date)
-        tasks_component = TasksComponent(Keys.daily_tasks_db_id, Keys.tasks_db_id, Keys.daily_tasks_viw_link,
+        health_component = HealthComponent(Keys.garmin_db_id, Keys.garmin_view_link, Keys.monthly_health_metrics_db_id,
+                                           target_date=target_date)
+        tasks_component = TasksComponent(Keys.daily_tasks_db_id, Keys.tasks_db_id, Keys.daily_tasks_view_link,
                                          target_date=target_date)
         finances_component = FinancesComponent(Keys.expense_tracker_db_id, Keys.monthly_category_expense_db,
                                                Keys.monthly_expenses_summary_previous_month_view_link,
-                                               target_date=target_date)
+                                               Keys.monthly_expense_chart_link, target_date=target_date)
         development_component = DevelopmentComponent(Keys.book_summaries_db_id, Keys.api_db_id,
-                                                     Keys.api_status_view_link,target_date=target_date)
+                                                     Keys.api_status_view_link, target_date=target_date)
 
         # Create summary object
         summary = MonthlySummary(
@@ -155,3 +156,20 @@ def create_monthly_summary_page(target_date: Optional[date] = None) -> Dict:
     except Exception as e:
         logger.error(f"Error creating monthly summary page: {str(e)}")
         raise
+
+
+def check_monthly_summary_exists_for_date(target_date: datetime = None) -> bool:
+    """Check if monthly summary exists for given date"""
+    if not target_date:
+        target_date = datetime.now()
+
+    filter_payload = {
+        "property": "Name",
+        "title": {
+            "equals": target_date.strftime('%B %Y')  # Format like "January 2025"
+        }
+    }
+
+    pages = get_db_pages(Keys.monthly_summaries_db_id,
+                         generate_payload(filter_payload))
+    return len(pages) > 0

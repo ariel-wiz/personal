@@ -33,6 +33,7 @@ from notion_py.helpers.notion_common import (
 )
 from logger import logger
 from notion_py.notion_globals import monthly_category_expense_db, NotionPropertyType, IconType, IconColor
+from notion_py.summary.summary import check_monthly_summary_exists_for_date
 from variables import ACCOUNT_NUMBER_TO_PERSON_CARD
 
 
@@ -169,6 +170,18 @@ class NotionExpenseService:
                 continue
 
         return expenses_objects_from_notion
+
+    def should_create_monthly_summary(self) -> bool:
+        """
+        Check if monthly expenses need to be updated.
+        Returns True if we're in a new month and summary doesn't exist.
+        """
+        current_date = datetime.now()
+        prev_month = current_date.replace(day=1) - timedelta(days=1)
+
+        # If not start of month, only proceed if no summary exists
+        if current_date.day > 7:
+            return not check_monthly_summary_exists_for_date(prev_month)
 
     def get_all_expenses_from_notion(self) -> List[Expense]:
         """Get all expenses from Notion without filtering"""
@@ -461,7 +474,7 @@ class NotionExpenseService:
 
         return mapping
 
-    def update_monthly_pages(self, monthly_pages: List[Dict], month_expenses: List[Expense]) -> Dict[str, float]:
+    def update_monthly_pages(self, monthly_pages: List[Dict], month_expenses: List[Expense], month_str) -> Dict[str, float]:
         """Updates monthly category pages with expenses and recalculates averages"""
         try:
             expenses_by_category = group_expenses_by_category(month_expenses)
@@ -482,7 +495,7 @@ class NotionExpenseService:
                         category_totals[category] = total
 
                         # Recalculate and update average
-                        logger.debug(f"Recalculating average for {category}")
+                        logger.debug(f"Recalculating average for {category} ({month_str})")
                         average = self.get_month_average(category, target_date)
                         if average is not None:
                             update_payload = {
@@ -491,9 +504,9 @@ class NotionExpenseService:
                                 }
                             }
                             update_page(category_page['id'], update_payload)
-                            logger.info(f"Updated {category} average to {average:.2f}")
+                            logger.info(f"Updated {category} average to {average:.2f} for {month_str}")
 
-                        logger.debug(f"Updated category {category} with {len(expense_ids)} expenses, total: {total}")
+                        logger.debug(f"{month_str} - Updated category {category} with {len(expense_ids)} expenses, total: {total}")
 
                 except Exception as e:
                     logger.error(f"Error updating category {category}: {str(e)}")
@@ -563,16 +576,17 @@ class NotionExpenseService:
         try:
             monthly_pages = self._get_or_create_monthly_pages(target_date)
             month_expenses = self._get_filtered_month_expenses(target_date, existing_expenses)
+            month_str = target_date.strftime('%B %Y')
 
             if not month_expenses:
-                logger.info(f"No expenses found for {target_date.strftime('%B %Y')}")
+                logger.info(f"No expenses found for {month_str}")
                 return {}
 
             # Update category pages and get category totals
-            category_totals = self.update_monthly_pages(monthly_pages, month_expenses)
+            category_totals = self.update_monthly_pages(monthly_pages, month_expenses, month_str)
 
             # Calculate and update total expenses
-            self.calculate_and_update_total_expenses(monthly_pages, month_expenses)
+            self.calculate_and_update_total_expenses(monthly_pages, month_expenses, month_str)
 
             return category_totals
 
@@ -628,7 +642,7 @@ class NotionExpenseService:
 
         return filtered_expenses
 
-    def calculate_and_update_total_expenses(self, monthly_pages: List[Dict], expenses: List[Expense]) -> None:
+    def calculate_and_update_total_expenses(self, monthly_pages: List[Dict], expenses: List[Expense], month_str) -> None:
         """Updates total expenses for the month"""
         try:
             # Calculate category sums using existing helper
@@ -638,16 +652,16 @@ class NotionExpenseService:
             # Find and update the Expenses page
             expenses_page = find_expenses_page(monthly_pages)
             if not expenses_page:
-                logger.warning("Expenses page not found in monthly pages")
+                logger.warning(f"Expenses page not found in monthly pages for {month_str}")
                 return
 
             # Update with total and calculate average if needed
             self._update_expenses_page(expenses_page, total_amount)
 
-            logger.info(f"Successfully updated monthly total expenses: {total_amount:.2f}")
+            logger.info(f"Successfully updated monthly total expenses: {total_amount:.2f} for {month_str}")
 
         except Exception as e:
-            logger.error(f"Error updating total expenses: {str(e)}")
+            logger.error(f"Error updating total expenses: {str(e)} for {month_str}")
 
     def _update_expenses_page(self, expenses_page: Dict, total_amount: float):
         """Updates the Expenses page with total amount and average"""
@@ -929,7 +943,7 @@ class NotionExpenseService:
                 return monthly_summaries
 
             monthly_summaries = self._process_historical_months(existing_expenses, months_back)
-            logger.info("Completed backfilling monthly expenses")
+            logger.info(f"Completed backfilling monthly expenses for {months_back} previous months")
             return monthly_summaries
 
         except Exception as e:

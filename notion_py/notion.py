@@ -3,7 +3,7 @@ import random
 
 from crossfit.crossfit_notion_manager import CrossfitManager
 from epub import read_epub
-from common import create_tracked_lambda, create_shabbat_dates
+from common import create_tracked_lambda, create_shabbat_dates, is_approaching_month_end
 from expense.notion_expense_service import NotionExpenseService
 from garmin.garmin_manager import GarminManager
 from jewish_calendar import JewishCalendarAPI
@@ -19,6 +19,124 @@ from notion_py.helpers.notion_common import create_page_with_db_dict_and_childre
     get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url, manage_daily_summary_pages
 from notion_py.summary.summary import create_monthly_summary_page
 from variables import Paths
+
+
+class SchedulingManager:
+    def __init__(self):
+        self.expense_service = NotionExpenseService(
+            expense_tracker_db_id=expense_tracker_db_id,
+            monthly_category_expense_db_id=monthly_category_expense_db
+        )
+        self.tasks_run = []
+
+    @track_operation(NotionAPIOperation.SCHEDULED_TASKS)
+    def run_scheduled_tasks(self, should_track=False):
+        """
+        Run all scheduled tasks based on their timing requirements.
+        Returns True if any tasks were run, False otherwise.
+        """
+        try:
+            # Run end of month tasks
+            if self._is_end_of_month_window():
+                self._run_end_of_month_tasks()
+
+            # Run monthly summary tasks with retry capability
+            if self.expense_service.should_create_monthly_summary():
+                logger.info("Running monthly summary task:")
+                # self._update_monthly_categories()
+                self.create_monthly_summary_and_daily_task()
+
+            if self.tasks_run:
+                logger.info("Completed scheduled tasks:")
+                for task in self.tasks_run:
+                    logger.info(f"- {task}")
+                return True  # Tasks were run
+            else:
+                logger.debug("No scheduled tasks needed to run")
+                return False  # No tasks were run
+
+        except Exception as e:
+            logger.error(f"Error running scheduled tasks: {e}")
+            raise
+
+    def _is_end_of_month_window(self, days_before=7) -> bool:
+        """Check if we're in the end-of-month window"""
+        current_date = datetime.now()
+        if current_date.month == 12:
+            next_month = datetime(current_date.year + 1, 1, 1)
+        else:
+            next_month = datetime(current_date.year, current_date.month + 1, 1)
+
+        days_until_next_month = (next_month.date() - current_date.date()).days
+        return days_until_next_month <= days_before
+
+    def _run_end_of_month_tasks(self):
+        """Run tasks that should execute at month end"""
+        try:
+            # Update goals recap page
+            update_page(goals_recap_page_id, uncheck_done_set_today_payload)
+            self.tasks_run.append("Updated goals recap page (end of month)")
+
+        except Exception as e:
+            logger.error(f"Error in end of month tasks: {e}")
+            raise
+
+    def create_monthly_summary_and_daily_task(self):
+        """Creates monthly summary page and adds a daily task for review"""
+        try:
+            # Create monthly summary
+            summary_response = create_monthly_summary_page()
+            summary_page_id = summary_response['id']
+
+            # Create daily task for review
+            task_dict = {
+                "Task": "Review Monthly Summary",
+                "Project": Projects.notion,
+                "Due": today.isoformat(),
+                "Icon": generate_icon_url(IconType.CHECKLIST, IconColor.BLUE)
+            }
+
+            # Create daily task with link to summary
+            children_block = generate_page_content_page_notion_link(summary_page_id)
+            response = create_page_with_db_dict_and_children_block(
+                daily_tasks_db_id,
+                task_dict,
+                children_block
+            )
+
+            logger.info(f"Created monthly summary review task with ID {response['id']}")
+            self.tasks_run.append("Created monthly summary")
+            return summary_page_id, response['id']
+
+        except Exception as e:
+            logger.error(f"Error creating monthly summary and daily task: {str(e)}")
+            raise
+
+    def _update_monthly_categories(self):
+        """Run monthly summary and expense tasks"""
+        try:
+            monthly_summaries = self.expense_service.backfill_monthly_expenses(months_back=4)
+            logger.debug("Monthly summaries processed:")
+            for month, category_sums in monthly_summaries.items():
+                logger.debug(f"\nMonth {month} summaries:")
+                for category, total in category_sums.items():
+                    logger.debug(f"{category}: {total:.2f}")
+
+            self.tasks_run.append("Updated monthly categories")
+
+        except Exception as e:
+            logger.error(f"Error in monthly summary tasks: {e}")
+            raise
+
+
+def run_scheduled_tasks(should_track=False):
+    """Run time-sensitive scheduled tasks"""
+    try:
+        scheduler = SchedulingManager()
+        return scheduler.run_scheduled_tasks(should_track=should_track)
+    except Exception as e:
+        logger.error(f"Error running scheduled tasks: {e}")
+        raise
 
 
 def create_trading_page(name_row, description, large_description, example):
@@ -284,28 +402,47 @@ def create_parashat_hashavua():
 @track_operation(NotionAPIOperation.HANDLE_DONE_TASKS)
 def copy_done_from_daily_to_copied_tasks():
     daily_tasks = get_daily_tasks(daily_filter=daily_notion_category_filter_with_done_last_week)
+    success_count = 0
+    tasks_processed = []
+
     for daily_task in daily_tasks:
         daily_page_id = daily_task['id']
         daily_page_name = daily_task['properties']['Task']['title'][0]['plain_text']
         daily_children = get_page(daily_page_id, get_children=True)
+
         if not daily_children:
             logger.debug(f"No children found for the daily task {daily_page_name}")
             continue
 
         try:
-            daily_children_page_id = \
-                (daily_children[0]['paragraph']['rich_text'][0]['mention']["page"]["id"]).replace("-", "")
+            # Get children page ID
+            daily_children_page_id = (daily_children[0]['paragraph']['rich_text'][0]['mention']["page"]["id"]).replace(
+                "-", "")
+
+            try:
+                # Try to update the Done status
+                update_page(daily_children_page_id, check_done_payload)
+                success_count += 1
+                tasks_processed.append(daily_page_name)
+                logger.debug(f"Successfully updated {daily_page_name}")
+            except Exception as e:
+                # Check if error is about missing Done property
+                if "Done is not a property that exists" in str(e):
+                    logger.debug(f"Skipped {daily_page_name} - no Done property available")
+                else:
+                    logger.error(f"Error updating {daily_page_name}: {str(e)}")
+                continue
 
         except KeyError as ke:
             logger.error(f"Could not get the children's page_id for {daily_page_name}: {ke}")
             continue
 
-        try:
-            update_page(daily_children_page_id, check_done_payload)
-            logger.info(f"Successfully updated the status to done for the children of {daily_page_name}")
-        except Exception as e:
-            logger.error(f"Could not Update the status to done for the children of {daily_page_name}: {e}")
-            continue
+    if success_count > 0:
+        logger.info(f"Successfully updated {success_count} tasks:")
+        for task in tasks_processed:
+            logger.info(f"- {task}")
+    else:
+        logger.debug("No tasks needed updates")
 
 
 def uncheck_copied_to_daily_book_summaries():
@@ -359,54 +496,34 @@ def copy_pages_from_other_db_if_needed():
     run_functions(functions)
 
 
-def create_monthly_summary_and_daily_task():
-    """Creates monthly summary page and adds a daily task for review"""
-    update_historical_monthly_expenses()
-    try:
-        # Create monthly summary
-        summary_response = create_monthly_summary_page()
-        summary_page_id = summary_response['id']
 
-        # Create daily task for review
-        task_dict = {
-            "Task": "Review Monthly Summary",
-            "Project": Projects.notion,
-            "Due": today.isoformat(),
-            "Icon": generate_icon_url(IconType.CHECKLIST, IconColor.BLUE)
-        }
-
-        # Create daily task with link to summary
-        children_block = generate_page_content_page_notion_link(summary_page_id)
-        response = create_page_with_db_dict_and_children_block(
-            daily_tasks_db_id,
-            task_dict,
-            children_block
-        )
-
-        logger.info(f"Created monthly summary review task with ID {response['id']}")
-        return summary_page_id, response['id']
-
-    except Exception as e:
-        logger.error(f"Error creating monthly summary and daily task: {str(e)}")
-        raise
-
+@track_operation(NotionAPIOperation.GET_EXPENSES)
 def get_expenses_to_notion():
     expense_service = NotionExpenseService(expense_tracker_db_id, monthly_category_expense_db)
     expense_service.add_all_expenses_to_notion()
 
 
 def update_historical_monthly_expenses():
-    expense_service = NotionExpenseService(
-        expense_tracker_db_id=expense_tracker_db_id,
-        monthly_category_expense_db_id=monthly_category_expense_db
-    )
+    try:
+        expense_service = NotionExpenseService(
+            expense_tracker_db_id=expense_tracker_db_id,
+            monthly_category_expense_db_id=monthly_category_expense_db
+        )
 
-    monthly_summaries = expense_service.backfill_monthly_expenses(months_back=4)
+        # Only proceed if update is needed
+        if expense_service.should_create_monthly_summary():
+            monthly_summaries = expense_service.backfill_monthly_expenses(months_back=4)
 
-    for month, category_sums in monthly_summaries.items():
-        logger.info(f"\nMonth {month} summaries:")
-        for category, total in category_sums.items():
-            logger.info(f"{category}: {total:.2f}")
+            for month, category_sums in monthly_summaries.items():
+                logger.info(f"\nMonth {month} summaries:")
+                for category, total in category_sums.items():
+                    logger.info(f"{category}: {total:.2f}")
+        else:
+            logger.debug("Monthly summaries are up to date, no update needed")
+
+    except Exception as e:
+        logger.error(f"Error updating historical monthly expenses: {e}")
+        raise
 
 
 def create_monthly_summary():
@@ -474,7 +591,7 @@ if __name__ == '__main__':
         'create_daily_pages': create_daily_pages,
         'copy_pages': copy_pages_from_other_db_if_needed,
         'get_expenses': get_expenses_to_notion,
-        'update_historical_monthly_expenses': update_historical_monthly_expenses,
+        'scheduled_tasks': run_scheduled_tasks,
         'copy_book_summary': copy_book_summary,
     }
 

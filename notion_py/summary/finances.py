@@ -6,7 +6,7 @@ from typing import List, Dict, Optional
 from expense.expense_constants import ENGLISH_CATEGORY
 from notion_py.helpers.notion_children_blocks import (
     create_toggle_heading_block,
-    create_section_text_with_bullet, create_db_block, create_heading_3_block, create_paragraph_block,
+    create_section_text_with_bullet, create_block_with_db_view, create_heading_3_block, create_paragraph_block,
     create_heading_2_block,
 )
 from notion_py.summary.base_component import BaseComponent
@@ -26,11 +26,13 @@ class FinanceFields:
 
 class FinancesComponent(BaseComponent):
     def __init__(self, expense_tracker_db_id: str, monthly_category_expense_db: str,
-                 monthly_expenses_summary_previous_month_view_link: str, target_date: Optional[date] = None):
+                 monthly_expenses_summary_previous_month_view_link: str, monthly_expense_chart_link: str,
+                 target_date: Optional[date] = None):
         super().__init__(target_date, FinanceFields)
         self.expense_tracker_db_id = expense_tracker_db_id
         self.monthly_category_expense_db_id = monthly_category_expense_db
         self.monthly_expenses_summary_previous_month_view_link = monthly_expenses_summary_previous_month_view_link
+        self.monthly_expense_chart_link = monthly_expense_chart_link
 
     def _initialize_metrics(self):
         """Initialize financial metrics for current and previous months"""
@@ -326,6 +328,9 @@ class FinancesComponent(BaseComponent):
 
         return self.generate_callout_block(callout_element)
 
+    def create_chart_section(self) -> dict:
+        """Creates the chart section for monthly expenses"""
+        return create_block_with_db_view(self.monthly_expense_chart_link)
 
 
     def get_main_categories_blocks(self) -> List[Dict]:
@@ -437,6 +442,7 @@ class FinancesComponent(BaseComponent):
                     create_paragraph_block(bullet, bold_word=bold_part, color_list=color_data, code_words=shekel_price)
                 )
 
+            blocks.append(self.create_chart_section())
             blocks.append(
                 create_toggle_heading_block(
                     "Other Categories",

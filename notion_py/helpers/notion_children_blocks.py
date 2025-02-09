@@ -380,24 +380,15 @@ def create_separator_block():
     }
 
 
-def create_db_block(db_id: str) -> dict:
+def create_block_with_db_view(view_url: str) -> dict:
     """Create a block with a link to a Notion database"""
-    return {
-        "object": "block",
-        "type": "paragraph",
-        "paragraph": {
-            "rich_text": [{
-                "type": "mention",
-                "mention": {
-                    "type": "database",
-                    "database": {
-                        "id": db_id
-                    }
-                }
-            }]
-        }
+    return  {
+      "object": "block",
+      "type": "bookmark",
+      "bookmark": {
+        "url": view_url
+      }
     }
-
 
 def create_column_block(title: str, content_blocks: list) -> dict:
     """Create a column block with a title and content blocks"""

@@ -43,6 +43,22 @@ class Goal:
             return f"{days} days remaining"
 
 
+def get_icon_from_props(props) -> str:
+    """Safely extract icon from properties with a default value"""
+    try:
+        return props['Icon']['rollup']['array'][0]['rich_text'][0]['text']['content']
+    except (KeyError, IndexError):
+        return "🎯"
+
+
+def get_goal_setting_from_props(props) -> str:
+    """Safely extract icon from properties with a default value"""
+    try:
+        return props['Goal Setting']['relation'][0]['id']
+    except (KeyError, IndexError):
+        return "No Parent Goal Setting"
+
+
 def create_goals_from_notion_data(notion_data: List[dict]) -> List[Goal]:
     goals = []
 
@@ -56,11 +72,11 @@ def create_goals_from_notion_data(notion_data: List[dict]) -> List[Goal]:
             name=props['Name']['title'][0]['text']['content'],
             deadline=props['Deadline']['date']['start'],
             done=props['Done']['checkbox'],
-            icon=props['Icon']['rollup']['array'][0]['rich_text'][0]['text']['content'],
+            icon=get_icon_from_props(props),
             deadline_status=props['Deadline Status']['formula']['string'],
             created_time=props['Created time']['created_time'],
             last_edited_time=props['Last edited time']['last_edited_time'],
-            goal_setting_id=props['Goal Setting']['relation'][0]['id'],
+            goal_setting_id=get_goal_setting_from_props(props),
             url=item['url']
         )
         goals.append(goal)

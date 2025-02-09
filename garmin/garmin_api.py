@@ -898,7 +898,7 @@ def get_garmin_info(days_ago: int = 1) -> dict:
     activity_info = _get_activity_info(api, target_date)
     user_info = _get_user_info(api, target_date)
 
-    if user_info.get('total_calories', 3000) < 2000:
+    if user_info.get('total_calories', 3000) < 1850:
         err_message = f"Error with the data - calories: {user_info.get('total_calories', 3000)} is not a correct value"
         logger.error(err_message)
         raise Exception(err_message)

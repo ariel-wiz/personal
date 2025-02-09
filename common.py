@@ -356,3 +356,12 @@ def calculate_month_boundaries(target_date) -> Tuple[date, date]:
         last_day = first_day.replace(month=target_date.month + 1, day=1) - timedelta(days=1)
 
     return first_day, last_day
+
+
+def is_approaching_month_end(days_before_end_of_the_month_check=7) -> bool:
+    """
+    Check if we're within 7 days of the start of the next month.
+    """
+    current_date = today
+    days_until_next_month = ((current_date.replace(day=1) + timedelta(days=32)).replace(day=1) - current_date).days
+    return days_until_next_month <= days_before_end_of_the_month_check

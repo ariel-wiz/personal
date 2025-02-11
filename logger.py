@@ -2,7 +2,7 @@ import logging
 from typing import List
 import atexit
 
-logger_level = logging.INFO
+logger_level = logging.DEBUG
 
 class CollectLogHandler(logging.Handler):
     def __init__(self):

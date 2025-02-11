@@ -194,7 +194,7 @@ def last_4_months_expense_filter() -> Dict:
 
 
 last_4_months_months_expense_filter = {
-    "property": "Date",
+    "property": "Processed Date",
     "date": {
         "on_or_after": (today - timedelta(days=145)).isoformat()
     }

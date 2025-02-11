@@ -155,7 +155,7 @@ class NotionExpenseService:
         expenses_objects_from_notion = []
 
         if filter_by is None:
-            payload = generate_payload(last_4_months_expense_filter)
+            payload = generate_payload(last_4_months_months_expense_filter)
         else:
             payload = generate_payload(filter_by)
 

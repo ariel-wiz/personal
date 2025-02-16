@@ -280,6 +280,43 @@ class NotionExpenseService:
             original_name=original_name
         )
 
+    def update_averages(self, target_date: datetime, categories: Optional[List[str]] = None):
+        """Single entry point for updating averages"""
+        try:
+            monthly_pages = self._get_or_create_monthly_pages(target_date)
+            month_str = target_date.strftime('%B %Y')
+
+            # If categories not specified, get all categories from pages
+            if not categories:
+                categories = [
+                    page['properties']['Category']['title'][0]['plain_text']
+                    for page in monthly_pages
+                ]
+
+            for category in categories:
+                try:
+                    page = find_matching_category_page(category, monthly_pages)
+                    if not page:
+                        continue
+
+                    average = self.get_month_average(category, target_date)
+                    if average is not None:
+                        update_payload = {
+                            "properties": {
+                                "4 Months Average": {"number": average}
+                            }
+                        }
+                        update_page(page['id'], update_payload)
+                        logger.info(f"Updated {category} average to {average:.2f} for {month_str}")
+
+                except Exception as e:
+                    logger.error(f"Error updating average for {category}: {str(e)}")
+                    continue
+
+        except Exception as e:
+            logger.error(f"Error updating averages: {str(e)}")
+            raise
+
     def get_existing_expense_by_property(self, property_name: str, property_value: str) -> List[Expense]:
         """Find expenses matching a property value"""
         return [expense for expense in self.existing_expenses_objects
@@ -300,12 +337,7 @@ class NotionExpenseService:
             return False
 
     def add_all_expenses_to_notion(self, check_before_adding: bool = True):
-        """
-        Add all expenses to Notion database.
-
-        Args:
-            check_before_adding: If True, checks if expense exists before adding
-        """
+        """Add all expenses to Notion database with optimized average calculations"""
         try:
             expenses_to_add = self._prepare_expenses_for_addition(check_before_adding)
             if not expenses_to_add:
@@ -313,7 +345,14 @@ class NotionExpenseService:
 
             self.add_expenses_to_notion(expenses_to_add)
 
-            self.update_current_month_expenses()
+            # Update only current month expenses
+            current_date = datetime.now()
+            self.process_monthly_expenses(current_date)
+
+            if self.needs_average_update(current_date):
+                logger.info("Updating 4 months average for current month")
+                self.update_averages(current_date)
+
             logger.info("Successfully completed adding expenses to Notion")
 
         except Exception as e:
@@ -509,41 +548,27 @@ class NotionExpenseService:
 
         return mapping
 
-    def update_monthly_pages(self, monthly_pages: List[Dict], month_expenses: List[Expense], month_str) -> Dict[str, float]:
-        """Updates monthly category pages with expenses and recalculates averages"""
+    def _update_monthly_pages(self, monthly_pages: List[Dict], month_expenses: List[Expense], month_str) -> Dict[
+        str, float]:
+        """Updates monthly category pages with expenses"""
         try:
             expenses_by_category = group_expenses_by_category(month_expenses)
             category_totals = {}
-
-            target_date = datetime.strptime(monthly_pages[0]['properties']['Date']['date']['start'], '%Y-%m-%d')
 
             for category, expenses in expenses_by_category.items():
                 try:
                     category_page = find_matching_category_page(category, monthly_pages)
                     if category_page:
-                        # Update expenses
+                        # Update expenses without recalculating averages
                         expense_ids = [exp.page_id for exp in expenses if exp.page_id]
-                        self._update_category_page(category, expense_ids, category_page['id'])
+                        self._update_category_page_expenses(category, expense_ids, category_page['id'])
 
                         # Calculate total
                         total = sum(exp.charged_amount for exp in expenses)
                         category_totals[category] = total
 
-                        # Recalculate and update average
-                        logger.debug(f"Recalculating average for {category} ({month_str})")
-                        average = self.get_month_average(category, target_date)
-                        if "saving" in category.lower():
-                            print('Ariel')
-                        if average is not None:
-                            update_payload = {
-                                "properties": {
-                                    "4 Months Average": {"number": average}
-                                }
-                            }
-                            update_page(category_page['id'], update_payload)
-                            logger.info(f"Updated {category} average to {average:.2f} for {month_str}")
-
-                        logger.debug(f"{month_str} - Updated category {category} with {len(expense_ids)} expenses, total: {total}")
+                        logger.debug(
+                            f"{month_str} - Updated category {category} with {len(expense_ids)} expenses, total: {total}")
 
                 except Exception as e:
                     logger.error(f"Error updating category {category}: {str(e)}")
@@ -554,6 +579,58 @@ class NotionExpenseService:
         except Exception as e:
             logger.error(f"Failed to update monthly pages: {str(e)}")
             return {}
+
+    def _update_category_page_expenses(self, category: str, expense_ids: List[str], page_id: str):
+        """Updates only expense relations for a category page"""
+        try:
+            payload = {
+                "properties": {
+                    "Expenses": {
+                        "relation": [{"id": expense_id} for expense_id in expense_ids]
+                    }
+                }
+            }
+
+            update_page(page_id, payload)
+            expense_count = len(expense_ids)
+            if expense_count > 0:
+                logger.info(f"Updated {expense_count} expenses for category {category}")
+            else:
+                logger.info(f"Cleared expenses for category {category}")
+
+        except Exception as e:
+            logger.error(f"Error updating category page expenses {category}: {str(e)}")
+            raise
+
+    def recalculate_averages(self, target_date: datetime):
+        """Recalculates averages for all categories for a specific month"""
+        try:
+            monthly_pages = self._get_or_create_monthly_pages(target_date)
+            month_str = target_date.strftime('%B %Y')
+
+            for page in monthly_pages:
+                try:
+                    category = page['properties']['Category']['title'][0]['plain_text']
+
+                    # Recalculate average
+                    logger.debug(f"Recalculating average for {category} ({month_str})")
+                    average = self.get_month_average(category, target_date)
+
+                    if average is not None:
+                        update_payload = {
+                            "properties": {
+                                "4 Months Average": {"number": average}
+                            }
+                        }
+                        update_page(page['id'], update_payload)
+                        logger.info(f"Updated {category} average to {average:.2f} for {month_str}")
+
+                except Exception as e:
+                    logger.error(f"Error updating average for category {category}: {str(e)}")
+                    continue
+
+        except Exception as e:
+            logger.error(f"Error recalculating averages: {str(e)}")
 
     def _create_relation_payload(self, expense_ids: List[str], category: str,
                                  target_date: datetime, existing_average: Optional[float]) -> Dict:
@@ -620,10 +697,10 @@ class NotionExpenseService:
                 return {}
 
             # Update category pages and get category totals
-            category_totals = self.update_monthly_pages(monthly_pages, month_expenses, month_str)
+            category_totals = self._update_monthly_pages(monthly_pages, month_expenses, month_str)
 
-            # Calculate and update total expenses
-            self.calculate_and_update_total_expenses(monthly_pages, month_expenses, month_str)
+            # Calculate and update total expenses without averages
+            self._update_total_expenses(monthly_pages, category_totals, month_str)
 
             return category_totals
 
@@ -631,6 +708,37 @@ class NotionExpenseService:
             error_msg = f"Error processing monthly expenses for {target_date.strftime('%B %Y')}: {str(e)}"
             logger.error(error_msg)
             raise NotionUpdateError(error_msg) from e
+
+    def _update_total_expenses(self, monthly_pages: List[Dict], category_totals: Dict[str, float], month_str: str):
+        """Updates total expenses without recalculating averages"""
+        try:
+            # Calculate total excluding certain categories
+            excluded_categories = ['income', 'credit card', 'saving']
+            total_amount = sum(
+                amount for category, amount in category_totals.items()
+                if category.lower() not in excluded_categories
+            )
+
+            # Find and update the Expenses page
+            expenses_page = find_expenses_page(monthly_pages)
+            if not expenses_page:
+                logger.warning(f"Expenses page not found in monthly pages for {month_str}")
+                return
+
+            # Update only the total amount
+            update_payload = {
+                "properties": {
+                    "Monthly Expenses": {
+                        "number": total_amount
+                    }
+                }
+            }
+            update_page(expenses_page['id'], update_payload)
+
+            logger.info(f"Successfully updated monthly total expenses: {total_amount:.2f} for {month_str}")
+
+        except Exception as e:
+            logger.error(f"Error updating total expenses: {str(e)} for {month_str}")
 
     def _get_or_create_monthly_pages(self, month_date: datetime) -> List[Dict]:
         """Gets or creates monthly pages for the given date"""
@@ -968,28 +1076,53 @@ class NotionExpenseService:
         """Custom exception for Notion update errors"""
         pass
 
-    def backfill_monthly_expenses(self, months_back: int = 4) -> Dict[str, Dict[str, float]]:
+    def needs_average_update(self, target_date: datetime = None) -> bool:
         """
-        Backfills monthly expense data for past months.
-        Args:
-            months_back: Number of months to go back
+        Checks if any category in the target month has empty averages.
+
         Returns:
-            Dict mapping months to their category sums
+            bool: True if any category needs average update, False otherwise
         """
         try:
-            monthly_summaries = {}
+            target_date = target_date or datetime.now()
+            monthly_pages = self._get_or_create_monthly_pages(target_date)
 
-            # Get all expenses for the period
+            # Check if any page has empty average
+            for page in monthly_pages:
+                existing_average = page['properties'].get('4 Months Average', {}).get('number')
+                if existing_average is None:
+                    logger.debug(f"Found missing average for {target_date.strftime('%B %Y')}")
+                    return True
+
+            logger.debug(f"All averages exist for {target_date.strftime('%B %Y')}")
+            return False
+
+        except Exception as e:
+            logger.error(f"Error checking if averages need update: {str(e)}")
+            return False
+
+    def backfill_monthly_expenses(self, months_back: int = 4) -> Dict[str, Dict[str, float]]:
+        """Backfills monthly expense data for past months with optimized average calculations"""
+        try:
+            target_dates = generate_target_dates(months_back)
             existing_expenses = self.get_expenses_from_notion(
                 filter_by=last_4_months_expense_filter()
             )
 
             if not existing_expenses:
-                logger.info("No expenses found to backfill")
-                return monthly_summaries
+                return {}
 
-            monthly_summaries = self._process_historical_months(existing_expenses, months_back)
-            logger.info(f"Completed backfilling monthly expenses for {months_back} previous months")
+            monthly_summaries = {}
+            for target_date in target_dates:
+                # Process expenses without averages
+                category_sums = self.process_monthly_expenses(target_date, existing_expenses)
+                if category_sums:
+                    monthly_summaries[target_date.strftime("%m/%y")] = category_sums
+
+            # Update averages once for all months
+            for target_date in target_dates:
+                self.update_averages(target_date)
+
             return monthly_summaries
 
         except Exception as e:

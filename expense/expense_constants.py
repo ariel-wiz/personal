@@ -1,6 +1,7 @@
 """
 Configuration file for expense tracking system containing constants and settings.
 """
+import os
 from datetime import datetime, date, timedelta
 from typing import Dict, List
 
@@ -10,8 +11,15 @@ from common import today
 from variables import PRICE_VAAD_BAIT, PRICE_GAN_TAMAR, PRICE_MASHKANTA, HAFKADA_GEMEL_CHILDREN, PRICE_TSEHARON_NOYA, \
     ARIEL_SALARY_AVG
 
-# Database paths and constants
-CASPION_FILE_PATH = "/Users/ariel/Documents/caspion/caspion.json"
+EXPENSE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Bank Scraper Configuration
+BANK_SCRAPER_SCRIPT_EXEC_NAME = "expense_run_bank_scraper.py"
+BANK_SCRAPER_DIRECTORY = os.path.join(EXPENSE_DIR, "bank-scraper")
+BANK_SCRAPER_OUTPUT_DIR = "/Users/ariel/Documents/b_scraper_output"
+BANK_SCRAPER_OUTPUT_FILE_PATH = os.path.join(BANK_SCRAPER_OUTPUT_DIR, "transactions.json")
+BANK_SCRAPER_NODE_SCRIPT_PATH = os.path.join(BANK_SCRAPER_DIRECTORY, "bank-scraper.js")
+CREATE_EXPENSE_FILE_IF_ALREADY_MODIFIED_TODAY = True
 
 # Category constants
 DEFAULT_CATEGORY = 'Other 🗂️'

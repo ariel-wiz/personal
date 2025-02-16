@@ -42,3 +42,7 @@ shifts/logs/
 env-consts.py
 variables.py
 notion_ids.py
+
+# Env files
+expense/bank-scraper/.env
+expense/bank-scraper/.key

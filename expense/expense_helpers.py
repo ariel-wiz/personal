@@ -13,7 +13,7 @@ from dateutil.relativedelta import relativedelta
 from common import calculate_month_boundaries
 from logger import logger
 from expense.expense_constants import MODIFIED_NAMES, ENGLISH_CATEGORY, DEFAULT_CATEGORY, ENGLISH_SUB_CATEGORIES, \
-    CASPION_FILE_PATH
+    BANK_SCRAPER_OUTPUT_FILE_PATH
 from expense.expense_models import ExpenseField
 from notion_py.helpers.notion_common import generate_icon_url
 from notion_py.notion_globals import IconType, IconColor, NotionPropertyType
@@ -384,10 +384,10 @@ def log_creation_completion(date_info: Dict, created_pages: List[Dict]):
 
 def load_data_from_json() -> Dict:
     """Load expense data from JSON file"""
-    if os.path.exists(CASPION_FILE_PATH):
-        with open(CASPION_FILE_PATH, 'r') as f:
+    if os.path.exists(BANK_SCRAPER_OUTPUT_FILE_PATH):
+        with open(BANK_SCRAPER_OUTPUT_FILE_PATH, 'r') as f:
             json_file = json.load(f)
-            logger.info(f"Successfully loaded JSON file of size {len(json_file)} from {CASPION_FILE_PATH}")
+            logger.info(f"Successfully loaded JSON file of size {len(json_file)} from {BANK_SCRAPER_OUTPUT_FILE_PATH}")
             return json_file
     return {}
 

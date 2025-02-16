@@ -4,6 +4,8 @@ Complete Notion expense service implementation with all methods.
 
 import json
 import os
+import subprocess
+import sys
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple
@@ -12,10 +14,10 @@ from dateutil.relativedelta import relativedelta
 
 from common import parse_expense_date, adjust_month_end_dates, remove_emojis
 from expense.expense_constants import (
-    CASPION_FILE_PATH,
+    BANK_SCRAPER_OUTPUT_FILE_PATH,
     last_4_months_expense_filter,
     last_4_months_months_expense_filter, EXPENSE_TYPES, CURRENCY_SYMBOLS, EXPENSES_TO_ADJUST_DATE, DEFAULT_CATEGORY,
-    current_months_expense_filter, current_month_year_filter, ENGLISH_SUB_CATEGORIES
+    current_months_expense_filter, current_month_year_filter, ENGLISH_SUB_CATEGORIES, BANK_SCRAPER_SCRIPT_EXEC_NAME
 )
 from expense.expense_models import Expense, MonthlyExpense, ExpenseField
 from expense.expense_helpers import (
@@ -323,6 +325,8 @@ class NotionExpenseService:
         """Prepares the list of expenses to be added to Notion"""
         logger.info("Starting to add expenses to Notion")
 
+        self._run_bank_scrapper()
+
         if not self._load_and_process_json():
             return []
 
@@ -338,6 +342,37 @@ class NotionExpenseService:
         logger.info(f"{expenses_count} Expense{'s' if expenses_count > 1 else ''} can be added to Notion")
 
         return expenses_to_add
+
+    def _run_bank_scrapper(self):
+        try:
+            script_path = os.path.join(os.path.dirname(__file__), BANK_SCRAPER_SCRIPT_EXEC_NAME)
+            logger.info(f"Starting scraper script {script_path}...")
+
+            # Run the script and capture output
+            process = subprocess.Popen(
+                [sys.executable, script_path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+
+            # Process the output
+            for line in process.stdout:
+                logger.info(line.strip())
+
+            for line in process.stderr:
+                logger.error(line.strip())
+
+            # Wait for the process to complete
+            process.wait()
+
+            if process.returncode == 0:
+                logger.info("Scraper script completed successfully.")
+            else:
+                logger.error(f"Scraper script exited with error code {process.returncode}")
+
+        except Exception as e:
+            logger.exception(f"Error running scraper script: {e}")
 
     def _load_and_process_json(self) -> bool:
         """Loads and processes JSON data"""

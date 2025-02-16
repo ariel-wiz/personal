@@ -3,7 +3,7 @@ import shutil
 
 
 class ScriptPath:
-    FRONTEND = "/Users/ariel/Documents/travel-card/frontend"
+    TRAVELCARD_FRONTEND = "/Users/ariel/Documents/travel-card/frontend"
     BACKUP = "/Users/ariel/Desktop/tmp/backup"
     PERSONAL = "/Users/ariel/PycharmProjects/personal"
 
@@ -48,10 +48,10 @@ def copy_files(src, dest, exclude_dirs, exclude_files):
 
 if __name__ == "__main__":
    # Define variables
-   src_path = ScriptPath.PERSONAL
+   src_path = "/Users/ariel/Downloads/caspion-master"
    dst_path = ScriptPath.BACKUP
-   exclude_dirs = ["images", "migrations", ".git", "crossfit", "shifts"]  # Replace with your list of excluded directories
-   exclude_files = ["package-lock.json", "yarn.lock", ".env.local", ".DS_Store", "variables.py"]  # Replace with your list of excluded files
+   exclude_dirs = ["images", "migrations", ".git", "crossfit", "shifts", "bank-scraper"]  # Replace with your list of excluded directories
+   exclude_files = ["package-lock.json", "yarn.lock", ".env.local", ".DS_Store", "variables.py", "tsconfig.tsbuildinfo"]  # Replace with your list of excluded files
 
    # Run the copy function
    copy_files(src_path, dst_path, set(exclude_dirs), exclude_files)

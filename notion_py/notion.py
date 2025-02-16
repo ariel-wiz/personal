@@ -35,6 +35,7 @@ class SchedulingManager:
         Run all scheduled tasks based on their timing requirements.
         Returns True if any tasks were run, False otherwise.
         """
+
         try:
             # Run end of month tasks
             if self._is_end_of_month_window():
@@ -531,7 +532,8 @@ def main(selected_tasks):
             #                                    crossfit_workout_db_id="16aafca4f807804f8fadc0ab2a9218b3")
             # # crossfit_manager.add_crossfit_exercises_to_notion()
             # crossfit_manager.add_crossfit_workouts_to_notion()
-
+            #
+            # run_scheduled_tasks()
             get_expenses_to_notion()
 
             # create_monthly_summary_and_daily_task()

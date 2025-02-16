@@ -5,10 +5,10 @@ import logging
 import sys
 import os
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple
 from datetime import datetime, date
 
-from expense.expense_constants import CREATE_EXPENSE_FILE_IF_ALREADY_MODIFIED_TODAY, BANK_SCRAPER_NODE_SCRIPT_PATH, BANK_SCRAPER_OUTPUT_DIR, BANK_SCRAPER_DIRECTORY, \
+from expense.expense_constants import BANK_SCRAPER_NODE_SCRIPT_PATH, BANK_SCRAPER_DIRECTORY, BANK_SCRAPER_OUTPUT_DIR, \
     BANK_SCRAPER_OUTPUT_FILE_PATH
 
 # Configure logging
@@ -17,6 +17,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
 
 class ScraperError(Exception):
     """Custom exception for scraper errors"""
@@ -50,8 +51,8 @@ def find_credential_files(directory: str) -> List[Path]:
         raise ScraperError(f"Error searching for credential files: {e}")
 
 
-def run_scraper(env_file: Path, output_path: str) -> Tuple[Dict[str, Any], bool]:
-    if not CREATE_EXPENSE_FILE_IF_ALREADY_MODIFIED_TODAY and os.path.exists(output_path) and is_file_modified_today(output_path):
+def run_scraper(env_file: Path, output_path: str, CREATE_IF_MODIFIED_TODAY=None) -> Tuple[Dict[str, Any], bool]:
+    if not CREATE_IF_MODIFIED_TODAY and os.path.exists(output_path) and is_file_modified_today(output_path):
         logger.info(f"Output file {output_path} was already created today. Skipping scraping.")
         try:
             with open(output_path, 'r') as f:

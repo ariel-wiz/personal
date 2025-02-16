@@ -1,0 +1,16 @@
+{
+  "name": "bank-scraper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bank-scraper.js",
+  "type": "module",
+  "scripts": {
+    "start": "node --no-deprecation bank-scraper.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "israeli-bank-scrapers": "^5.3.0"
+  }
+}

@@ -134,7 +134,7 @@ async function scrapeBank(credentials, keyPath) {
 
         const scraper = createScraper(options);
         
-        logger.info(`Starting to scrape ${decryptedCreds.companyId}`);
+        logger.debug(`Starting to scrape ${decryptedCreds.companyId}`);
         const scrapeResult = await scraper.scrape(decryptedCreds);
 
         if (!scrapeResult.success) {
@@ -146,7 +146,7 @@ async function scrapeBank(credentials, keyPath) {
             scrapeResult
         );
 
-        logger.info(`Successfully scraped ${decryptedCreds.companyId}`);
+        logger.debug(`Successfully scraped ${decryptedCreds.companyId}`);
         return processedTransactions;
     } catch (error) {
         logger.error(`Error scraping ${credentials.companyId}`, error);
@@ -155,10 +155,13 @@ async function scrapeBank(credentials, keyPath) {
 }
 
 async function main() {
-     try {
+    try {
+        // Start tracking total execution time
+        const scriptStartTime = Date.now();
+
         // Get input paths from command line arguments
         const [,, configPath, outputPath, keyPath] = process.argv;
-        
+
         if (!configPath || !outputPath) {
             logger.error('Missing required arguments: configPath and outputPath');
             return EXIT_CODES.CONFIG_ERROR;
@@ -174,43 +177,65 @@ async function main() {
             return EXIT_CODES.CONFIG_ERROR;
         }
 
-        // Create output directory if needed
+        const totalAccounts = credentials.length;
+        let successfulScrapes = 0;
+        let failedScrapes = 0;
         const outputDir = path.dirname(outputPath);
         await fs.mkdir(outputDir, { recursive: true });
 
-        // Scrape each bank
         let allTransactions = [];
-        let hasErrors = false;
-        
-        for (const cred of credentials) {
+        let scrapeResults = [];
+
+        // Scrape each bank with improved logging and time tracking
+        for (let i = 0; i < totalAccounts; i++) {
+            const cred = credentials[i];
+            const startTime = Date.now();
             try {
-                // Pass the key path to decryptCredentials
+                logger.debug(`${i + 1}/${totalAccounts} - Starting to scrape ${cred.companyId}`);
                 const transactions = await scrapeBank(cred, keyPath);
+                const timeTaken = ((Date.now() - startTime) / 1000).toFixed(2); // Time in seconds
+
                 if (transactions && transactions.length > 0) {
                     allTransactions.push(...transactions);
+                    logger.info(`${i + 1}/${totalAccounts} - Successfully scraped ${cred.companyId} (Time: ${timeTaken}s)`);
+                    successfulScrapes++;
+                } else {
+                    logger.error(`${i + 1}/${totalAccounts} - Failed scraping ${cred.companyId} (Time: ${timeTaken}s) - No transactions found`);
+                    failedScrapes++;
                 }
+
+                scrapeResults.push({ company: cred.companyId, success: true, timeTaken });
+
             } catch (error) {
-                hasErrors = true;
-                logger.error(`Failed to scrape ${cred.companyId}`, error);
+                const timeTaken = ((Date.now() - startTime) / 1000).toFixed(2);
+                logger.error(`${i + 1}/${totalAccounts} - Failed scraping ${cred.companyId} (Time: ${timeTaken}s) - Error: ${error.message}`);
+                scrapeResults.push({ company: cred.companyId, success: false, timeTaken });
+                failedScrapes++;
             }
         }
 
-        if (allTransactions.length === 0) {
-            logger.error('No successful scraping results to save');
-            return hasErrors ? EXIT_CODES.SCRAPING_ERROR : EXIT_CODES.SUCCESS;
+        // Save results
+        if (allTransactions.length > 0) {
+            await fs.writeFile(outputPath, JSON.stringify(allTransactions, null, 2));
+            logger.info(`Results saved to ${outputPath}`);
         }
 
-        // Save results as a **flattened list**
-        await fs.writeFile(outputPath, JSON.stringify(allTransactions, null, 2));
-        logger.info(`Results saved to ${outputPath}`);
-        
-        return hasErrors ? EXIT_CODES.SCRAPING_ERROR : EXIT_CODES.SUCCESS;
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            logger.error('File not found error', error);
-            return EXIT_CODES.FILE_SYSTEM_ERROR;
+        // Calculate total execution time in minutes and seconds
+        const totalExecutionTime = Date.now() - scriptStartTime;
+        const minutes = Math.floor(totalExecutionTime / 60000);
+        const seconds = ((totalExecutionTime % 60000) / 1000).toFixed(2);
+
+        // Final summary log
+        if (successfulScrapes === totalAccounts) {
+            logger.info(`✅ All ${totalAccounts}/${totalAccounts} accounts were successfully scraped in ${minutes}m ${seconds}s.`);
+        } else {
+            logger.info(`⚠️ ${successfulScrapes}/${totalAccounts} accounts were successfully scraped. Total execution time: ${minutes}m ${seconds}s.`);
         }
-        logger.error('Script failed with unexpected error', error);
+
+        return failedScrapes > 0 ? EXIT_CODES.SCRAPING_ERROR : EXIT_CODES.SUCCESS;
+
+    } catch (error) {
+        logger.error(`Script failed with unexpected error: ${error.message}`);
         return EXIT_CODES.SCRAPING_ERROR;
     }
 }

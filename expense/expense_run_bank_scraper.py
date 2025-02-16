@@ -9,7 +9,7 @@ from typing import Dict, Any, List, Tuple
 from datetime import datetime, date
 
 from expense.expense_constants import BANK_SCRAPER_NODE_SCRIPT_PATH, BANK_SCRAPER_DIRECTORY, BANK_SCRAPER_OUTPUT_DIR, \
-    BANK_SCRAPER_OUTPUT_FILE_PATH
+    BANK_SCRAPER_OUTPUT_FILE_PATH, CREATE_EXPENSE_FILE_IF_ALREADY_MODIFIED_TODAY
 
 # Configure logging
 logging.basicConfig(
@@ -51,8 +51,8 @@ def find_credential_files(directory: str) -> List[Path]:
         raise ScraperError(f"Error searching for credential files: {e}")
 
 
-def run_scraper(env_file: Path, output_path: str, CREATE_IF_MODIFIED_TODAY=None) -> Tuple[Dict[str, Any], bool]:
-    if not CREATE_IF_MODIFIED_TODAY and os.path.exists(output_path) and is_file_modified_today(output_path):
+def run_scraper(env_file: Path, output_path: str) -> Tuple[Dict[str, Any], bool]:
+    if not CREATE_EXPENSE_FILE_IF_ALREADY_MODIFIED_TODAY and os.path.exists(output_path) and is_file_modified_today(output_path):
         logger.info(f"Output file {output_path} was already created today. Skipping scraping.")
         try:
             with open(output_path, 'r') as f:
@@ -112,7 +112,7 @@ def main():
                     skipped.append(env_file.name)
                 else:
                     results[env_file.name] = file_results
-                    logger.info(f"Successfully processed {env_file.name}")
+                    logger.debug(f"Successfully processed {env_file.name}")
             except ScraperError as e:
                 logger.error(f"Failed to process {env_file.name}: {e}")
                 errors.append((env_file.name, str(e)))

@@ -1114,10 +1114,14 @@ class NotionExpenseService:
 
             monthly_summaries = {}
             for target_date in target_dates:
+                monthly_pages = self._get_or_create_monthly_pages(target_date)
+
                 # Process expenses without averages
                 category_sums = self.process_monthly_expenses(target_date, existing_expenses)
                 if category_sums:
                     monthly_summaries[target_date.strftime("%m/%y")] = category_sums
+
+                    self._update_total_expenses(monthly_pages, category_sums, target_date.strftime('%B %Y'))
 
             # Update averages once for all months
             for target_date in target_dates:

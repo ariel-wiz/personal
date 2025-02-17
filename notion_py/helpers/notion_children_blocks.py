@@ -1,3 +1,6 @@
+from typing import Optional
+
+
 def generate_children_block_for_daily_inspirations(note, author, main_content):
     children_block = [
         {
@@ -111,10 +114,10 @@ def create_paragraph_block(content, bold_word=None, color_list=None, code_words=
     rich_text = []
 
     def apply_color(text):
-        """Finds the corresponding color for a given text if it exists."""
+        """Finds the corresponding color for a given text and validates it"""
         for color_dict in color_list or []:
             if text in color_dict.get("words", []):
-                return color_dict["color"]
+                return validate_color(color_dict["color"])
         return "default"
 
     words = content.split()
@@ -349,7 +352,7 @@ def create_toggle_heading_block(content, children_blocks: list, heading_number=3
         "object": "block",
         "type": heading_number_str,
         heading_number_str: {
-            "color": f"{color_background}_background" if color_background else "default",
+            "color": validate_color(f"{color_background}_background" if color_background else "default"),
             "rich_text": rich_text,
             "is_toggleable": True,
             "children": children_blocks
@@ -754,7 +757,7 @@ def create_callout_block(children: list = None,
         "type": "callout",
         "callout": {
             "rich_text": [rich_text_content],
-            "color": f"{color_background}_background" if color_background else "default",
+            "color": validate_color(f"{color_background}_background" if color_background else "default"),
             "icon": {
                 "type": "emoji",
                 "emoji": emoji
@@ -767,3 +770,16 @@ def create_callout_block(children: list = None,
         callout_block["callout"]["children"] = children
 
     return callout_block
+
+
+def validate_color(color: Optional[str]) -> str:
+    """Validates and returns a proper Notion color value"""
+    valid_colors = {
+        "default", "gray", "brown", "orange", "yellow", "green", "blue",
+        "purple", "pink", "red", "default_background", "gray_background",
+        "brown_background", "orange_background", "yellow_background",
+        "green_background", "blue_background", "purple_background",
+        "pink_background", "red_background"
+    }
+    return "default" if not color or color not in valid_colors else color
+

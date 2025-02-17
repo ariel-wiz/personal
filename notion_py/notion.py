@@ -535,8 +535,9 @@ def main(selected_tasks):
             #
             # run_scheduled_tasks()
             get_expenses_to_notion()
-
-            # create_monthly_summary_and_daily_task()
+            # scheduler = SchedulingManager()
+            # scheduler._update_monthly_categories()
+            # scheduler.create_monthly_summary_and_daily_task()
             logger.info("End of manual run")
 
     except Exception as e:

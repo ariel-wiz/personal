@@ -187,13 +187,14 @@ def last_4_months_expense_filter() -> Dict:
 
     # Get last day of previous month at midnight
     last_day_previous = first_day_current - timedelta(days=1)
+    last_day_previous = last_day_previous.replace(hour=23, minute=59, second=59)
 
     # Get first day exactly 4 months before the last day of previous month at midnight
     first_day_start = last_day_previous - relativedelta(months=3)
     first_day_start = first_day_start.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     return {
-        "property": "Processed Date",
+        "property": "Date",
         "date": {
             "on_or_after": first_day_start.isoformat(),
             "on_or_before": last_day_previous.isoformat()

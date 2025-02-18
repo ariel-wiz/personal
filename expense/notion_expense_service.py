@@ -400,7 +400,7 @@ class NotionExpenseService:
                 logger.info(line.strip())
 
             for line in process.stderr:
-                logger.error(line.strip())
+                logger.info(line.strip())
 
             # Wait for the process to complete
             process.wait()

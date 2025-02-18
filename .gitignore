@@ -46,3 +46,4 @@ notion_ids.py
 # Env files
 expense/bank-scraper/.env
 expense/bank-scraper/.key
+*/package-lock.json

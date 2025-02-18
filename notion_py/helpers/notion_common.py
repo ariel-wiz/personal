@@ -379,6 +379,29 @@ def set_success_api_status(operation):
     message_logs = collect_handler.get_all_message_logs_and_clear(get_only_info_or_error=True)
     return _update_api_status(NotionAPIStatus.SUCCESS, operation, message_logs)
 
+def clear_api_status(operation):
+    """Clears the API status for the specified operation by setting it to empty."""
+    try:
+        # Get the ID of the API status page
+        api_status_today_pages = get_pages_by_date_offset(Keys.api_db_id, DateOffset.TODAY)
+        if not api_status_today_pages:
+            return
+
+        api_status_page_id = api_status_today_pages[0].get('id')
+
+        # Prepare the payload to clear the status
+        update_payload = {
+            "properties": {
+                operation: {
+                    "select": None
+                }
+            }
+        }
+        update_page(api_status_page_id, update_payload)
+        logger.debug(f"Cleared API status for {operation}.")
+    except Exception as e:
+        logger.error(f"Error while attempting to clear API status for {operation}: {str(e)}")
+
 
 def set_error_api_status(operation, details=None):
     message_logs = collect_handler.get_all_message_logs_and_clear()
@@ -388,6 +411,7 @@ def set_error_api_status(operation, details=None):
     return _update_api_status(NotionAPIStatus.ERROR, operation, message_logs)
 
 
+# Current track_operation decorator in notion_common.py
 def track_operation(operation):
     def decorator(func):
         @functools.wraps(func)
@@ -396,8 +420,9 @@ def track_operation(operation):
                 set_start_api_status(operation)
                 try:
                     result = func(*args, **kwargs)
-                    # For scheduled tasks, only set success if tasks were actually run
-                    if operation != NotionAPIOperation.SCHEDULED_TASKS or result:
+                    if not result and operation == NotionAPIOperation.SCHEDULED_TASKS:
+                        clear_api_status(operation)
+                    elif result is not False:  # This allows None (no return) and True to set success
                         set_success_api_status(operation)
                     return result
                 except Exception as e:

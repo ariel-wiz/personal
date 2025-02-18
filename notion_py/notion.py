@@ -491,7 +491,6 @@ def copy_pages_from_other_db_if_needed():
     run_functions(functions)
 
 
-
 @track_operation(NotionAPIOperation.GET_EXPENSES)
 def get_expenses_to_notion():
     expense_service = NotionExpenseService(expense_tracker_db_id, monthly_category_expense_db)
@@ -522,18 +521,10 @@ def main(selected_tasks):
         if selected_tasks:
             for task in selected_tasks:
                 task_function = task_map.get(task)
-                if task_function != get_expenses_to_notion:
-                    task_function(should_track=True)
-                else:
-                    task_function()
+                task_function(should_track=True)
         else:
             # Manually call the functions here
-            # crossfit_manager = CrossfitManager(crossfit_exercises_db_id="16aafca4f80780bcb93dcf952a50bb19",
-            #                                    crossfit_workout_db_id="16aafca4f807804f8fadc0ab2a9218b3")
-            # # crossfit_manager.add_crossfit_exercises_to_notion()
-            # crossfit_manager.add_crossfit_workouts_to_notion()
-            #
-            # run_scheduled_tasks()
+
             get_expenses_to_notion()
             # scheduler = SchedulingManager()
             # scheduler._update_monthly_categories()

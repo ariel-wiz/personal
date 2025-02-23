@@ -5,7 +5,8 @@
   "main": "bank-scraper.js",
   "type": "module",
   "scripts": {
-    "start": "node --no-deprecation bank-scraper.js"
+    "start": "node --no-deprecation bank-scraper.js",
+    "version-check": "npm list israeli-bank-scrapers"
   },
   "keywords": [],
   "author": "",

@@ -1,133 +1,90 @@
-#!/usr/bin/env python3
-import subprocess
-import json
-import logging
-import sys
-import os
+import os, re
+import torch
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Tuple
-from datetime import datetime, date
-
-from expense.expense_constants import CREATE_EXPENSE_FILE_IF_ALREADY_MODIFIED_TODAY, BANK_SCRAPER_NODE_SCRIPT_PATH, BANK_SCRAPER_OUTPUT_DIR, BANK_SCRAPER_DIRECTORY, \
-    BANK_SCRAPER_OUTPUT_FILE_PATH
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-class ScraperError(Exception):
-    """Custom exception for scraper errors"""
-    pass
+from pytube import YouTube
+import whisper
+from whisper.utils import get_writer
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 
 
-def is_file_modified_today(file_path: str) -> bool:
-    try:
-        mod_time = os.path.getmtime(file_path)
-        mod_date = datetime.fromtimestamp(mod_time).date()
-        return mod_date == date.today()
-    except FileNotFoundError:
-        return False
-    except Exception as e:
-        logger.error(f"Error checking file modification time: {e}")
-        return False
+# @title Step 1: Enter URL & Choose Whisper Model
+
+# @markdown Enter the URL of the YouTube video
+YouTube_URL = "https://www.youtube.com/watch?v=1wFFlTnYWi4"  # @param {type:"string"}
+
+# @markdown Choose the whisper model you want to use
+whisper_model = "medium"  # @param ["tiny", "base", "small", "medium", "large", "large-v2", "large-v3"]
+
+# @markdown Save the transcription as text (.txt) file?
+text = True  # @param {type:"boolean"}
+
+# @markdown Save the transcription as an SRT (.srt) file?
+srt = True  # @param {type:"boolean"}
+
+# Step 3: Transcribe the video/audio data
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model = whisper.load_model(whisper_model).to(device)
 
 
-def find_credential_files(directory: str) -> List[Path]:
-    try:
-        cred_dir = Path(directory)
-        if not cred_dir.exists():
-            raise ScraperError(f"Credentials directory not found: {directory}")
-        env_files = list(cred_dir.glob("**/*.env"))
-        if not env_files:
-            logger.warning(f"No .env files found in {directory}")
-        else:
-            logger.info(f"Found {len(env_files)} credential files")
-        return env_files
-    except Exception as e:
-        raise ScraperError(f"Error searching for credential files: {e}")
+# Util function to change name
+def to_snake_case(name):
+    return name.lower().replace(" ", "_").replace(":", "_").replace("__", "_")
 
 
-def run_scraper(env_file: Path, output_path: str) -> Tuple[Dict[str, Any], bool]:
-    if not CREATE_EXPENSE_FILE_IF_ALREADY_MODIFIED_TODAY and os.path.exists(output_path) and is_file_modified_today(output_path):
-        logger.info(f"Output file {output_path} was already created today. Skipping scraping.")
-        try:
-            with open(output_path, 'r') as f:
-                return json.load(f), True
-        except Exception as e:
-            logger.error(f"Error reading existing output file: {e}")
-
-    if not os.path.exists(BANK_SCRAPER_NODE_SCRIPT_PATH):
-        raise ScraperError(f"Scraper script not found at {BANK_SCRAPER_NODE_SCRIPT_PATH}")
-
-    try:
-        logger.info(f"Processing {env_file.name}")
-        node_command = [
-            "node", str(BANK_SCRAPER_NODE_SCRIPT_PATH), str(env_file), str(output_path),
-            os.path.join(BANK_SCRAPER_DIRECTORY, ".key")
-        ]
-        logger.info(f"Executing command: {' '.join(node_command)}")
-        completed_process = subprocess.run(
-            node_command, capture_output=True, text=True, timeout=300
-        )
-        for line in completed_process.stdout.splitlines():
-            try:
-                log_entry = json.loads(line)
-                level = log_entry.get('level', 'INFO').upper()
-                message = log_entry.get('message', '')
-                error = log_entry.get('error')
-                if error:
-                    logger.error(f"{message}: {error.get('message', 'Unknown error')}")
-                    if 'stack' in error:
-                        logger.debug(f"Stack trace: {error['stack']}")
-                else:
-                    getattr(logger, level.lower(), logger.info)(message)
-            except json.JSONDecodeError:
-                logger.info(line)
-        if completed_process.stderr and "punycode" not in completed_process.stderr:
-            logger.error(f"stderr output: {completed_process.stderr}")
-        if completed_process.returncode == 0 and os.path.exists(output_path):
-            with open(output_path, 'r') as f:
-                return json.load(f), False
-        else:
-            raise ScraperError(f"Scraper failed with code {completed_process.returncode}")
-    except subprocess.TimeoutExpired:
-        raise ScraperError("Scraper process timed out")
-    except Exception as e:
-        raise ScraperError(f"Error running scraper: {e}")
+# Download the audio data from YouTube video
+def download_audio_from_youtube(url, file_name=None, out_dir="."):
+    print(f"\n==> Downloading audio...")
+    yt = YouTube(url)
+    if file_name is None:
+        file_name = Path(out_dir, to_snake_case(yt.title)).with_suffix(".mp4")
+    yt = (yt.streams
+          .filter(only_audio=True, file_extension="mp4")
+          .order_by("abr")
+          .desc())
+    return yt.first().download(filename=file_name)
 
 
-def main():
-    try:
-        os.makedirs(BANK_SCRAPER_OUTPUT_DIR, exist_ok=True)
-        env_files = find_credential_files(BANK_SCRAPER_DIRECTORY)
-        results, errors, skipped = {}, [], []
-        for env_file in env_files:
-            try:
-                file_results, was_skipped = run_scraper(env_file, BANK_SCRAPER_OUTPUT_FILE_PATH)
-                if was_skipped:
-                    skipped.append(env_file.name)
-                else:
-                    results[env_file.name] = file_results
-                    logger.info(f"Successfully processed {env_file.name}")
-            except ScraperError as e:
-                logger.error(f"Failed to process {env_file.name}: {e}")
-                errors.append((env_file.name, str(e)))
-                continue
-        logger.info(f"\n----------------\nScraping Summary:\n----------------\n"
-                    f"Successful: {len(results)}\nFailed: {len(errors)}\nSkipped: {len(skipped)}\n----------------")
-        if errors:
-            logger.info("\nErrors:")
-            for filename, error in errors:
-                logger.info(f"{filename}: {error}")
-        return len(errors) == 0
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}")
-        return False
+# Transcribe the audio data with Whisper
+def transcribe_audio(model, file, text, srt):
+    print("\n=======================")
+    print(f"\n🔗 YouTube URL: {YouTube_URL}")
+    print(f"\n🤖 Whisper Model: {whisper_model}")
+    print("\n=======================")
+
+    file_path = Path(file)
+    output_directory = file_path.parent
+
+    # Run Whisper to transcribe audio
+    print(f"\n==> Transcribing audio")
+    result = model.transcribe(file, verbose=False)
+
+    if text:
+        print(f"\n==> Creating .txt file")
+        txt_path = file_path.with_suffix(".txt")
+        with open(txt_path, "w", encoding="utf-8") as txt:
+            txt.write(result["text"])
+    if srt:
+        print(f"\n==> Creating .srt file")
+        srt_writer = get_writer("srt", output_directory)
+        srt_writer(result, str(file_path.stem))
+
+    # Download the transcribed files locally
+    from google.colab import files
+
+    colab_files = Path("/content")
+    stem = file_path.stem
+
+    for colab_file in colab_files.glob(f"{stem}*"):
+        if colab_file.suffix in [".txt", ".srt"]:
+            files.download(str(colab_file))
+
+    print("\n✨ All Done!")
+    print("=======================")
+    return result
 
 
-if __name__ == "__main__":
-    success = main()
-    sys.exit(0 if success else 1)
+# Download & Transcribe the audio data
+audio = download_audio_from_youtube(YouTube_URL)
+result = transcribe_audio(model, audio, text, srt)

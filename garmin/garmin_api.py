@@ -954,19 +954,3 @@ def _get_activity_info(api, date) -> dict:
         "total_activity_calories": total_calories,
         "activity_names": activity_names
     }
-
-# Main program loop
-# Display header and login
-# print("\n*** Garmin Connect API Demo by cyberjunky ***\n")
-# while True:
-#     # Init API
-#     if not api:
-#         api = init_api(email, password)
-#
-#     if api:
-#         # Display menu
-#         print_menu()
-#         option = input("Enter the selected option: ")
-#         switch(api, option)
-#     else:
-#         api = init_api(email, password)

@@ -147,7 +147,7 @@ async function postProcessTransactions(accountToScrape, scrapeResult) {
             // Write transactions to file before returning
             try {
                 await fs.writeFile(process.argv[2], JSON.stringify(transactions, null, 2));
-                logger.info(`Successfully wrote ${transactions.length} transactions to ${process.argv[2]}`);
+                logger.debug(`Successfully wrote ${transactions.length} transactions to ${process.argv[2]}`);
             } catch (error) {
                 logger.error('Failed to write transactions to file', error);
             }
@@ -199,8 +199,21 @@ function transactionsDateComparator(t1, t2) {
     return 1;
 }
 
+async function getPackageVersion() {
+    try {
+        const packageJson = JSON.parse(
+            await fs.readFile(new URL('./package.json', import.meta.url))
+        );
+        return packageJson.dependencies['israeli-bank-scrapers'];
+    } catch (error) {
+        logger.error('Failed to get package version', error);
+        return 'unknown';
+    }
+}
+
 async function scrapeBank(decryptedCreds) {
     try {
+
         logger.debug('Starting bank scrape with credentials', {
             companyId: decryptedCreds.companyId,
             username: decryptedCreds.username,
@@ -233,7 +246,12 @@ async function scrapeBank(decryptedCreds) {
         logger.debug(`Scrape result: ${JSON.stringify(scrapeResult)}`);
 
         if (!scrapeResult.success) {
-            throw new Error(`${scrapeResult.errorType}: ${scrapeResult.errorMessage}`);
+            return {
+                success: false,
+                errorType: scrapeResult.errorType,
+                errorMessage: scrapeResult.errorMessage,
+                companyId: decryptedCreds.companyId
+            };
         }
 
         const processedTransactions = await postProcessTransactions(
@@ -245,7 +263,12 @@ async function scrapeBank(decryptedCreds) {
         return processedTransactions;
     } catch (error) {
         logger.error(`Error scraping ${decryptedCreds.companyId}`, error);
-        return null;
+        return {
+            success: false,
+            errorType: error.name || 'GENERIC',
+            errorMessage: error.message,
+            companyId: decryptedCreds.companyId
+        };
     }
 }
 
@@ -259,7 +282,8 @@ async function main() {
             return EXIT_CODES.CONFIG_ERROR;
         }
 
-        logger.info('Starting bank scraper');
+        const version = await getPackageVersion();
+        logger.info(`Starting bank scraper using israeli-bank-scrapers version: ${version}`);
 
         // Get encryption key
         logger.debug('Retrieving encryption key');
@@ -299,17 +323,22 @@ async function main() {
                 const transactions = await scrapeBank(decryptedCred);
                 const timeTaken = ((Date.now() - startTime) / 1000).toFixed(2);
 
-                if (transactions && transactions.length > 0) {
-                    allTransactions.push(...transactions);
-                    logger.info(`${i + 1}/${totalAccounts} - Successfully scraped ${cred.companyId} (Time: ${timeTaken}s)`);
-                    successfulScrapes++;
-                } else {
-                    logger.error(`${i + 1}/${totalAccounts} - Failed scraping ${cred.companyId} (Time: ${timeTaken}s) - No transactions found`);
-                    failedScrapes++;
-                }
+            if (Array.isArray(transactions)) {
+                allTransactions.push(...transactions);
+                logger.info(`${i + 1}/${totalAccounts} - Successfully scraped ${cred.companyId} (Time: ${timeTaken}s)`);
+                successfulScrapes++;
+            } else if (transactions.errorMessage) {
+                // Handle error case
+                logger.info(`${i + 1}/${totalAccounts} - Failed scraping ${cred.companyId} - Error details: ${transactions.errorMessage} (Time: ${timeTaken}s)`);
+                failedScrapes++;
+            } else {
+                logger.info(`${i + 1}/${totalAccounts} - Failed scraping ${cred.companyId} - Error details: No transactions found (Time: ${timeTaken}s)`);
+                failedScrapes++;
+            }
                 scrapeResults.push({ company: cred.companyId, success: true, timeTaken });
             } catch (error) {
                 const timeTaken = ((Date.now() - startTime) / 1000).toFixed(2);
+                logger.info(`${i + 1}/${totalAccounts} - Failed scraping ${cred.companyId} - ${error.message} (Time: ${timeTaken}s)`);
                 logger.error(`${i + 1}/${totalAccounts} - Failed scraping ${cred.companyId} (Time: ${timeTaken}s) - Error: ${error.message}`);
                 scrapeResults.push({ company: cred.companyId, success: false, timeTaken });
                 failedScrapes++;

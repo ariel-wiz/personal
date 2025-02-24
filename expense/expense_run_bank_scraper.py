@@ -233,14 +233,6 @@ def main():
                 errors.append((source_name, str(e)))
                 continue
 
-        # Print summary
-        summary = f"\n{'=' * 20}\nScraping Summary\n{'=' * 20}\n"
-        summary += f"Successful: {len(results)}\n"
-        summary += f"Failed: {len(errors)}\n"
-        summary += f"Skipped: {len(skipped)}\n"
-        summary += f"{'=' * 20}"
-        logger.info(summary)
-
         if errors:
             logger.info("\nErrors:")
             for filename, error in errors:

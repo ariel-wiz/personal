@@ -525,7 +525,20 @@ def main(selected_tasks):
         else:
             # Manually call the functions here
 
-            get_expenses_to_notion()
+            # get_expenses_to_notion()
+            ariel = get_db_pages(monthly_category_expense_db, {
+  "filter": {
+    "and": [
+      {
+        "property": "Date",
+        "date": {
+          "on_or_after": "2025-02-01"
+        }
+      }
+    ]
+  }
+})
+            print(ariel[0]['properties'])
             # scheduler = SchedulingManager()
             # scheduler._update_monthly_categories()
             # scheduler.create_monthly_summary_and_daily_task()

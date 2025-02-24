@@ -20,6 +20,7 @@ BANK_SCRAPER_OUTPUT_DIR = "/Users/ariel/Documents/b_scraper_output"
 BANK_SCRAPER_OUTPUT_FILE_PATH = os.path.join(BANK_SCRAPER_OUTPUT_DIR, "transactions.json")
 BANK_SCRAPER_NODE_SCRIPT_PATH = os.path.join(BANK_SCRAPER_DIRECTORY, "bank-scraper.js")
 CREATE_EXPENSE_FILE_IF_ALREADY_MODIFIED_TODAY = True
+BANK_SCRAPER_RETRIES = 2
 
 # Category constants
 DEFAULT_CATEGORY = 'Other 🗂️'

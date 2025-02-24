@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple
@@ -14,16 +15,15 @@ from dateutil.relativedelta import relativedelta
 
 from common import parse_expense_date, adjust_month_end_dates, remove_emojis
 from expense.expense_constants import (
-    BANK_SCRAPER_OUTPUT_FILE_PATH,
     last_4_months_expense_filter,
     last_4_months_months_expense_filter, EXPENSE_TYPES, CURRENCY_SYMBOLS, EXPENSES_TO_ADJUST_DATE, DEFAULT_CATEGORY,
-    current_months_expense_filter, current_month_year_filter, ENGLISH_SUB_CATEGORIES, BANK_SCRAPER_SCRIPT_EXEC_NAME
+    current_months_expense_filter, BANK_SCRAPER_SCRIPT_EXEC_NAME, BANK_SCRAPER_RETRIES
 )
 from expense.expense_models import Expense, MonthlyExpense, ExpenseField
 from expense.expense_helpers import (
     get_name, get_category_name, get_remaining_credit,
     parse_payment_string, find_matching_category_page, find_matching_relation, create_category_mapping,
-    prepare_page_data, generate_target_dates, get_category_definitions, calculate_category_sums,
+    generate_target_dates, get_category_definitions, calculate_category_sums,
     group_expenses_by_category_or_subcategory, determine_target_category, calculate_date_range, calculate_average,
     log_monthly_total, get_amount_from_page, get_date_info, get_property_overrides, log_creation_completion,
     load_data_from_json, group_expenses_by_category, get_target_date, find_expenses_page, extract_monthly_totals,
@@ -364,7 +364,7 @@ class NotionExpenseService:
         """Prepares the list of expenses to be added to Notion"""
         logger.info("Starting to add expenses to Notion")
 
-        self._run_bank_scrapper()
+        self._run_bank_scraper_with_retry()
 
         if not self._load_and_process_json():
             return []
@@ -382,7 +382,41 @@ class NotionExpenseService:
 
         return expenses_to_add
 
-    def _run_bank_scrapper(self):
+    def _run_bank_scraper_with_retry(self):
+        """Run bank scraper with retries and verify all accounts were scraped"""
+        try:
+            all_accounts_scraped = False
+            iter_num = 0
+
+            while not all_accounts_scraped and iter_num < BANK_SCRAPER_RETRIES:
+                process = self._run_bank_scrapper()
+
+                # Wait for process to complete
+                stdout, stderr = process.communicate()
+
+                # Check output for success message
+                success_msg = "All accounts were successfully scraped"
+                all_accounts_scraped = success_msg in stdout or success_msg in stderr
+
+                if not all_accounts_scraped:
+                    iter_num += 1
+                    if iter_num < BANK_SCRAPER_RETRIES:
+                        logger.info(f"Retrying bank scraper iteration {iter_num}/{BANK_SCRAPER_RETRIES}")
+                        time.sleep(iter_num * 3)  # Exponential backoff
+                    else:
+                        logger.warning("Max retries reached, proceeding with partial data")
+                        break
+
+            if all_accounts_scraped:
+                logger.info("All accounts were successfully scraped")
+            else:
+                logger.warning(f"Failed to scrape all accounts after {BANK_SCRAPER_RETRIES} retries")
+
+        except Exception as e:
+            logger.error(f"Bank scraper run failed: {str(e)}")
+            raise
+
+    def _run_bank_scrapper(self, print_output=True):
         try:
             script_path = os.path.join(os.path.dirname(__file__), BANK_SCRAPER_SCRIPT_EXEC_NAME)
             logger.info(f"Starting scraper script {script_path}...")
@@ -395,12 +429,13 @@ class NotionExpenseService:
                 text=True
             )
 
-            # Process the output
-            for line in process.stdout:
-                logger.info(line.strip())
+            if print_output:
+                # Process the output
+                for line in process.stdout:
+                    logger.info(line.strip())
 
-            for line in process.stderr:
-                logger.info(line.strip())
+                for line in process.stderr:
+                    logger.info(line.strip())
 
             # Wait for the process to complete
             process.wait()
@@ -409,6 +444,8 @@ class NotionExpenseService:
                 logger.info("Scraper script completed successfully.")
             else:
                 logger.error(f"Scraper script exited with error code {process.returncode}")
+
+            return process
 
         except Exception as e:
             logger.exception(f"Error running scraper script: {e}")
@@ -508,7 +545,6 @@ class NotionExpenseService:
             error_msg = f"Error removing duplicates: {str(e)}"
             logger.error(error_msg)
             raise NotionUpdateError(error_msg) from e
-
 
     def _get_current_month_pages(self) -> list:
         """Get pages from the monthly database for current month/year"""
@@ -676,7 +712,7 @@ class NotionExpenseService:
             update_page(page_id, payload)
             expense_count = len(expense_ids)
             if expense_count > 0:
-                logger.info(f"Updated {expense_count} expenses for category {category}")
+                logger.info(f"Updated {expense_count} expenses for category {category.capitalize()}")
             else:
                 logger.info(f"Cleared expenses for category {category}")
 
@@ -685,7 +721,7 @@ class NotionExpenseService:
             raise
 
     def process_monthly_expenses(self, target_date: datetime, existing_expenses: Optional[List[Expense]] = None) -> \
-    Dict[str, float]:
+            Dict[str, float]:
         """Process monthly expenses for categories"""
         try:
             monthly_pages = self._get_or_create_monthly_pages(target_date)
@@ -765,7 +801,7 @@ class NotionExpenseService:
         return get_db_pages(self.monthly_category_expense_db_id, generate_payload(filter_payload))
 
     def _get_filtered_month_expenses(self, target_date: datetime, existing_expenses: Optional[List[Expense]] = None) -> \
-    List[Expense]:
+            List[Expense]:
         """Gets and filters expenses for the specified month"""
         month_start = target_date.replace(day=1).date()
         expenses = existing_expenses or self.get_expenses_from_notion(filter_by=current_months_expense_filter)
@@ -787,7 +823,8 @@ class NotionExpenseService:
 
         return filtered_expenses
 
-    def calculate_and_update_total_expenses(self, monthly_pages: List[Dict], expenses: List[Expense], month_str) -> None:
+    def calculate_and_update_total_expenses(self, monthly_pages: List[Dict], expenses: List[Expense],
+                                            month_str) -> None:
         """Updates total expenses for the month"""
         try:
             # Calculate category sums using existing helper
@@ -1024,7 +1061,7 @@ class NotionExpenseService:
         return created_pages[0] if created_pages else None
 
     def _create_single_category_page(self, category_dict: Dict, date_info: Dict, previous_targets: Dict[str, float]) -> \
-    Optional[Dict]:
+            Optional[Dict]:
         """Creates a single category page with its average and target"""
         category, icon_url = list(category_dict.items())[0]
 

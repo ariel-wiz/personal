@@ -4,6 +4,7 @@ import atexit
 
 logger_level = logging.INFO
 
+
 class CollectLogHandler(logging.Handler):
     def __init__(self):
         super().__init__()

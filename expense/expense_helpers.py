@@ -279,21 +279,6 @@ def generate_target_dates(months_back: int) -> List[datetime]:
     ]
 
 
-def prepare_page_data(category: str, icon_url: str, date_info: Dict, average: Optional[float]) -> Dict:
-    """Prepares data for page creation"""
-    page_data = {
-        "Category": category,
-        "Month": date_info['month_formatted'],
-        "Date": [date_info['first_day'].isoformat(), date_info['last_day'].isoformat()],
-        "Icon": icon_url
-    }
-
-    if average is not None:
-        page_data["4 Months Average"] = average
-
-    return page_data
-
-
 def create_category_mapping(categories: List[str]) -> Dict[str, str]:
     """Creates a mapping of cleaned category names to original names"""
     return {

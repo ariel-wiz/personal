@@ -1,6 +1,8 @@
 import argparse
 import random
 
+from dateutil.relativedelta import relativedelta
+
 from crossfit.crossfit_notion_manager import CrossfitManager
 from epub import read_epub
 from common import create_tracked_lambda, create_shabbat_dates, is_approaching_month_end
@@ -9,14 +11,16 @@ from garmin.garmin_manager import GarminManager
 from jewish_calendar import JewishCalendarAPI
 from logger import logger
 from notion_py.helpers.notion_children_blocks import generate_children_block_for_daily_inspirations, \
-    generate_children_block_for_shabbat, generate_page_content_page_notion_link
+    generate_children_block_for_shabbat, generate_page_content_page_notion_link, \
+    create_url_children_block
 from notion_py.notion_globals import *
 from notion_py.helpers.notion_payload import generate_payload, get_trading_payload, uncheck_done_set_today_payload, \
     check_done_payload, uncheck_copied_to_daily_payload, check_copied_to_daily_payload
 from notion_py.helpers.notion_common import create_page_with_db_dict_and_children_block, \
     get_db_pages, track_operation, create_daily_summary_pages, create_daily_api_pages, \
     update_page, create_page, copy_pages_to_daily, get_daily_tasks, \
-    get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url, manage_daily_summary_pages
+    get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url, manage_daily_summary_pages, \
+    get_recurring_tasks, create_page_with_db_dict, get_today_recurring_tasks, create_recurring_combined_task_name
 from notion_py.summary.summary import create_monthly_summary_page
 from variables import Paths
 
@@ -306,6 +310,110 @@ def copy_normal_tasks():
     copy_pages_to_daily(insurance_config)
 
 
+def create_recurring_tasks_summary():
+    """
+    Creates a single daily task containing all recurring tasks due today,
+    sorted by priority (highest first).
+    """
+    task_name_prefix = "*** Daily Recurring Tasks ***\n"
+
+    today_tasks = get_daily_tasks_by_date_str(today.isoformat())
+    for task in today_tasks:
+        task_name = task['properties']['Task']['title'][0]['plain_text']
+        if task_name_prefix in task_name:
+            logger.debug(f"Task name {task_name} already exists for today")
+            return
+
+    recurring_tasks = get_today_recurring_tasks()
+    if not recurring_tasks:
+        logger.debug("No recurring tasks due today")
+        return
+
+    # Create combined task name
+    combined_name = create_recurring_combined_task_name(recurring_tasks, task_name_prefix)
+
+    if not combined_name:
+        logger.error("No valid task names found")
+        return
+
+    task_dict = {
+        "Task": combined_name,
+        "Project": Projects.notion,
+        "Due": today.isoformat(),
+        "Icon": generate_icon_url(IconType.REPEAT, IconColor.BROWN)
+    }
+
+    response = create_page_with_db_dict_and_children_block(
+        daily_tasks_db_id,
+        task_dict,
+        create_url_children_block(name="🔗 Recurring Tasks", url=Keys.recurring_tasks_view_link)
+    )
+
+    logger.info(f"Created recurring tasks summary with {len(recurring_tasks)} "
+                f"tasks: {combined_name.split(task_name_prefix)[0]}")
+    return response
+
+
+def unset_done_recurring_tasks():
+    logger.info("Starting to unset 'Done' for recurring tasks")
+    one_month_ago = (today - relativedelta(months=1)).strftime("%Y-%m-%d")
+    unset_recurring_filter = {
+        "and": [
+            {
+                "property": "Priority",
+                "number": {
+                    "greater_than_or_equal_to": 2
+                }
+            },
+            {
+                "property": "Previous Date",
+                "formula": {
+                    "date": {
+                        "before": one_month_ago
+                    }
+                }
+            },
+            {
+                "property": "Done",
+                "checkbox": {
+                    "equals": True
+                }
+            }
+        ]
+    }
+    recurring_tasks = get_recurring_tasks(unset_recurring_filter)
+
+    if not recurring_tasks:
+        logger.info("No completed recurring tasks found")
+        return []
+
+    # Unset Done for each task
+    updated_tasks = []
+    for task in recurring_tasks:
+        try:
+            task_id = task['id']
+            task_name = task['properties']['Recurring Task']['title'][0]['plain_text']
+
+            unset_done_payload = {
+                "properties": {
+                    "Done": {
+                        "checkbox": False
+                    }
+                }
+            }
+            recurring_tasks_view_link = Keys.recurring_tasks_view_link
+            update_page(task_id, unset_done_payload)
+            updated_tasks.append(task_name)
+            logger.debug(f"Unset 'Done' for recurring task: {task_name}")
+
+        except Exception as e:
+            logger.error(f"Error unsetting 'Done' for task: {task.get('id', 'Unknown')}: {str(e)}")
+            continue
+
+    logger.info(f"Successfully unset 'Done' for {len(updated_tasks)} recurring tasks")
+    return updated_tasks
+
+
 def get_trading():
     return get_db_pages(trading_db_id)
 
@@ -525,20 +633,21 @@ def main(selected_tasks):
         else:
             # Manually call the functions here
 
+            create_recurring_tasks_summary()
             # get_expenses_to_notion()
-            ariel = get_db_pages(monthly_category_expense_db, {
-  "filter": {
-    "and": [
-      {
-        "property": "Date",
-        "date": {
-          "on_or_after": "2025-02-01"
-        }
-      }
-    ]
-  }
-})
-            print(ariel[0]['properties'])
+            # ariel = get_db_pages(monthly_category_expense_db, {
+            #     "filter": {
+            #         "and": [
+            #             {
+            #                 "property": "Date",
+            #                 "date": {
+            #                     "on_or_after": "2025-02-01"
+            #                 }
+            #             }
+            #         ]
+            #     }
+            # })
+            # print(ariel[0]['properties'])
             # scheduler = SchedulingManager()
             # scheduler._update_monthly_categories()
             # scheduler.create_monthly_summary_and_daily_task()
@@ -572,6 +681,7 @@ if __name__ == '__main__':
         'get_expenses': get_expenses_to_notion,
         'scheduled_tasks': run_scheduled_tasks,
         'copy_book_summary': copy_book_summary,
+        'unset_done_recurring_tasks': unset_done_recurring_tasks,
     }
 
     # Set up command-line argument parsing

@@ -12,7 +12,8 @@ from notion_py.helpers.notion_children_blocks import generate_simple_page_conten
     generate_page_content_page_notion_link
 from notion_py.notion_globals import date_descending_sort, api_db_id, day_summary_db_id, \
     Method, NotionAPIStatus, TaskConfig, daily_tasks_db_id, tasks_db_id, next_filter, first_created_sorts, \
-    default_tasks_filter, default_tasks_sorts, on_or_after_today_filter, IconType, IconColor, NotionAPIOperation
+    default_tasks_filter, default_tasks_sorts, on_or_after_today_filter, IconType, IconColor, NotionAPIOperation, \
+    recurring_db_id
 from notion_py.helpers.notion_payload import generate_payload, generate_create_page_payload, get_relation_payload, \
     get_api_status_payload
 from variables import Keys
@@ -335,6 +336,22 @@ def get_daily_tasks_by_date_str(date_str, filter_to_add=None):
     return get_pages_by_date_offset(daily_tasks_db_id, date_offset, date_name="Due", filter_to_add=filter_to_add)
 
 
+def get_recurring_tasks(custom_filter=None):
+    try:
+        if custom_filter is None:
+            custom_filter = {}
+
+        recurring_payload = generate_payload(custom_filter)
+        recurring_tasks = get_db_pages(recurring_db_id, recurring_payload)
+
+        logger.debug(f"Found {len(recurring_tasks)} recurring tasks matching filter")
+        return recurring_tasks
+
+    except Exception as e:
+        logger.error(f"Error getting recurring tasks: {str(e)}")
+        return []
+
+
 def get_day_summary_by_date_str(date_str, filter_to_add=None):
     date_offset = get_date_offset(date_str)
     return get_pages_by_date_offset(day_summary_db_id, date_offset, date_name="Date", filter_to_add=filter_to_add)
@@ -521,9 +538,9 @@ def update_page_with_relation(page_id_add_relation, page_id_data_to_import, rela
     update_page(page_id_add_relation, relation_payload)
 
     if name:
-        logger.info(f"Relation added successfully for {name}")
+        logger.debug(f"Relation added successfully for {name}")
     else:
-        logger.info("Relation added successfully!")
+        logger.debug("Relation added successfully!")
 
 
 def copy_pages_to_daily(config: TaskConfig) -> None:
@@ -576,7 +593,7 @@ def _copy_multiple_pages(config: TaskConfig) -> None:
         state = source_page['properties'][config.state_property_name]['formula']['string']
 
         if _is_page_exists(state, existing_task_names, config.state_suffix):
-            logger.info(f"Page for '{state}' already exists")
+            logger.debug(f"Page for '{state}' already exists")
             continue
 
         try:
@@ -923,3 +940,49 @@ def add_api_relation_if_missing(daily_page: Dict, api_pages_by_date: Dict[str, D
     except Exception as e:
         logger.error(f"Error processing relation for page {daily_page.get('id')}: {str(e)}")
         return False
+
+
+def get_today_recurring_tasks():
+    """Get all recurring tasks with Next Due = today"""
+    today_date = today.isoformat()
+
+    # Create filter for tasks due today
+    today_filter = {
+        "property": "Next Due",
+        "formula": {
+            "date": {
+                "equals": today_date
+            }
+        }
+    }
+
+    recurring_tasks = get_recurring_tasks(today_filter)
+    logger.debug(f"Found {len(recurring_tasks)} recurring tasks due today")
+
+    return recurring_tasks
+
+
+def create_recurring_combined_task_name(tasks, task_name_prefix):
+    """
+    Creates a combined task name from a list of task objects,
+    sorted by priority (highest first).
+    """
+    if not tasks:
+        return ""
+
+    sorted_tasks = sorted(
+        tasks,
+        key=lambda task: task['properties'].get('Priority', {}).get('formula', {}).get('number', 0) or 0,
+        reverse=True
+    )
+
+    task_names = [task_name_prefix]
+    for task in sorted_tasks:
+        try:
+            task_name = task['properties']['Recurring Task']['title'][0]['plain_text']
+            task_names.append(task_name)
+        except (KeyError, IndexError) as e:
+            logger.error(f"Error extracting task name: {str(e)}")
+            continue
+
+    return "\n".join(task_names)

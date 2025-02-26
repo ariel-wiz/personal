@@ -1,5 +1,7 @@
 from typing import Optional
 
+from variables import Keys
+
 
 def generate_children_block_for_daily_inspirations(note, author, main_content):
     children_block = [
@@ -233,7 +235,6 @@ def _create_heading_block(content, heading_number=3, color="default"):
     }
 
 
-
 def create_section_text_with_bullet(title: str, bullet_points: list) -> list:
     """Create a section with title and bullet points"""
     blocks = [
@@ -385,12 +386,12 @@ def create_separator_block():
 
 def create_block_with_db_view(view_url: str) -> dict:
     """Create a block with a link to a Notion database"""
-    return  {
-      "object": "block",
-      "type": "bookmark",
-      "bookmark": {
-        "url": view_url
-      }
+    return {
+        "object": "block",
+        "type": "bookmark",
+        "bookmark": {
+            "url": view_url
+        }
     }
 
 
@@ -783,3 +784,24 @@ def validate_color(color: Optional[str]) -> str:
     }
     return "default" if not color or color not in valid_colors else color
 
+
+def create_url_children_block(name: str, url: str) -> dict:
+    return {
+        "children": [
+            {
+                "object": "block",
+                "type": "paragraph",
+                "paragraph": {
+                    "rich_text": [
+                        {
+                            "type": "text",
+                            "text": {
+                                "content": name,
+                                "link": {"url": url}
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }

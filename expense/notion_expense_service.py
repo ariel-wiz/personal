@@ -630,9 +630,9 @@ class NotionExpenseService:
             update_page(page_id, payload)
             expense_count = len(expense_ids)
             if expense_count > 0:
-                logger.info(f"Updated {expense_count} expenses for category {category}")
+                logger.debug(f"Updated {expense_count} expenses for category {category}")
             else:
-                logger.info(f"Cleared expenses for category {category}")
+                logger.debug(f"Cleared expenses for category {category}")
 
         except Exception as e:
             logger.error(f"Error updating category page expenses {category}: {str(e)}")

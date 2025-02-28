@@ -361,15 +361,25 @@ class NotionExpenseService:
             raise NotionUpdateError(error_msg) from e
 
     def _prepare_expenses_for_addition(self, check_before_adding: bool) -> List[Expense]:
-        """Prepares the list of expenses to be added to Notion"""
-        logger.info("Starting to add expenses to Notion")
+        """Prepares the list of expenses to be added to Notion with improved error handling"""
+        logger.info("Preparing expenses to add to Notion")
 
-        self._run_bank_scraper_with_retry()
+        try:
+            # Run bank scraper with improved timeout handling
+            scraper_success = self._run_bank_scraper_with_retry()
+            if not scraper_success:
+                logger.warning("Bank scraper did not complete successfully, but attempting to use available data")
+        except Exception as e:
+            logger.error(f"Error running bank scraper: {str(e)}")
+            logger.warning("Continuing with existing data if available")
 
+        # Continue with whatever data might be available
         if not self._load_and_process_json():
+            logger.warning("No expense data available, skipping expense processing")
             return []
 
         if not self._create_expense_objects():
+            logger.warning("Failed to create expense objects, skipping expense processing")
             return []
 
         expenses_to_add = self._determine_expenses_to_add(check_before_adding)
@@ -378,7 +388,7 @@ class NotionExpenseService:
             return []
 
         expenses_count = len(expenses_to_add)
-        logger.info(f"{expenses_count} Expense{'s' if expenses_count > 1 else ''} can be added to Notion")
+        logger.info(f"{expenses_count} expense{'s' if expenses_count > 1 else ''} can be added to Notion")
 
         return expenses_to_add
 
@@ -389,14 +399,9 @@ class NotionExpenseService:
             iter_num = 0
 
             while not all_accounts_scraped and iter_num < BANK_SCRAPER_RETRIES:
-                process = self._run_bank_scrapper()
-
-                # Wait for process to complete
-                stdout, stderr = process.communicate()
-
-                # Check output for success message
-                success_msg = "All accounts were successfully scraped"
-                all_accounts_scraped = success_msg in stdout or success_msg in stderr
+                # Run the scraper with timeout
+                success, message = self._run_bank_scrapper(timeout=300)  # 5-minute timeout
+                all_accounts_scraped = success
 
                 if not all_accounts_scraped:
                     iter_num += 1
@@ -404,24 +409,36 @@ class NotionExpenseService:
                         logger.info(f"Retrying bank scraper iteration {iter_num}/{BANK_SCRAPER_RETRIES}")
                         time.sleep(iter_num * 3)  # Exponential backoff
                     else:
-                        logger.warning("Max retries reached, proceeding with partial data")
+                        logger.warning(f"Max retries reached, proceeding with partial data: {message}")
                         break
+                else:
+                    logger.info(f"Bank scraper succeeded: {message}")
 
-            if all_accounts_scraped:
-                logger.info("All accounts were successfully scraped")
-            else:
-                logger.warning(f"Failed to scrape all accounts after {BANK_SCRAPER_RETRIES} retries")
+            return all_accounts_scraped
 
         except Exception as e:
             logger.error(f"Bank scraper run failed: {str(e)}")
-            raise
+            raise  # Re-throw the exception for proper handling upstream
 
-    def _run_bank_scrapper(self, print_output=True):
+    def _run_bank_scrapper(self, print_output=True, timeout=300):
+        """
+        Runs the bank scraper process with a timeout.
+
+        Args:
+            print_output: Whether to print scraper output
+            timeout: Timeout in seconds (default 5 minutes)
+
+        Returns:
+            tuple: (success_flag, output_message)
+        """
         try:
             script_path = os.path.join(os.path.dirname(__file__), BANK_SCRAPER_SCRIPT_EXEC_NAME)
-            logger.info(f"Starting scraper script {script_path}...")
+            logger.info(f"Starting scraper script {script_path} with {timeout}s timeout...")
 
-            # Run the script and capture output
+            # Start time for timeout tracking
+            start_time = time.time()
+
+            # Run the script as a subprocess
             process = subprocess.Popen(
                 [sys.executable, script_path],
                 stdout=subprocess.PIPE,
@@ -429,26 +446,89 @@ class NotionExpenseService:
                 text=True
             )
 
-            if print_output:
-                # Process the output
-                for line in process.stdout:
-                    logger.info(line.strip())
+            stdout_data = []
+            stderr_data = []
 
-                for line in process.stderr:
-                    logger.info(line.strip())
+            # Set up non-blocking I/O
+            import select
 
-            # Wait for the process to complete
-            process.wait()
+            # Track whether the process has completed
+            process_completed = False
+            return_code = None
 
-            if process.returncode == 0:
-                logger.info("Scraper script completed successfully.")
+            while True:
+                # Check if we've exceeded the timeout
+                if time.time() - start_time > timeout:
+                    logger.warning(f"Bank scraper timed out after {timeout} seconds")
+                    try:
+                        process.terminate()
+                        # Give it a moment to terminate gracefully
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        logger.error("Process didn't terminate gracefully, forcing kill")
+                        process.kill()
+
+                    return False, f"Process timed out after {timeout} seconds"
+
+                # Check if the process has completed
+                return_code = process.poll()
+                if return_code is not None:
+                    process_completed = True
+                    break
+
+                # Check for output (non-blocking)
+                reads = [process.stdout, process.stderr]
+                ready, _, _ = select.select(reads, [], [], 1.0)  # 1 second timeout
+
+                for stream in ready:
+                    line = stream.readline()
+                    if not line:
+                        continue
+
+                    if stream == process.stdout:
+                        stdout_data.append(line.strip())
+                        if print_output:
+                            logger.info(line.strip())
+                    else:
+                        stderr_data.append(line.strip())
+                        if print_output:
+                            logger.error(line.strip())
+
+            # Process has completed, collect any remaining output
+            remaining_stdout, remaining_stderr = process.communicate()
+
+            if remaining_stdout:
+                stdout_lines = remaining_stdout.splitlines()
+                stdout_data.extend([line.strip() for line in stdout_lines])
+                if print_output:
+                    for line in stdout_lines:
+                        logger.info(line.strip())
+
+            if remaining_stderr:
+                stderr_lines = remaining_stderr.splitlines()
+                stderr_data.extend([line.strip() for line in stderr_lines])
+                if print_output:
+                    for line in stderr_lines:
+                        logger.error(line.strip())
+
+            # Log completion status
+            if return_code == 0:
+                logger.info("Scraper script completed successfully")
+                all_output = "\n".join(stdout_data + stderr_data)
+                success_msg = "All accounts were successfully scraped"
+                all_accounts_scraped = success_msg in all_output
+
+                if all_accounts_scraped:
+                    return True, "All accounts were successfully scraped"
+                else:
+                    return False, "Not all accounts were scraped but process completed"
             else:
-                logger.error(f"Scraper script exited with error code {process.returncode}")
-
-            return process
+                logger.error(f"Scraper script exited with error code {return_code}")
+                return False, f"Process failed with exit code {return_code}"
 
         except Exception as e:
             logger.exception(f"Error running scraper script: {e}")
+            return False, f"Exception while running scraper: {str(e)}"
 
     def _load_and_process_json(self) -> bool:
         """Loads and processes JSON data"""

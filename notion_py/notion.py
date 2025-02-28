@@ -310,7 +310,8 @@ def copy_normal_tasks():
     copy_pages_to_daily(insurance_config)
 
 
-def create_recurring_tasks_summary():
+@track_operation(NotionAPIOperation.CREATE_DAILY_PAGES)
+def create_recurring_tasks_summary(should_track=False):
     """
     Creates a single daily task containing all recurring tasks due today,
     sorted by priority (highest first).
@@ -340,7 +341,7 @@ def create_recurring_tasks_summary():
         "Task": combined_name,
         "Project": Projects.notion,
         "Due": today.isoformat(),
-        "Icon": generate_icon_url(IconType.REPEAT, IconColor.BROWN)
+        "Icon": generate_icon_url(IconType.REPEAT, IconColor.BLUE)
     }
 
     response = create_page_with_db_dict_and_children_block(
@@ -518,7 +519,8 @@ def copy_done_from_daily_to_copied_tasks():
             continue
 
         try:
-            # Get children page ID
+            if "mention" not in daily_children[0]['paragraph']['rich_text'][0]:
+                continue
             daily_children_page_id = (daily_children[0]['paragraph']['rich_text'][0]['mention']["page"]["id"]).replace(
                 "-", "")
 
@@ -529,7 +531,6 @@ def copy_done_from_daily_to_copied_tasks():
                 tasks_processed.append(daily_page_name)
                 logger.debug(f"Successfully updated {daily_page_name}")
             except Exception as e:
-                # Check if error is about missing Done property
                 if "Done is not a property that exists" in str(e):
                     logger.debug(f"Skipped {daily_page_name} - no Done property available")
                 else:
@@ -633,24 +634,10 @@ def main(selected_tasks):
         else:
             # Manually call the functions here
 
-            create_recurring_tasks_summary()
+            crossfit_manager = CrossfitManager(crossfit_exercises_db_id=Keys.crossfit_exercises_db_id,
+                                               crossfit_workout_db_id=Keys.crossfit_workouts_db_id)
+            crossfit_manager.add_crossfit_workouts_to_notion()
             # get_expenses_to_notion()
-            # ariel = get_db_pages(monthly_category_expense_db, {
-            #     "filter": {
-            #         "and": [
-            #             {
-            #                 "property": "Date",
-            #                 "date": {
-            #                     "on_or_after": "2025-02-01"
-            #                 }
-            #             }
-            #         ]
-            #     }
-            # })
-            # print(ariel[0]['properties'])
-            # scheduler = SchedulingManager()
-            # scheduler._update_monthly_categories()
-            # scheduler.create_monthly_summary_and_daily_task()
             logger.info("End of manual run")
 
     except Exception as e:
@@ -682,6 +669,7 @@ if __name__ == '__main__':
         'scheduled_tasks': run_scheduled_tasks,
         'copy_book_summary': copy_book_summary,
         'unset_done_recurring_tasks': unset_done_recurring_tasks,
+        'create_recurring_tasks_summary': create_recurring_tasks_summary,
     }
 
     # Set up command-line argument parsing

@@ -110,7 +110,7 @@ def parse_scraper_output(line: str) -> Dict:
         return {'level': 'INFO', 'message': line}
 
 
-def run_scraper(env_file: Path, output_path: str) -> Tuple[Dict[str, Any], bool]:
+def run_scraper(env_file: Path, output_path: str, timeout: int = 300) -> Tuple[Dict[str, Any], bool]:
     logger.debug(f"Starting scraper run with env_file: {env_file}, output_path: {output_path}")
 
     if os.path.exists(output_path):
@@ -144,11 +144,12 @@ def run_scraper(env_file: Path, output_path: str) -> Tuple[Dict[str, Any], bool]
     logger.info(f"Executing command: {' '.join(node_command)}")
 
     try:
+        # Run with timeout
         completed_process = subprocess.run(
             node_command,
             capture_output=True,
             text=True,
-            timeout=300
+            timeout=timeout  # Add explicit timeout
         )
 
         logger.debug(f"Scraper process completed with return code: {completed_process.returncode}")
@@ -157,22 +158,25 @@ def run_scraper(env_file: Path, output_path: str) -> Tuple[Dict[str, Any], bool]
         error_details = ""
 
         for line in completed_process.stdout.splitlines():
-            log_entry = parse_scraper_output(line)
+            try:
+                log_entry = parse_scraper_output(line)
 
-            if log_entry['error']:
-                error_message = log_entry['error'].get('message', 'Unknown error')
-                error_details += f"{log_entry['message']}: {error_message}\n"
-                logger.error(f"{log_entry['message']}: {error_message}")
+                if log_entry['error']:
+                    error_message = log_entry['error'].get('message', 'Unknown error')
+                    error_details += f"{log_entry['message']}: {error_message}\n"
+                    logger.error(f"{log_entry['message']}: {error_message}")
 
-                if 'stack' in log_entry['error']:
-                    logger.debug(f"Stack trace: {log_entry['error']['stack']}")
+                    if 'stack' in log_entry['error']:
+                        logger.debug(f"Stack trace: {log_entry['error']['stack']}")
 
-                has_error = True
-            else:
-                getattr(logger, log_entry['level'].lower(), logger.info)(log_entry['message'])
+                    has_error = True
+                else:
+                    getattr(logger, log_entry['level'].lower(), logger.info)(log_entry['message'])
 
-            if log_entry.get('data'):
-                logger.debug(f"Additional data: {log_entry['data']}")
+                if log_entry.get('data'):
+                    logger.debug(f"Additional data: {log_entry['data']}")
+            except Exception as parse_error:
+                logger.warning(f"Error parsing output line: {parse_error}. Line: {line}")
 
         if completed_process.stderr and "punycode" not in completed_process.stderr:
             logger.error(f"stderr output: {completed_process.stderr}")
@@ -195,12 +199,11 @@ def run_scraper(env_file: Path, output_path: str) -> Tuple[Dict[str, Any], bool]
         raise ScraperError("No transactions found")
 
     except subprocess.TimeoutExpired:
-        logger.error("Scraper process timed out after 300 seconds")
-        raise ScraperError("Scraper process timed out")
+        logger.error(f"Scraper process timed out after {timeout} seconds")
+        raise TimeoutError(f"Scraper process timed out after {timeout} seconds")
     except Exception as e:
         logger.error(f"Error running scraper: {e}", exc_info=True)
         raise ScraperError(f"Error running scraper: {e}")
-
 
 def main():
     try:
@@ -220,14 +223,21 @@ def main():
             source_name = 'keychain' if env_file == 'keychain' else env_file.name
             try:
                 logger.debug(f"Processing credential source: {source_name}")
-                file_results, was_skipped = run_scraper(env_file, BANK_SCRAPER_OUTPUT_FILE_PATH)
+                # Set a timeout for each run_scraper call
+                try:
+                    file_results, was_skipped = run_scraper(env_file, BANK_SCRAPER_OUTPUT_FILE_PATH, timeout=300)
 
-                if was_skipped:
-                    skipped.append(source_name)
-                    logger.info(f"Skipped {source_name} - already processed today")
-                else:
-                    results[source_name] = file_results
-                    logger.debug(f"Successfully processed {source_name}")
+                    if was_skipped:
+                        skipped.append(source_name)
+                        logger.info(f"Skipped {source_name} - already processed today")
+                    else:
+                        results[source_name] = file_results
+                        logger.debug(f"Successfully processed {source_name}")
+                except TimeoutError:
+                    logger.error(f"Scraper process for {source_name} timed out after 300 seconds")
+                    errors.append((source_name, "Process timed out"))
+                    continue
+
             except ScraperError as e:
                 logger.error(f"Failed to process {source_name}: {e}")
                 errors.append((source_name, str(e)))
@@ -247,7 +257,6 @@ def main():
     except Exception as e:
         logger.error(f"Unexpected error in main process: {e}", exc_info=True)
         return False
-
 
 if __name__ == "__main__":
     success = main()

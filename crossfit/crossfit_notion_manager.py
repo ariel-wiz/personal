@@ -305,7 +305,7 @@ class CrossfitWorkout:
                 additional_info = [f"{key.capitalize()} - {value}" for key, value in self.program.items() if 'note' in key.lower() or 'rest' in key.lower()]
             children_block = generate_children_block_for_crossfit_workout(workout_name, formatted, additional_info,
                                                                           json.dumps(self.original_program),
-                                                                          add_score=True, add_original_program=False)
+                                                                          add_score=False, add_original_program=True)
             return children_block
         except Exception as e:
             error_message = f"Error generating workout content: {str(e)}"
@@ -1264,4 +1264,4 @@ class CrossfitManager:
                 logger.debug(f"Added {workout.name} to Notion")
 
         if len(added_workouts) > 0:
-            logger.info(f"Successfully שdded {len(added_workouts)} new exercises to Notion")
+            logger.info(f"Successfully added {len(added_workouts)} new exercises to Notion")

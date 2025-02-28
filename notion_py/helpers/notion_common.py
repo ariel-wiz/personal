@@ -425,7 +425,17 @@ def set_error_api_status(operation, details=None):
     if details:
         details = f"Notion API Error detail for {operation}: {details}"
         message_logs.append(details)
-    return _update_api_status(NotionAPIStatus.ERROR, operation, message_logs)
+
+    # Truncate long logs to avoid Notion API limits
+    truncated_logs = []
+    for log in message_logs:
+        if len(log) > 1900:
+            truncated_log = log[:1900] + "... (truncated)"
+            truncated_logs.append(truncated_log)
+        else:
+            truncated_logs.append(log)
+
+    return _update_api_status(NotionAPIStatus.ERROR, operation, truncated_logs)
 
 
 # Current track_operation decorator in notion_common.py

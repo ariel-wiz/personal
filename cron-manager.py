@@ -1,3 +1,9 @@
+# !/usr/bin/env python3
+"""
+Cron Manager Script - Runs daily at 5 AM
+This script manages scheduled tasks and logs their execution.
+"""
+
 import os
 import subprocess
 import sys
@@ -6,6 +12,13 @@ from enum import Enum
 from dataclasses import dataclass
 from typing import List, Optional, Union
 from logger import logger
+
+
+# Configure logging
+LOG_DIR = '/Users/ariel/Documents/cron-files'
+LOG_FILE = os.path.join(LOG_DIR, 'cron-manager.log')
+ERROR_LOG_FILE = os.path.join(LOG_DIR, 'cron-manager-error.log')
+EXECUTION_LOG_FILE = os.path.join(LOG_DIR, 'execution.log')
 
 
 class Frequency(Enum):
@@ -37,7 +50,7 @@ class ScriptConfig:
             return any(day_of_month == date.split('/')[0] for date in self.frequency)
 
         # Handle monthly frequency (DD/* format)
-        if '/*' in self.frequency:
+        if isinstance(self.frequency, str) and '/*' in self.frequency:
             day_of_month = self.frequency.split('/')[0]
             return today_date.split('/')[0] == day_of_month
 
@@ -81,8 +94,14 @@ class ScriptManager:
 
             logger.info(f" ++++ Successfully completed {script.name} ++++\n\n")
 
+            # Log successful execution
+            with open(EXECUTION_LOG_FILE, 'a') as f:
+                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                f.write(f"{timestamp} - {script.name} executed successfully\n")
+
         except subprocess.CalledProcessError as e:
-            logger.error(f"Error running {script.name}: {e}")
+            error_msg = f"Error running {script.name}: {e}"
+            logger.error(error_msg)
             raise
 
     def run_all(self):
@@ -92,7 +111,7 @@ class ScriptManager:
                     logger.debug(f" ---- Running {script.name}: {script.path} with arguments {script.arg} ----")
                     self.run_script(script)
                 except Exception as e:
-                    logger.error(f"There was an error in cron when attempting to run {script}: {str(e)}\n"
+                    logger.error(f"There was an error in cron when attempting to run {script.name}: {str(e)}\n"
                                  f"Running the next script")
                     continue
             else:
@@ -143,14 +162,6 @@ NOTION_SCRIPTS = [
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     ),
     ScriptConfig(
-        name="Get Expenses",
-        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
-        arg="--get_expenses",
-        frequency=Frequency.DAILY.value,
-        python_path="/Users/ariel/PycharmProjects/personal",
-        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    ),
-    ScriptConfig(
         name="Scheduled Tasks",
         path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
         arg="--scheduled_tasks",
@@ -159,13 +170,29 @@ NOTION_SCRIPTS = [
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
     ),
     ScriptConfig(
-        name="Scheduled Tasks",
+        name="Unset Done Recurring Tasks",
         path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
         arg="--unset_done_recurring_tasks",
         frequency=Frequency.WEEKLY_TUESDAY.value,
         python_path="/Users/ariel/PycharmProjects/personal",
         working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
-    )
+    ),
+    ScriptConfig(
+        name="Unset Done Recurring Tasks",
+        path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+        arg="--create_recurring_tasks_summary",
+        frequency=Frequency.DAILY.value,
+        python_path="/Users/ariel/PycharmProjects/personal",
+        working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    ),
+    # ScriptConfig(
+    #     name="Get Expenses",
+    #     path="/Users/ariel/PycharmProjects/personal/notion_py/notion.py",
+    #     arg="--get_expenses",
+    #     frequency=Frequency.DAILY.value,
+    #     python_path="/Users/ariel/PycharmProjects/personal",
+    #     working_dir="/Users/ariel/PycharmProjects/personal/notion_py"
+    # )
 ]
 
 
@@ -174,8 +201,51 @@ def should_sleep() -> bool:
     return 2 <= current_hour < 8
 
 
+def check_supervisor_status():
+    """Check if supervisord is running"""
+    try:
+        result = subprocess.run(
+            "brew services list | grep supervisor",
+            shell=True,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        if "started" in result.stdout:
+            logger.info("Supervisor is running")
+            return True
+        else:
+            logger.warning("Supervisor is not running")
+            return False
+    except Exception as e:
+        logger.error(f"Error checking supervisor status: {e}")
+        return False
+
+
+def start_supervisor():
+    """Start supervisord if it's not running"""
+    logger.info("Attempting to start supervisor")
+    try:
+        result = subprocess.run(
+            "brew services start supervisor",
+            shell=True,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        logger.info(f"Supervisor start result: {result.stdout}")
+        return True
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to start supervisor: {e}")
+        logger.error(f"Error output: {e.stderr}")
+        return False
+
+
 def main():
     try:
+        # Log the start of the script
         with open("/Users/ariel/Documents/cron-files/daily-run.log", "a") as f:
             f.write(f"Script started at {datetime.now()}\n")
 
@@ -184,6 +254,11 @@ def main():
                     f"\tPYTHONPATH: {os.environ.get('PYTHONPATH')}\n"
                     f"\tUsing Python executable: {sys.executable}\n"
                     f"\tos.environ are: {os.environ}")
+
+        # Ensure supervisor is running
+        if not check_supervisor_status():
+            if not start_supervisor():
+                logger.error("Failed to start supervisor, continuing with script execution anyway")
 
         # Initialize and run script manager
         manager = ScriptManager(NOTION_SCRIPTS)

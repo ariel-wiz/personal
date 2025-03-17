@@ -1,4 +1,3 @@
-// bank-scraper.js
 import { createScraper } from 'israeli-bank-scrapers';
 import fs from 'fs/promises';
 import crypto from 'crypto';

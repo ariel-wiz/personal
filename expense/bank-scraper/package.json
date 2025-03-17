@@ -12,6 +12,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "israeli-bank-scrapers": "^5.3.0"
+    "israeli-bank-scrapers": "^5.4.1"
   }
 }

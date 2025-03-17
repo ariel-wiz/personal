@@ -23,6 +23,18 @@ def check_node_installation():
         result = subprocess.run(['node', '--version'], capture_output=True, text=True)
         if result.returncode == 0:
             logger.debug(f"Node.js version: {result.stdout.strip()}")
+
+            npm_result = subprocess.run(['npm', 'list', 'israeli-bank-scrapers'],
+                                        cwd=BANK_SCRAPER_DIRECTORY,
+                                        capture_output=True, text=True)
+            version = "unknown"
+            if npm_result.returncode == 0:
+                for line in npm_result.stdout.splitlines():
+                    if "israeli-bank-scrapers@" in line:
+                        version = line.split("@")[1].strip()
+                        break
+
+            logger.debug(f"israeli-bank-scrapers version: {version}")
             return True
         else:
             logger.error("Node.js check failed")
@@ -128,13 +140,13 @@ def run_scraper(env_file: Path, output_path: str, timeout: int = 300) -> Tuple[D
     logger.debug("Constructing scraper command")
     if env_file == 'keychain':
         node_command = [
-            "node",
+            "/opt/homebrew/bin/node",
             BANK_SCRAPER_NODE_SCRIPT_PATH,
             output_path
         ]
     else:
         node_command = [
-            "node",
+            "/opt/homebrew/bin/node",
             BANK_SCRAPER_NODE_SCRIPT_PATH,
             str(env_file),
             output_path,

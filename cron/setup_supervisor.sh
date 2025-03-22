@@ -111,7 +111,7 @@ cat > "$LAUNCHD_FILE" << 'EOL'
     <string>com.ariel.run-cron-manager</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/ariel/PycharmProjects/personal/run_cron_manager.sh</string>
+        <string>/Users/ariel/PycharmProjects/personal/cron/run_cron_manager.sh</string>
     </array>
     <key>StartCalendarInterval</key>
     <dict>

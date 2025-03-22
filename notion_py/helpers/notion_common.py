@@ -365,6 +365,7 @@ def _update_api_status(status, operation, details=None):
     Parameters:
     - status: The new status to set.
     - operation: The operation for which to set the status.
+    - details: Optional list of detailed log messages.
     """
     try:
         # Get the ID of the API status page
@@ -380,7 +381,9 @@ def _update_api_status(status, operation, details=None):
         update_page(api_status_page_id, update_payload)
 
         if details:
-            update_page(api_status_page_id, generate_simple_page_content(details, add_separator=True))
+            # Truncate details to avoid Notion API limits
+            truncated_details = truncate_log_messages(details)
+            update_page(api_status_page_id, generate_simple_page_content(truncated_details, add_separator=True))
 
         logger.debug(f"Updated API status for {operation} to {status}.")
     except Exception as e:
@@ -400,6 +403,7 @@ def clear_api_status(operation):
     """Clears the API status for the specified operation by setting it to empty."""
     try:
         # Get the ID of the API status page
+        api_status_today_pages = get_pages_by_date_offset(Keys.api_db_id, DateOffset.TODAY)
         api_status_today_pages = get_pages_by_date_offset(Keys.api_db_id, DateOffset.TODAY)
         if not api_status_today_pages:
             return
@@ -421,21 +425,19 @@ def clear_api_status(operation):
 
 
 def set_error_api_status(operation, details=None):
+    """
+    Sets the operation status to error and logs collected messages with error details.
+
+    Args:
+        operation: The operation name to update
+        details: Optional additional error details to include
+    """
     message_logs = collect_handler.get_all_message_logs_and_clear()
     if details:
         details = f"Notion API Error detail for {operation}: {details}"
         message_logs.append(details)
 
-    # Truncate long logs to avoid Notion API limits
-    truncated_logs = []
-    for log in message_logs:
-        if len(log) > 1900:
-            truncated_log = log[:1900] + "... (truncated)"
-            truncated_logs.append(truncated_log)
-        else:
-            truncated_logs.append(log)
-
-    return _update_api_status(NotionAPIStatus.ERROR, operation, truncated_logs)
+    return _update_api_status(NotionAPIStatus.ERROR, operation, message_logs)
 
 
 # Current track_operation decorator in notion_common.py
@@ -453,7 +455,11 @@ def track_operation(operation):
                         set_success_api_status(operation)
                     return result
                 except Exception as e:
-                    set_error_api_status(operation, str(e))
+                    error_message = f"{str(e)}"
+                    # Truncate error message if too long
+                    if len(error_message) > 500:
+                        error_message = error_message[:497] + "..."
+                    set_error_api_status(operation, error_message)
                     raise
             else:
                 return func(*args, **kwargs)
@@ -996,3 +1002,70 @@ def create_recurring_combined_task_name(tasks, task_name_prefix):
             continue
 
     return "\n".join(task_names)
+
+
+def truncate_log_messages(messages, max_length=1900, max_chunks=15):
+    """
+    Truncates log messages to fit within Notion API limits.
+
+    Args:
+        messages (List[str]): List of log messages
+        max_length (int): Maximum length per message chunk
+        max_chunks (int): Maximum number of chunks to return
+
+    Returns:
+        List[str]: List of truncated messages
+    """
+    # Initialize results list
+    truncated_messages = []
+    total_chunks = 0
+
+    for message in messages:
+        # Skip empty messages
+        if not message or len(message.strip()) == 0:
+            continue
+
+        # If message exceeds maximum length, split it into chunks
+        if len(message) > max_length:
+            # Calculate how many chunks this message will create
+            num_chunks = (len(message) // max_length) + (1 if len(message) % max_length > 0 else 0)
+
+            # Determine if we need to limit chunks for this message
+            available_chunks = max(0, max_chunks - total_chunks)
+            if available_chunks == 0:
+                # We've reached the maximum number of chunks overall
+                break
+
+            chunks_to_use = min(num_chunks, available_chunks)
+
+            # Create chunks for this message
+            for i in range(chunks_to_use):
+                start_idx = i * max_length
+
+                # Last chunk in message might be truncated
+                if i == chunks_to_use - 1 and chunks_to_use < num_chunks:
+                    # This is the last allowed chunk but not the end of the message
+                    chunk = message[start_idx:start_idx + max_length - 15] + "...(truncated)"
+                else:
+                    # Normal chunk
+                    chunk = message[start_idx:start_idx + max_length]
+
+                truncated_messages.append(chunk)
+                total_chunks += 1
+
+                if total_chunks >= max_chunks:
+                    break
+        else:
+            # Message fits within limits
+            truncated_messages.append(message)
+            total_chunks += 1
+
+            if total_chunks >= max_chunks:
+                break
+
+    # If we've truncated messages, add a note about it
+    if total_chunks >= max_chunks:
+        truncated_messages.append(
+            f"... {len(messages) - (total_chunks - 1)} more messages truncated due to size limits")
+
+    return truncated_messages

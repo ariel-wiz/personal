@@ -6,14 +6,19 @@ import moment from 'moment';
 
 // Exit codes
 const EXIT_CODES = {
-    SUCCESS: 0,
-    CONFIG_ERROR: 1,
-    SCRAPING_ERROR: 2,
-    DECRYPT_ERROR: 3,
-    FILE_SYSTEM_ERROR: 4
+    SUCCESS: 0,               // All accounts scraped successfully
+    PARTIAL_SUCCESS: 1,       // Some accounts scraped successfully
+    COMPLETE_FAILURE: 2,      // No accounts scraped successfully
+    CONFIG_ERROR: 3,          // Configuration error
+    DECRYPT_ERROR: 4,         // Decryption error
+    FILE_SYSTEM_ERROR: 5      // File system error
 };
 
 const TRANSACTION_STATUS_COMPLETED = 'completed';
+
+// Track successful and failed account scraping attempts
+const successfulAccounts = [];
+const failedAccounts = [];
 
 class Logger {
     info(message, data = null) {
@@ -212,7 +217,6 @@ async function getPackageVersion() {
 
 async function scrapeBank(decryptedCreds) {
     try {
-
         logger.debug('Starting bank scrape with credentials', {
             companyId: decryptedCreds.companyId,
             username: decryptedCreds.username,
@@ -302,8 +306,6 @@ async function main() {
         }
 
         const totalAccounts = credentials.length;
-        let successfulScrapes = 0;
-        let failedScrapes = 0;
         let allTransactions = [];
         let scrapeResults = [];
 
@@ -322,25 +324,25 @@ async function main() {
                 const transactions = await scrapeBank(decryptedCred);
                 const timeTaken = ((Date.now() - startTime) / 1000).toFixed(2);
 
-            if (Array.isArray(transactions)) {
-                allTransactions.push(...transactions);
-                logger.info(`${i + 1}/${totalAccounts} - Successfully scraped ${cred.companyId} (Time: ${timeTaken}s)`);
-                successfulScrapes++;
-            } else if (transactions.errorMessage) {
-                // Handle error case
-                logger.info(`${i + 1}/${totalAccounts} - Failed scraping ${cred.companyId} - Error details: ${transactions.errorMessage} (Time: ${timeTaken}s)`);
-                failedScrapes++;
-            } else {
-                logger.info(`${i + 1}/${totalAccounts} - Failed scraping ${cred.companyId} - Error details: No transactions found (Time: ${timeTaken}s)`);
-                failedScrapes++;
-            }
-                scrapeResults.push({ company: cred.companyId, success: true, timeTaken });
+                if (Array.isArray(transactions)) {
+                    allTransactions.push(...transactions);
+                    logger.info(`${i + 1}/${totalAccounts} - Successfully scraped ${cred.companyId} (Time: ${timeTaken}s)`);
+                    successfulAccounts.push(cred.companyId);
+                } else if (transactions.errorMessage) {
+                    // Handle error case
+                    logger.info(`${i + 1}/${totalAccounts} - Failed scraping ${cred.companyId} - Error details: ${transactions.errorMessage} (Time: ${timeTaken}s)`);
+                    failedAccounts.push({ companyId: cred.companyId, error: transactions.errorMessage });
+                } else {
+                    logger.info(`${i + 1}/${totalAccounts} - Failed scraping ${cred.companyId} - Error details: No transactions found (Time: ${timeTaken}s)`);
+                    failedAccounts.push({ companyId: cred.companyId, error: 'No transactions found' });
+                }
+                scrapeResults.push({ company: cred.companyId, success: Array.isArray(transactions), timeTaken });
             } catch (error) {
                 const timeTaken = ((Date.now() - startTime) / 1000).toFixed(2);
                 logger.info(`${i + 1}/${totalAccounts} - Failed scraping ${cred.companyId} - ${error.message} (Time: ${timeTaken}s)`);
                 logger.error(`${i + 1}/${totalAccounts} - Failed scraping ${cred.companyId} (Time: ${timeTaken}s) - Error: ${error.message}`);
                 scrapeResults.push({ company: cred.companyId, success: false, timeTaken });
-                failedScrapes++;
+                failedAccounts.push({ companyId: cred.companyId, error: error.message });
             }
         }
 
@@ -353,23 +355,68 @@ async function main() {
         const minutes = Math.floor(totalExecutionTime / 60000);
         const seconds = ((totalExecutionTime % 60000) / 1000).toFixed(2);
 
-        if (successfulScrapes === totalAccounts) {
+        // Determine exit code based on success status
+        let exitCode;
+        if (successfulAccounts.length === totalAccounts) {
             logger.info(`✅ All ${totalAccounts}/${totalAccounts} accounts were successfully scraped in ${minutes}m ${seconds}s.`);
+            exitCode = EXIT_CODES.SUCCESS; // All accounts successful
+        } else if (successfulAccounts.length > 0) {
+            logger.info(`⚠️ Only ${successfulAccounts.length}/${totalAccounts} accounts were successfully scraped in ${minutes}m ${seconds}s.`);
+            logger.info(`Failed accounts: ${failedAccounts.map(a => a.companyId).join(', ')}`);
+            exitCode = EXIT_CODES.PARTIAL_SUCCESS; // Some accounts successful
         } else {
-            logger.info(`⚠️ ${successfulScrapes}/${totalAccounts} accounts were successfully scraped. Total execution time: ${minutes}m ${seconds}s.`);
+            logger.info(`❌ No accounts were successfully scraped in ${minutes}m ${seconds}s.`);
+            logger.info(`Failed accounts: ${failedAccounts.map(a => a.companyId).join(', ')}`);
+            exitCode = EXIT_CODES.COMPLETE_FAILURE; // No accounts successful
         }
 
-        return failedScrapes > 0 ? EXIT_CODES.SCRAPING_ERROR : EXIT_CODES.SUCCESS;
+        return exitCode;
     } catch (error) {
-        logger.error(`Script failed with unexpected error: ${error.message}`);
-        return EXIT_CODES.SCRAPING_ERROR;
+        // Categorize errors for more specific exit codes
+        logger.error(`Script failed with unexpected error: ${error.message}`, error);
+
+        if (error.message.includes('config') || error.message.includes('argument')) {
+            return EXIT_CODES.CONFIG_ERROR;
+        } else if (error.message.includes('decrypt') || error.message.includes('crypto')) {
+            return EXIT_CODES.DECRYPT_ERROR;
+        } else if (error.message.includes('file') || error.message.includes('write') || error.message.includes('read')) {
+            return EXIT_CODES.FILE_SYSTEM_ERROR;
+        } else {
+            return EXIT_CODES.COMPLETE_FAILURE;
+        }
     }
 }
 
 // Run the script
 main().then(exitCode => {
-    process.exit(exitCode);
+    logger.debug(`Exiting with code: ${exitCode}`);
+
+    // Ensure all console output is flushed before exit
+    console.log(JSON.stringify({
+        level: 'EXIT',
+        code: exitCode,
+        message: `Explicit exit with code ${exitCode}`
+    }));
+
+    // Force synchronous exit with the correct code
+    process.exitCode = exitCode;
+
+    // Give a small delay to ensure everything is flushed
+    setTimeout(() => {
+        process.exit(exitCode);
+    }, 100);
 }).catch(error => {
     logger.error('Fatal error', error);
-    process.exit(EXIT_CODES.SCRAPING_ERROR);
+
+    console.log(JSON.stringify({
+        level: 'EXIT',
+        code: EXIT_CODES.COMPLETE_FAILURE,
+        message: `Error exit with code ${EXIT_CODES.COMPLETE_FAILURE}: ${error.message}`
+    }));
+
+    process.exitCode = EXIT_CODES.COMPLETE_FAILURE;
+
+    setTimeout(() => {
+        process.exit(EXIT_CODES.COMPLETE_FAILURE);
+    }, 100);
 });

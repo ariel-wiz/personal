@@ -51,10 +51,10 @@ def copy_files(src, dest, exclude_dirs, exclude_files):
 
 if __name__ == "__main__":
     # Define variables
-    src_path = ScriptPath.TRAVELCARD
+    src_path = ScriptPath.PERSONAL
     dst_path = ScriptPath.BACKUP
     exclude_dirs = ["images", "migrations", ".git", "crossfit", "shifts",
-                    "bank-scraper"]  # Replace with your list of excluded directories
+                    "caspion-decrypt", "node-modules"]  # Replace with your list of excluded directories
     exclude_files = ["package-lock.json", "yarn.lock", ".env.local", ".DS_Store", "variables.py",
                      "tsconfig.tsbuildinfo", ".env.development", ".env.production"]  # Replace with your list of excluded files
 

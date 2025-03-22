@@ -17,7 +17,7 @@ from common import parse_expense_date, adjust_month_end_dates, remove_emojis
 from expense.expense_constants import (
     last_4_months_expense_filter,
     last_4_months_months_expense_filter, EXPENSE_TYPES, CURRENCY_SYMBOLS, EXPENSES_TO_ADJUST_DATE, DEFAULT_CATEGORY,
-    current_months_expense_filter, BANK_SCRAPER_SCRIPT_EXEC_NAME, BANK_SCRAPER_RETRIES
+    current_months_expense_filter, BANK_SCRAPER_SCRIPT_EXEC_NAME, BANK_SCRAPER_RETRIES, BANK_SCRAPER_OUTPUT_FILE_PATH
 )
 from expense.expense_models import Expense, MonthlyExpense, ExpenseField
 from expense.expense_helpers import (
@@ -393,52 +393,85 @@ class NotionExpenseService:
         return expenses_to_add
 
     def _run_bank_scraper_with_retry(self):
-        """Run bank scraper with retries and verify all accounts were scraped"""
+        """
+        Run bank scraper with retries based on return code.
+
+        Return codes from _run_bank_scrapper:
+        0 - Success: All accounts were successfully scraped
+        1 - Partial success: Script completed but not all accounts were scraped
+        2+ - Error: Script encountered an error during execution
+
+        Returns:
+            bool: True if at least some accounts were successfully scraped, False otherwise
+        """
         try:
-            all_accounts_scraped = False
             iter_num = 0
+            best_return_code = None
 
-            while not all_accounts_scraped and iter_num < BANK_SCRAPER_RETRIES:
-                # Run the scraper with timeout
-                success, message = self._run_bank_scrapper(timeout=300)  # 5-minute timeout
-                all_accounts_scraped = success
+            while iter_num < BANK_SCRAPER_RETRIES:
+                # Run the scraper and get status code
+                return_code = self._run_bank_scrapper()
+                logger.debug(f"Bank scraper attempt {iter_num + 1} returned code: {return_code}")
 
-                if not all_accounts_scraped:
-                    iter_num += 1
-                    if iter_num < BANK_SCRAPER_RETRIES:
-                        logger.info(f"Retrying bank scraper iteration {iter_num}/{BANK_SCRAPER_RETRIES}")
-                        time.sleep(iter_num * 3)  # Exponential backoff
-                    else:
-                        logger.warning(f"Max retries reached, proceeding with partial data: {message}")
-                        break
+                # Track the best result we've seen (lower is better)
+                if best_return_code is None or return_code < best_return_code:
+                    best_return_code = return_code
+                    logger.debug(f"New best return code: {best_return_code}")
+
+                # Full success - all accounts scraped successfully
+                if return_code == 0:
+                    logger.info("All accounts were successfully scraped")
+                    return True
+
+                # Partial success or complete failure - retry needed
+                iter_num += 1
+
+                if iter_num < BANK_SCRAPER_RETRIES:
+                    error_type = "partial success" if return_code == 1 else "complete failure"
+                    logger.info(f"Retrying after {error_type}, iteration {iter_num}/{BANK_SCRAPER_RETRIES}")
+                    time.sleep(iter_num * 3)  # Exponential backoff
                 else:
-                    logger.info(f"Bank scraper succeeded: {message}")
+                    logger.warning(
+                        f"Max retries reached with return code {return_code}, proceeding with available data")
+                    break
 
-            return all_accounts_scraped
+            # After all retries, decide what to do
+            logger.debug(f"Best return code after all attempts: {best_return_code}")
+
+            if best_return_code == 0:
+                logger.info("Using complete data after retries")
+                return True
+            elif best_return_code == 1:
+                logger.info("Using partial data after exhausting all retries")
+                return True  # Return true to use partial data after max retries
+            else:
+                logger.warning("No usable data found after all retries")
+                return False
 
         except Exception as e:
             logger.error(f"Bank scraper run failed: {str(e)}")
-            raise  # Re-throw the exception for proper handling upstream
+            raise
 
-    def _run_bank_scrapper(self, print_output=True, timeout=300):
+    def _run_bank_scrapper(self, print_output=True):
         """
-        Runs the bank scraper process with a timeout.
+        Run the bank scraper script and return a status code indicating the outcome.
+
+        Return codes:
+        0 - Success: All accounts were successfully scraped
+        1 - Partial success: Script completed but not all accounts were scraped
+        2+ - Error: Script encountered an error during execution
 
         Args:
-            print_output: Whether to print scraper output
-            timeout: Timeout in seconds (default 5 minutes)
+            print_output (bool): Whether to print output to logs
 
         Returns:
-            tuple: (success_flag, output_message)
+            int: The status code of the scraper execution
         """
         try:
             script_path = os.path.join(os.path.dirname(__file__), BANK_SCRAPER_SCRIPT_EXEC_NAME)
-            logger.info(f"Starting scraper script {script_path} with {timeout}s timeout...")
+            logger.info(f"Starting scraper script {script_path}...")
 
-            # Start time for timeout tracking
-            start_time = time.time()
-
-            # Run the script as a subprocess
+            # Run the script and capture output
             process = subprocess.Popen(
                 [sys.executable, script_path],
                 stdout=subprocess.PIPE,
@@ -446,89 +479,73 @@ class NotionExpenseService:
                 text=True
             )
 
-            stdout_data = []
-            stderr_data = []
+            # Process and capture all output
+            stdout, stderr = process.communicate()
+            output_text = stdout + stderr
 
-            # Set up non-blocking I/O
-            import select
-
-            # Track whether the process has completed
-            process_completed = False
-            return_code = None
-
-            while True:
-                # Check if we've exceeded the timeout
-                if time.time() - start_time > timeout:
-                    logger.warning(f"Bank scraper timed out after {timeout} seconds")
+            # Try to find explicit exit code in output
+            exit_code_from_output = None
+            for line in stdout.splitlines() + stderr.splitlines():
+                if '"level":"EXIT"' in line:
                     try:
-                        process.terminate()
-                        # Give it a moment to terminate gracefully
-                        process.wait(timeout=5)
-                    except subprocess.TimeoutExpired:
-                        logger.error("Process didn't terminate gracefully, forcing kill")
-                        process.kill()
+                        # Parse the JSON object containing exit code
+                        exit_data = json.loads(line)
+                        if 'code' in exit_data:
+                            exit_code_from_output = exit_data['code']
+                            logger.debug(f"Found explicit exit code in output: {exit_code_from_output}")
+                    except:
+                        pass
+                elif "Exiting with code:" in line:
+                    try:
+                        exit_code_from_output = int(line.split("Exiting with code:")[1].strip())
+                        logger.debug(f"Parsed exit code from log message: {exit_code_from_output}")
+                    except:
+                        pass
 
-                    return False, f"Process timed out after {timeout} seconds"
+            # Check for partial success indicators
+            is_partial_success = "Only" in output_text and "accounts were successfully scraped" in output_text
+            has_failures = "Failed accounts:" in output_text
 
-                # Check if the process has completed
-                return_code = process.poll()
-                if return_code is not None:
-                    process_completed = True
-                    break
+            # Print output if requested
+            if print_output:
+                for line in stdout.splitlines():
+                    logger.info(line.strip())
 
-                # Check for output (non-blocking)
-                reads = [process.stdout, process.stderr]
-                ready, _, _ = select.select(reads, [], [], 1.0)  # 1 second timeout
-
-                for stream in ready:
-                    line = stream.readline()
-                    if not line:
-                        continue
-
-                    if stream == process.stdout:
-                        stdout_data.append(line.strip())
-                        if print_output:
-                            logger.info(line.strip())
-                    else:
-                        stderr_data.append(line.strip())
-                        if print_output:
-                            logger.error(line.strip())
-
-            # Process has completed, collect any remaining output
-            remaining_stdout, remaining_stderr = process.communicate()
-
-            if remaining_stdout:
-                stdout_lines = remaining_stdout.splitlines()
-                stdout_data.extend([line.strip() for line in stdout_lines])
-                if print_output:
-                    for line in stdout_lines:
-                        logger.info(line.strip())
-
-            if remaining_stderr:
-                stderr_lines = remaining_stderr.splitlines()
-                stderr_data.extend([line.strip() for line in stderr_lines])
-                if print_output:
-                    for line in stderr_lines:
+                for line in stderr.splitlines():
+                    if line.strip():  # Only log non-empty lines
                         logger.error(line.strip())
 
-            # Log completion status
-            if return_code == 0:
-                logger.info("Scraper script completed successfully")
-                all_output = "\n".join(stdout_data + stderr_data)
-                success_msg = "All accounts were successfully scraped"
-                all_accounts_scraped = success_msg in all_output
+            # Determine the correct return code
+            process_code = process.returncode
+            logger.debug(f"Process return code: {process_code}")
+            logger.debug(f"Exit code from output: {exit_code_from_output}")
+            logger.debug(f"Detected partial success: {is_partial_success}")
+            logger.debug(f"Detected failures: {has_failures}")
 
-                if all_accounts_scraped:
-                    return True, "All accounts were successfully scraped"
-                else:
-                    return False, "Not all accounts were scraped but process completed"
+            # Trust the explicit exit code if available, otherwise derive from output
+            if exit_code_from_output is not None:
+                final_code = exit_code_from_output
+                logger.debug(f"Using explicit exit code: {final_code}")
+            elif is_partial_success or has_failures:
+                final_code = 1  # Force to partial success
+                logger.debug(f"Using derived code 1 based on output content")
             else:
-                logger.error(f"Scraper script exited with error code {return_code}")
-                return False, f"Process failed with exit code {return_code}"
+                final_code = process_code
+                logger.debug(f"Using process return code: {final_code}")
+
+            # Log the final decision
+            if final_code == 0:
+                logger.info("All accounts were successfully scraped")
+            elif final_code == 1:
+                logger.info("Some accounts were successfully scraped")
+            else:
+                logger.error(f"Scraper script exited with error code {final_code}")
+
+            return final_code
 
         except Exception as e:
             logger.exception(f"Error running scraper script: {e}")
-            return False, f"Exception while running scraper: {str(e)}"
+            return 2  # Return code 2 indicates an exception occurred
 
     def _load_and_process_json(self) -> bool:
         """Loads and processes JSON data"""

@@ -9,7 +9,7 @@ from dateutil.relativedelta import relativedelta
 
 from common import today
 from variables import PRICE_VAAD_BAIT, PRICE_GAN_TAMAR, PRICE_MASHKANTA, HAFKADA_GEMEL_CHILDREN, PRICE_TSEHARON_NOYA, \
-    ARIEL_SALARY_AVG
+    ARIEL_SALARY_AVG, CHEN_SALARY_AVG
 
 EXPENSE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -125,11 +125,13 @@ MODIFIED_NAMES = {
         "Charged Amount": ARIEL_SALARY_AVG,  # Using actual numeric value
         "math_operation": "approx(10%)"
     }],
+    'משכורת חן': [{
+        "Expense": "משכורת",
+        "Charged Amount": CHEN_SALARY_AVG,  # Using actual numeric value
+        "math_operation": "approx(20%)"
+    }],
     'חשמל': [{
         "Expense": "אלקטרה פאוור"
-    }],
-    'משכורת חן': [{
-        "Expense": "ספוטניק"
     }],
     'BOOM': [{
         "Expense": "MOOOB"

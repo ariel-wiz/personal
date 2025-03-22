@@ -24,15 +24,67 @@ def check_node_installation():
         if result.returncode == 0:
             logger.debug(f"Node.js version: {result.stdout.strip()}")
 
-            npm_result = subprocess.run(['npm', 'list', 'israeli-bank-scrapers'],
-                                        cwd=BANK_SCRAPER_DIRECTORY,
-                                        capture_output=True, text=True)
+            # Try multiple approaches to get the israeli-bank-scrapers version
             version = "unknown"
-            if npm_result.returncode == 0:
-                for line in npm_result.stdout.splitlines():
-                    if "israeli-bank-scrapers@" in line:
-                        version = line.split("@")[1].strip()
-                        break
+
+            # Method 1: Use npm list with --json flag for more reliable parsing
+            npm_json_result = subprocess.run(
+                ['npm', 'list', 'israeli-bank-scrapers', '--json', '--depth=0'],
+                cwd=BANK_SCRAPER_DIRECTORY,
+                capture_output=True, text=True
+            )
+
+            if npm_json_result.returncode == 0:
+                try:
+                    npm_data = json.loads(npm_json_result.stdout)
+                    if (npm_data.get('dependencies') and
+                            npm_data['dependencies'].get('israeli-bank-scrapers') and
+                            npm_data['dependencies']['israeli-bank-scrapers'].get('version')):
+                        version = npm_data['dependencies']['israeli-bank-scrapers']['version']
+                        logger.debug(f"Found version from npm list --json: {version}")
+                except json.JSONDecodeError:
+                    logger.debug("Could not parse JSON output from npm list")
+
+            # Method 2: If Method 1 fails, try traditional npm list with string parsing
+            if version == "unknown":
+                npm_result = subprocess.run(
+                    ['npm', 'list', 'israeli-bank-scrapers'],
+                    cwd=BANK_SCRAPER_DIRECTORY,
+                    capture_output=True, text=True
+                )
+
+                if npm_result.returncode == 0:
+                    import re
+                    match = re.search(r'israeli-bank-scrapers@([\d\.]+)', npm_result.stdout)
+                    if match:
+                        version = match.group(1)
+                        logger.debug(f"Found version from npm list regex: {version}")
+
+            # Method 3: If Methods 1 and 2 fail, try npm view
+            if version == "unknown":
+                npm_view_result = subprocess.run(
+                    ['npm', 'view', 'israeli-bank-scrapers', 'version'],
+                    cwd=BANK_SCRAPER_DIRECTORY,
+                    capture_output=True, text=True
+                )
+
+                if npm_view_result.returncode == 0 and npm_view_result.stdout.strip():
+                    version = npm_view_result.stdout.strip()
+                    logger.debug(f"Found version from npm view: {version}")
+
+            # Method 4: Check if the package is installed globally
+            if version == "unknown":
+                npm_global_result = subprocess.run(
+                    ['npm', 'list', '-g', 'israeli-bank-scrapers'],
+                    capture_output=True, text=True
+                )
+
+                if npm_global_result.returncode == 0:
+                    import re
+                    match = re.search(r'israeli-bank-scrapers@([\d\.]+)', npm_global_result.stdout)
+                    if match:
+                        version = match.group(1)
+                        logger.debug(f"Found version from global npm list: {version}")
 
             logger.debug(f"israeli-bank-scrapers version: {version}")
             return True

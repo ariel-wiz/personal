@@ -513,7 +513,7 @@ class NotionExpenseService:
 
                 for line in stderr.splitlines():
                     if line.strip():  # Only log non-empty lines
-                        logger.error(line.strip())
+                        logger.info(line.strip())
 
             # Determine the correct return code
             process_code = process.returncode

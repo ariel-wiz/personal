@@ -9097,4 +9097,920 @@ TRAININGS = [
     }
 ]
 
+ADDITION_LIST = [
+    {
+        "exercise_name": "Kettlebell Deadlift",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Lower back"]
+    },
+    {
+        "exercise_name": "Bent Over Row",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Trapezius", "Rhomboids", "Rear Deltoids"]
+    },
+    {
+        "exercise_name": "Dumbbell Shoulder Press",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Lateral deltoids", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Elbow To Instep",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Internal Obliques", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Sumo Deadlift High Pull",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Trapezius"]
+    },
+    {
+        "exercise_name": "Ring Muscle Up",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Trapezius", "Triceps Long Head", "Pectoralis major"]
+    },
+    {
+        "exercise_name": "Ring Dip",
+        "main_body_part": "triceps",
+        "targeted_muscles": ["Triceps Long Head", "Triceps Lateral Head", "Pectoralis major"]
+    },
+    {
+        "exercise_name": "Kipping Pull Up",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Trapezius", "Biceps Brachialis"]
+    },
+    {
+        "exercise_name": "Deadlift",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Lower back", "Erector spinae"]
+    },
+    {
+        "exercise_name": "Medicine Ball Pass",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "External Obliques"]
+    },
+    {
+        "exercise_name": "Spiderman Twist",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Internal Obliques", "External Obliques", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Handstand",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Lateral deltoids", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Pvc Overhead Squat",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Kip Swing",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Side Tosses",
+        "main_body_part": "abs",
+        "targeted_muscles": ["External Obliques", "Internal Obliques"]
+    },
+    {
+        "exercise_name": "Hollow",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Transverse Abdominis"]
+    },
+    {
+        "exercise_name": "Butt Kicker",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Jumping Jacks",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Bench Press",
+        "main_body_part": "chest",
+        "targeted_muscles": ["Pectoralis major", "Triceps Long Head", "Anterior deltoids"]
+    },
+    {
+        "exercise_name": "High Pull",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Trapezius", "Rear Deltoids", "Hamstrings"]
+    },
+    {
+        "exercise_name": "Crawl Under",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Transverse Abdominis"]
+    },
+    {
+        "exercise_name": "Inchworm",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Transverse Abdominis", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Hang Snatch",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Trapezius", "Shoulders"]
+    },
+    {
+        "exercise_name": "Abmat Sit Up",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Hand Release Push Up",
+        "main_body_part": "chest",
+        "targeted_muscles": ["Pectoralis major", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Hang Power Clean",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Trapezius"]
+    },
+    {
+        "exercise_name": "Split Jerk",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Lateral deltoids", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Pvc Switch",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Rotator cuff"]
+    },
+    {
+        "exercise_name": "Bear Crawl",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Transverse Abdominis", "Quads"]
+    },
+    {
+        "exercise_name": "Roll Pass",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "External Obliques"]
+    },
+    {
+        "exercise_name": "Back Rack Lunge",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Behind Neck Press",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Lateral deltoids", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Muscle Snatch",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Trapezius", "Hamstrings"]
+    },
+    {
+        "exercise_name": "Leg Swing",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Hip Flexor"]
+    },
+    {
+        "exercise_name": "Front Scale",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Transverse Abdominis", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Calf Raise",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Gastrocnemius", "Soleus"]
+    },
+    {
+        "exercise_name": "Toy Soldiers",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Hip Flexor", "Quads"]
+    },
+    {
+        "exercise_name": "Plank",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Transverse Abdominis"]
+    },
+    {
+        "exercise_name": "Elbow Raises",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Lateral deltoids"]
+    },
+    {
+        "exercise_name": "Single Leg Toe Touch",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes"]
+    },
+    {
+        "exercise_name": "Handstand Push Up (HSPU)",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Triceps Long Head", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "V Up",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Alternating Lunges",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Power Clean",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Trapezius"]
+    },
+    {
+        "exercise_name": "Strict Toes To Bar",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Spiderman Reaches",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Internal Obliques", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Dumbbell Overhead Carry",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Lateral deltoids", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Up Downs",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Chest To Bar Pull Up",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Biceps Brachialis", "Trapezius"]
+    },
+    {
+        "exercise_name": "Front Squat",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Thruster",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Anterior deltoids", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Down Dogs",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Hamstrings"]
+    },
+    {
+        "exercise_name": "Goblet Squat",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Muscle Up",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Triceps Long Head", "Pectoralis major"]
+    },
+    {
+        "exercise_name": "Butterfly Chest To Bar",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Biceps Brachialis"]
+    },
+    {
+        "exercise_name": "Shoulder Press",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Lateral deltoids", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Pistol",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "L Sit",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Transverse Abdominis", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Granny Tosses",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "External Obliques"]
+    },
+    {
+        "exercise_name": "Single Leg Squat",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Russian Kettlebell Swing",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Lower back"]
+    },
+    {
+        "exercise_name": "Dumbbell Farmers Carry",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Trapezius", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Squat Snatch",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis", "Shoulders"]
+    },
+    {
+        "exercise_name": "Medicine Ball Squat",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Spiderman Stretch",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Internal Obliques", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Weighted Ab Mat Sit Up",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Prisoner Squat",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Overhead Walking Lunge",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Anterior deltoids"]
+    },
+    {
+        "exercise_name": "Single Dumbbell Press",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Pvc Overhead Lunges",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Glute Ham Developer Sit Up",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Push Up",
+        "main_body_part": "chest",
+        "targeted_muscles": ["Pectoralis major", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Dumbbell Clean And Jerk",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Trapezius", "Quads"]
+    },
+    {
+        "exercise_name": "Toe Touch",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings"]
+    },
+    {
+        "exercise_name": "Ring L Sit",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Transverse Abdominis", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Plate",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Transverse Abdominis"]
+    },
+    {
+        "exercise_name": "Clean And Jerk (C&J)",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Anterior deltoids", "Trapezius"]
+    },
+    {
+        "exercise_name": "High Knees",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Hip Flexor", "Quads"]
+    },
+    {
+        "exercise_name": "Rest",
+        "main_body_part": "N/A",
+        "targeted_muscles": []
+    },
+    {
+        "exercise_name": "Scorpion Stretch",
+        "main_body_part": "abs",
+        "targeted_muscles": ["External Obliques", "Internal Obliques"]
+    },
+    {
+        "exercise_name": "Air Squat",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Mountain Climbers",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Turkish Get Up",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Transverse Abdominis", "Quads"]
+    },
+    {
+        "exercise_name": "Rope Climb",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Biceps Brachialis", "Trapezius"]
+    },
+    {
+        "exercise_name": "Dumbbell Bench Press",
+        "main_body_part": "chest",
+        "targeted_muscles": ["Pectoralis major", "Triceps Long Head", "Anterior deltoids"]
+    },
+    {
+        "exercise_name": "Strict Handstand Push Up",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Movement S",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Transverse Abdominis"]
+    },
+    {
+        "exercise_name": "Samson Stretch",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Hip Flexor", "Quads"]
+    },
+    {
+        "exercise_name": "Snatch",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Trapezius", "Shoulders"]
+    },
+    {
+        "exercise_name": "Burpee",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis", "Pectoralis major"]
+    },
+    {
+        "exercise_name": "Toes To Bar (T2B)",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Alternative Samson Lunges",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Chest Passes",
+        "main_body_part": "chest",
+        "targeted_muscles": ["Pectoralis major"]
+    },
+    {
+        "exercise_name": "Power Jerk",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Anterior deltoids", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Power Snatch",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Trapezius"]
+    },
+    {
+        "exercise_name": "Medicine Ball Clean",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Walking Lunges",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Karaoke",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Band Pull Apart",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Rear Deltoids", "Trapezius"]
+    },
+    {
+        "exercise_name": "Bar Muscle Up",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Triceps Long Head", "Pectoralis major"]
+    },
+    {
+        "exercise_name": "Front Rack",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Leg Press",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Front Rack Carry",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Plate Ground To Overhead",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Trapezius"]
+    },
+    {
+        "exercise_name": "Plank Reach Through",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "External Obliques", "Internal Obliques"]
+    },
+    {
+        "exercise_name": "Handstand Walk",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Push Press",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Anterior deltoids", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Dumbbell Power Clean",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Trapezius"]
+    },
+    {
+        "exercise_name": "Hang Clean And Jerk",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Anterior deltoids", "Trapezius"]
+    },
+    {
+        "exercise_name": "Strict Pull Up",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Biceps Brachialis"]
+    },
+    {
+        "exercise_name": "Hollow Rock",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Transverse Abdominis"]
+    },
+    {
+        "exercise_name": "Kettlebell Presses",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Counterbalance Squat",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Back Extension",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Lower back", "Glutes", "Hamstrings"]
+    },
+    {
+        "exercise_name": "Dumbbell Romanian Deadlift",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Lower back"]
+    },
+    {
+        "exercise_name": "Butterfly Pull Up",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Biceps Brachialis"]
+    },
+    {
+        "exercise_name": "Knee To Chest",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Box Jump",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Dumbbell Press",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Pvc Movements",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Rotator cuff"]
+    },
+    {
+        "exercise_name": "Back Rack Position",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Pvc Good Mornings",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Lower back"]
+    },
+    {
+        "exercise_name": "Jumping Squat",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Ring Support",
+        "main_body_part": "triceps",
+        "targeted_muscles": ["Triceps Long Head", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Wall Ball",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis", "Shoulders"]
+    },
+    {
+        "exercise_name": "Dragon Flag",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Transverse Abdominis"]
+    },
+    {
+        "exercise_name": "Strict Press",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Underhand Toss",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "External Obliques"]
+    },
+    {
+        "exercise_name": "Row",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Trapezius", "Rhomboids"]
+    },
+    {
+        "exercise_name": "Good Mornings",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Lower back", "Glutes"]
+    },
+    {
+        "exercise_name": "Dumbbell Snatch",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Trapezius"]
+    },
+    {
+        "exercise_name": "Knees To Elbows",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Single Unders",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Skin The Cat",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Shoulders"]
+    },
+    {
+        "exercise_name": "Dumbbell Suitcase Carry",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Transverse Abdominis", "Rectus Abdominis", "Trapezius"]
+    },
+    {
+        "exercise_name": "Ring Row",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Trapezius", "Biceps Brachialis"]
+    },
+    {
+        "exercise_name": "Kettlebell Front Rack",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Push Jerk",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Anterior deltoids", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Double Unders",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Superman",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Lower back", "Glutes"]
+    },
+    {
+        "exercise_name": "Pvc Pass Throughs",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Rotator cuff", "Anterior deltoids"]
+    },
+    {
+        "exercise_name": "Twist",
+        "main_body_part": "abs",
+        "targeted_muscles": ["External Obliques", "Internal Obliques"]
+    },
+    {
+        "exercise_name": "Box Step Up",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Back Squat",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Dumbbell Reverse Lunge",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Clean",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Trapezius"]
+    },
+    {
+        "exercise_name": "Bar Facing Burpee",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis", "Pectoralis major"]
+    },
+    {
+        "exercise_name": "Down And Back Movements",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Transverse Abdominis"]
+    },
+    {
+        "exercise_name": "Farmers Carry",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Transverse Abdominis", "Rectus Abdominis", "Trapezius"]
+    },
+    {
+        "exercise_name": "Scap Pull Up",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Trapezius", "Latissimus Dorsi"]
+    },
+    {
+        "exercise_name": "Kettlebell Swing",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Lower back"]
+    },
+    {
+        "exercise_name": "Pvc",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Rotator cuff"]
+    },
+    {
+        "exercise_name": "Hang Clean",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Trapezius"]
+    },
+    {
+        "exercise_name": "Pull Up",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Biceps Brachialis"]
+    },
+    {
+        "exercise_name": "Jump Rope",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Legless Rope Climb",
+        "main_body_part": "upper back",
+        "targeted_muscles": ["Latissimus Dorsi", "Biceps Brachialis"]
+    },
+    {
+        "exercise_name": "Kettlebell Clean",
+        "main_body_part": "posterior chain",
+        "targeted_muscles": ["Hamstrings", "Glutes", "Trapezius"]
+    },
+    {
+        "exercise_name": "Shuttle Run",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Knee Push Up",
+        "main_body_part": "chest",
+        "targeted_muscles": ["Pectoralis major", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Devil Press",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Anterior deltoids", "Pectoralis major"]
+    },
+    {
+        "exercise_name": "Single Leg V Ups",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Squat Toss",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Dumbbell Front Rack",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Spiderman Lunge",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Step Up",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Side Pass",
+        "main_body_part": "abs",
+        "targeted_muscles": ["External Obliques", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Run",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Jog",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Shoulder To Overhead",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Triceps Long Head"]
+    },
+    {
+        "exercise_name": "Front Rack Lunge",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Arm Circles",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Lateral deltoids", "Rotator cuff"]
+    },
+    {
+        "exercise_name": "Overhead Squat (OHS)",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Rectus Abdominis", "Anterior deltoids"]
+    },
+    {
+        "exercise_name": "Reverse Lunge",
+        "main_body_part": "anterior chain",
+        "targeted_muscles": ["Quads", "Legs"]
+    },
+    {
+        "exercise_name": "Deficit Handstand Push Up",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Triceps Long Head", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Wall Walk",
+        "main_body_part": "shoulders",
+        "targeted_muscles": ["Anterior deltoids", "Rectus Abdominis"]
+    },
+    {
+        "exercise_name": "Sit Ups",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Hip Flexor"]
+    },
+    {
+        "exercise_name": "Crab Walk",
+        "main_body_part": "abs",
+        "targeted_muscles": ["Rectus Abdominis", "Transverse Abdominis", "Quads"]
+    }
+]
+
+NEW_EXERCISES = {
+  "Iso Lateral Kneeling Leg Curl": {
+    "tips": [
+      "Keep hips pressed against the pad throughout the movement",
+      "Avoid using momentum to complete the curl",
+      "Focus on hamstring contraction rather than weight moved",
+      "Control the negative (eccentric) portion of the exercise"
+    ],
+    "equipment": ["Iso Lateral Leg Curl Machine"],
+    "main_body_part": "Posterior Chain",
+    "targeted_muscles": ["Hamstrings", "Glutes", "Calves"],
+    "expertise": 3,
+    "demo_url": "https://www.youtube.com/watch?v=ELOCsoDSmrg",
+    "body_part": ["Legs"],
+    "favorite": False,
+    "description": [
+      "Adjust the machine for your height with knees aligned with pivot point",
+      "Kneel on the pad with ankles secured under the roller pads",
+      "Position hips firmly against the support pad",
+      "Grasp handles for stability if available",
+      "Flex knees to curl the weight toward your glutes",
+      "Maintain tension as you curl to full contraction",
+      "Hold the contracted position briefly at the top",
+      "Lower the weight with control to starting position",
+      "Repeat for prescribed repetitions with proper form"
+    ]
+  }
+}
 # print([keys for keys in NEW_EXERCISES.keys()])

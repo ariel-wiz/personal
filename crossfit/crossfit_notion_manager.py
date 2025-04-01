@@ -3,12 +3,12 @@ import re
 from typing import Dict, Any, List, Optional, Tuple, Set
 
 from common import capitalize_text_or_list
-from crossfit.crossfit_variables import EXERCISES, TRAININGS
+from crossfit.crossfit_variables import EXERCISES, TRAININGS, ADDITION_LIST
 from logger import logger
 from notion_py.helpers.notion_children_blocks import generate_children_block_for_crossfit_exercise, \
     generate_children_block_for_crossfit_workout
 from notion_py.helpers.notion_common import get_db_pages, create_page_with_db_dict, \
-    create_page_with_db_dict_and_children_block, generate_icon_url
+    create_page_with_db_dict_and_children_block, generate_icon_url, update_page, get_page
 
 from notion_py.notion_globals import NotionPropertyType, IconType, IconColor
 
@@ -33,6 +33,9 @@ class CrossfitExercise:
         self.body_part = self.normalize_body_parts(data.get('body_part', []))
         self.description = data.get('description', [])
         self.page_id = data.get('id', '')
+        self.main_body_part = data.get('main_body_part', '')
+        self.targeted_muscles = data.get('targeted_muscles', [])
+        self.favorite = data.get('favorite', False)
 
     def __str__(self) -> str:
         equipment_str = ", ".join(self.equipment) if self.equipment else ""
@@ -61,7 +64,10 @@ class CrossfitExercise:
             "Video": self.demo_url,
             "Link": self.crossfit_url,
             "Body Parts": self.body_part,
-            "Icon": self.get_icon()
+            "Icon": self.get_icon(),
+            "Main Body Part": self.main_body_part,
+            "Muscle Part": self.targeted_muscles,
+            "Favorite": self.favorite
         }
 
     def get_icon(self):
@@ -88,6 +94,9 @@ class CrossfitExercise:
             "Expertise": NotionPropertyType.SELECT_NAME,
             "Video": NotionPropertyType.URL,
             "Link": NotionPropertyType.URL,
+            "Main Body Part": NotionPropertyType.SELECT_NAME,
+            "Muscle Part": NotionPropertyType.MULTI_SELECT,
+            "Favorite": NotionPropertyType.CHECKBOX
         }
 
     def normalize_equipment_list(self, equipment_list):
@@ -585,6 +594,107 @@ class CrossfitManager:
 
         return found, normalized_name
 
+    def update_exercises_from_json(self, json_data) -> None:
+        """
+        Process exercises from JSON format and add/update them in Notion
+
+        Args:
+            json_data: List of exercise data in JSON format or direct dictionary of exercises
+        """
+        exercises = []
+
+        # Check if input is a list or dictionary directly
+        if isinstance(json_data, dict):
+            # Handle single dictionary with multiple exercises
+            for name, data in json_data.items():
+                if isinstance(data, dict):  # Ensure data is a dictionary
+                    exercise = CrossfitExercise(name, data)
+                    exercises.append(exercise)
+        elif isinstance(json_data, list):
+            # Handle list of dictionaries
+            for exercise_data in json_data:
+                if isinstance(exercise_data, dict):
+                    for name, data in exercise_data.items():
+                        if isinstance(data, dict):  # Ensure data is a dictionary
+                            exercise = CrossfitExercise(name, data)
+                            exercises.append(exercise)
+                elif isinstance(exercise_data, str):
+                    # Handle list of strings (just names)
+                    exercise = CrossfitExercise(exercise_data, {})
+                    exercises.append(exercise)
+        elif isinstance(json_data, str):
+            # Handle single exercise name as string
+            exercise = CrossfitExercise(json_data, {})
+            exercises.append(exercise)
+
+        if exercises:
+            self.add_crossfit_exercises_to_notion(exercises)
+        else:
+            logger.warning("No valid exercises found in the input data")
+
+    def update_exercise_body_parts(self, page_id, main_body_part, targeted_muscles):
+        """
+        Updates a specific exercise in Notion with body part information.
+
+        Args:
+            page_id (str): Notion page ID of the exercise
+            main_body_part (str): Main body part category
+            targeted_muscles (list): List of targeted muscles
+
+        Returns:
+            bool: True if update was made, False if no update was needed
+        """
+        try:
+            # First get current values from Notion to check if update is needed
+            page_data = get_page(page_id)
+            properties = page_data.get('properties', {})
+
+            # Extract current values
+            current_main_body_part = ""
+            if 'Main Body Part' in properties and properties['Main Body Part'].get('select'):
+                current_main_body_part = properties['Main Body Part']['select'].get('name', "")
+
+            current_muscles = []
+            if 'Muscle Part' in properties and properties['Muscle Part'].get('multi_select'):
+                current_muscles = [item.get('name', "") for item in properties['Muscle Part']['multi_select']]
+
+            # Normalize and capitalize the main body part
+            normalized_main_body_part = main_body_part.strip().capitalize() if main_body_part else ""
+
+            # Normalize targeted muscles
+            normalized_muscles = [muscle.strip().capitalize() for muscle in targeted_muscles if muscle]
+
+            # Check if update is needed
+            if (normalized_main_body_part and normalized_main_body_part != current_main_body_part) or \
+                    (normalized_muscles and set(normalized_muscles) != set(current_muscles)):
+
+                # Prepare update payload
+                update_payload = {"properties": {}}
+
+                # Only update main body part if it has a value and is different
+                if normalized_main_body_part and normalized_main_body_part != current_main_body_part:
+                    update_payload["properties"]["Main Body Part"] = {
+                        "select": {"name": normalized_main_body_part}
+                    }
+
+                # Only update targeted muscles if they're different
+                if normalized_muscles and set(normalized_muscles) != set(current_muscles):
+                    update_payload["properties"]["Muscle Part"] = {
+                        "multi_select": [{"name": muscle} for muscle in normalized_muscles]
+                    }
+
+                # Only make API call if there are changes to make
+                if update_payload["properties"]:
+                    update_page(page_id, update_payload)
+                    return True
+
+            # No update needed
+            return False
+
+        except Exception as e:
+            logger.error(f"Error updating exercise {page_id}: {str(e)}")
+            raise
+
     def map_exercise_name(self, name: str, known_exercises: list) -> str:
         """Maps exercise name to a known exercise name with enhanced matching."""
 
@@ -965,28 +1075,100 @@ class CrossfitManager:
 
         return CrossfitExercise(get_title('Name'), exercise_data)
 
-    def add_crossfit_exercises_to_notion(self):
+    def add_crossfit_exercises_to_notion(self, new_exercises=None):
+        """
+        Add CrossFit exercises to Notion database or update Favorite field for existing ones.
+
+        Args:
+            new_exercises (list, optional): List of new exercise data to add. If None, uses self.variables_exercises.
+        """
         added_exercises = []
+        updated_exercises = []
+
         if not self.notion_exercises:
             self.notion_exercises = self.get_crossfit_exercises_in_notion()
 
-        exercise_names = [exercise.name for exercise in self.notion_exercises]
-        for exercise in self.variables_exercises:
-            if exercise.name in exercise_names:
-                logger.debug(f"{exercise.name} already exists in Notion")
+        # Create a dictionary for quicker lookup of existing exercises by name
+        existing_exercises = {exercise.name: exercise for exercise in self.notion_exercises}
+
+        # Use the provided exercises or fallback to variables_exercises
+        exercises_to_process = new_exercises if new_exercises is not None else self.variables_exercises
+
+        for exercise in exercises_to_process:
+            exercise_name = exercise.name if isinstance(exercise, CrossfitExercise) else exercise
+
+            # Convert exercise dict to CrossfitExercise object if needed
+            if not isinstance(exercise, CrossfitExercise):
+                exercise_data = exercise if isinstance(exercise, dict) else {}
+                exercise = CrossfitExercise(exercise_name, exercise_data)
+
+            if exercise_name in existing_exercises:
+                # Exercise exists - check if Favorite field needs updating
+                existing_exercise = existing_exercises[exercise_name]
+
+                if exercise.favorite and not self.check_favorite_status(existing_exercise.page_id):
+                    # Update Favorite field to True
+                    self.update_exercise_favorite(existing_exercise.page_id, True)
+                    updated_exercises.append(exercise)
+                    logger.debug(f"Updated {exercise_name} Favorite status to True")
             else:
+                # Exercise does not exist - add it
                 try:
-                    create_page_with_db_dict_and_children_block(self.crossfit_exercises_db_id, exercise.payload(),
-                                                                exercise.children_blocks(),
-                                                                exercise.get_property_overrides())
+                    create_page_with_db_dict_and_children_block(
+                        self.crossfit_exercises_db_id,
+                        exercise.payload(),
+                        exercise.children_blocks(),
+                        exercise.get_property_overrides()
+                    )
                 except Exception as e:
-                    logger.error(f"Error adding {exercise.name} to Notion: {str(e)}")
+                    logger.error(f"Error adding {exercise_name} to Notion: {str(e)}")
                     continue
+
                 added_exercises.append(exercise)
-                logger.debug(f"Added {exercise.name} to Notion")
+                logger.debug(f"Added {exercise_name} to Notion")
 
         if len(added_exercises) > 0:
             logger.info(f"Successfully added {len(added_exercises)} new exercises to Notion")
+
+        if len(updated_exercises) > 0:
+            logger.info(f"Successfully updated Favorite status for {len(updated_exercises)} exercises in Notion")
+
+    def check_favorite_status(self, page_id: str) -> bool:
+        """
+        Check if the Favorite property is set to True for a given page
+
+        Args:
+            page_id (str): The Notion page ID to check
+
+        Returns:
+            bool: True if Favorite is checked, False otherwise
+        """
+        try:
+            page_data = get_page(page_id)
+            return page_data.get('properties', {}).get('Favorite', {}).get('checkbox', False)
+        except Exception as e:
+            logger.error(f"Error checking Favorite status for page {page_id}: {str(e)}")
+            return False
+
+    def update_exercise_favorite(self, page_id: str, favorite: bool) -> None:
+        """
+        Update the Favorite property for an exercise
+
+        Args:
+            page_id (str): The Notion page ID to update
+            favorite (bool): The new value for the Favorite property
+        """
+        try:
+            update_payload = {
+                "properties": {
+                    "Favorite": {
+                        "checkbox": favorite
+                    }
+                }
+            }
+            update_page(page_id, update_payload)
+        except Exception as e:
+            logger.error(f"Error updating Favorite status for page {page_id}: {str(e)}")
 
     def get_training_program(self, workout):
         if isinstance(workout, dict):

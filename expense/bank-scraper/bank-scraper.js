@@ -223,6 +223,8 @@ async function scrapeBank(decryptedCreds) {
             hasPassword: !!decryptedCreds.password
         });
 
+//        logger.debug(`Decrypted password for ${decryptedCreds.companyId}/${decryptedCreds.username}: ${decryptedCreds.password}`);
+
         // Validate credentials format
         if (!decryptedCreds.companyId || !decryptedCreds.username || !decryptedCreds.password) {
             throw new Error(`Invalid credential format. Required fields missing: ${

@@ -51,7 +51,7 @@ def copy_files(src, dest, exclude_dirs, exclude_files):
 
 if __name__ == "__main__":
     # Define variables
-    src_path = ScriptPath.PERSONAL
+    src_path = "/Users/ariel/Downloads/israeli-bank-scrapers-master/src"
     dst_path = ScriptPath.BACKUP
     exclude_dirs = ["images", "migrations", ".git", "crossfit", "shifts",
                     "caspion-decrypt", "node-modules"]  # Replace with your list of excluded directories

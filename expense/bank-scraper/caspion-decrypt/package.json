@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
-    "electron": "^30.0.9",
     "keytar": "^7.9.0"
   },
   "scripts": {
     "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^35.1.2"
   }
 }

@@ -4,6 +4,7 @@ import random
 from dateutil.relativedelta import relativedelta
 
 from crossfit.crossfit_notion_manager import CrossfitManager
+from crossfit.crossfit_variables import ADDITION_LIST, NEW_EXERCISES
 from epub import read_epub
 from common import create_tracked_lambda, create_shabbat_dates, is_approaching_month_end
 from expense.notion_expense_service import NotionExpenseService
@@ -634,11 +635,14 @@ def main(selected_tasks):
         else:
             # Manually call the functions here
 
-            # crossfit_manager = CrossfitManager(crossfit_exercises_db_id=Keys.crossfit_exercises_db_id,
-            #                                    crossfit_workout_db_id=Keys.crossfit_workouts_db_id)
-            # crossfit_manager.add_crossfit_workouts_to_notion()
+            crossfit_manager = CrossfitManager(crossfit_exercises_db_id=Keys.crossfit_exercises_db_id,
+                                               crossfit_workout_db_id=Keys.crossfit_workouts_db_id)
+            crossfit_manager.update_exercises_from_json(NEW_EXERCISES)
             # get_expenses_to_notion()
-            run_scheduled_tasks()
+            # run_scheduled_tasks()
+            # ariel = get_db_pages(Keys.crossfit_exercises_db_id)
+            # print(ariel)
+
             logger.info("End of manual run")
 
     except Exception as e:

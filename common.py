@@ -70,14 +70,30 @@ class DateOffset:
 
 
 def add_hours_to_time(time_str):
-    # Parse the input string into a datetime object
+    """
+    Adjust time from GMT to Israel time, accounting for daylight saving time
+    using the pytz library for accurate timezone conversions.
+
+    Args:
+        time_str: Time string in format '%Y-%m-%dT%H:%M:%S.%f'
+
+    Returns:
+        Time string in format 'HH:MM' adjusted to Israel time
+    """
+    import pytz
+
+    # Parse the input string into a datetime object (UTC)
     input_time = datetime.strptime(time_str, '%Y-%m-%dT%H:%M:%S.%f')
 
-    # Add 3 hours using timedelta
-    adjusted_time = input_time + timedelta(hours=2)
+    # Make it aware that it's in UTC
+    input_time = pytz.utc.localize(input_time)
+
+    # Convert to Israel time
+    israel_tz = pytz.timezone('Asia/Jerusalem')
+    israel_time = input_time.astimezone(israel_tz)
 
     # Return the adjusted time in hh:mm format
-    return adjusted_time.strftime('%H:%M')
+    return israel_time.strftime('%H:%M')
 
 
 def seconds_to_hours_minutes(seconds):

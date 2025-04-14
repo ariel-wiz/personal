@@ -205,12 +205,24 @@ function transactionsDateComparator(t1, t2) {
 
 async function getPackageVersion() {
     try {
-        const packageJson = JSON.parse(
-            await fs.readFile(new URL('./package.json', import.meta.url))
+        const { exec } = await import('child_process');
+        const { promisify } = await import('util');
+        const execAsync = promisify(exec);
+
+        const { stdout } = await execAsync(
+            `npm list israeli-bank-scrapers --json`
         );
-        return packageJson.dependencies['israeli-bank-scrapers'];
+
+        const npmList = JSON.parse(stdout);
+
+        if (npmList && npmList.dependencies && npmList.dependencies['israeli-bank-scrapers']) {
+            return npmList.dependencies['israeli-bank-scrapers'].version;
+        } else {
+            logger.debug('Package information not found in npm list output');
+            return 'unknown';
+        }
     } catch (error) {
-        logger.error('Failed to get package version', error);
+        logger.error('Failed to get package version from npm list', error);
         return 'unknown';
     }
 }
@@ -220,10 +232,22 @@ async function scrapeBank(decryptedCreds) {
         logger.debug('Starting bank scrape with credentials', {
             companyId: decryptedCreds.companyId,
             username: decryptedCreds.username,
-            hasPassword: !!decryptedCreds.password
+            hasPassword: !!decryptedCreds.password,
+            hasCardLast6: !!decryptedCreds.card6Digits
         });
 
-//        logger.debug(`Decrypted password for ${decryptedCreds.companyId}/${decryptedCreds.username}: ${decryptedCreds.password}`);
+                const supportedBanks = ['isracard'];
+        if (!supportedBanks.includes(decryptedCreds.companyId)) {
+            logger.debug(`Skipping unsupported bank: ${decryptedCreds.companyId}`);
+            return {
+                success: false,
+                errorType: 'SKIPPED',
+                errorMessage: `Skipped unsupported bank: ${decryptedCreds.companyId}`,
+                companyId: decryptedCreds.companyId
+            };
+        }
+
+        logger.debug(`Decrypted credentials for company ${decryptedCreds.companyId} - username: "${decryptedCreds.username}", password: "${decryptedCreds.password}", card last 6 digits: "${decryptedCreds.card6Digits?.trim() || 'N/A'}"`);
 
         // Validate credentials format
         if (!decryptedCreds.companyId || !decryptedCreds.username || !decryptedCreds.password) {
@@ -239,7 +263,7 @@ async function scrapeBank(decryptedCreds) {
         const options = {
             companyId: decryptedCreds.companyId,
             startDate,
-            showBrowser: false,
+            showBrowser: true,
             verbose: true,
             timeout: 60000
         };
@@ -322,6 +346,11 @@ async function main() {
                     ...cred,
                     password: decrypt(cred.password, key, cred.iv, cred.authTag)
                 };
+
+                if (cred.cardLast6 && cred.cardIv && cred.cardAuthTag) {
+                    decryptedCred.card6Digits = decrypt(cred.cardLast6, key, cred.cardIv, cred.cardAuthTag);
+                    decryptedCred.id = cred.username;
+                }
 
                 const transactions = await scrapeBank(decryptedCred);
                 const timeTaken = ((Date.now() - startTime) / 1000).toFixed(2);

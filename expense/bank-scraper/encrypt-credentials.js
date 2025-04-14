@@ -42,6 +42,19 @@ async function encryptCredentials() {
         // Get credentials
         console.log('\nEnter your credentials:');
         const username = await rl.question('Username: ');
+
+        let cardLast6Encrypted;
+        if (companyId === 'isracard') {
+            const last6 = await rl.question('Last 6 digits of the credit card: ');
+            if (!/^\d{6}$/.test(last6)) {
+                throw new Error('Invalid input. Must be exactly 6 digits.');
+            }
+
+            console.log('Encrypting card last 6 digits...');
+            cardLast6Encrypted = encrypt(last6, key);
+            console.log('Card digits encrypted successfully');
+        }
+
         const password = await rl.question('Password: ');
 
         // Create new credential object
@@ -58,6 +71,12 @@ async function encryptCredentials() {
         newCredential.password = encrypted.encrypted;
         newCredential.iv = encrypted.iv;
         newCredential.authTag = encrypted.authTag;
+
+        if (cardLast6Encrypted) {
+            newCredential.cardLast6 = cardLast6Encrypted.encrypted;
+            newCredential.cardIv = cardLast6Encrypted.iv;
+            newCredential.cardAuthTag = cardLast6Encrypted.authTag;
+        }
 
         // Store in keychain
         const accountName = `${companyId}-${username}`;

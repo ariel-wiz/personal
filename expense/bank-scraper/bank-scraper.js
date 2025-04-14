@@ -236,17 +236,6 @@ async function scrapeBank(decryptedCreds) {
             hasCardLast6: !!decryptedCreds.card6Digits
         });
 
-                const supportedBanks = ['isracard'];
-        if (!supportedBanks.includes(decryptedCreds.companyId)) {
-            logger.debug(`Skipping unsupported bank: ${decryptedCreds.companyId}`);
-            return {
-                success: false,
-                errorType: 'SKIPPED',
-                errorMessage: `Skipped unsupported bank: ${decryptedCreds.companyId}`,
-                companyId: decryptedCreds.companyId
-            };
-        }
-
         logger.debug(`Decrypted credentials for company ${decryptedCreds.companyId} - username: "${decryptedCreds.username}", password: "${decryptedCreds.password}", card last 6 digits: "${decryptedCreds.card6Digits?.trim() || 'N/A'}"`);
 
         // Validate credentials format

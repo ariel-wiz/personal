@@ -36,7 +36,7 @@ from notion_py.helpers.notion_common import (
 from logger import logger
 from notion_py.notion_globals import monthly_category_expense_db, NotionPropertyType, IconType, IconColor
 from notion_py.summary.summary import check_monthly_summary_exists_for_date
-from variables import ACCOUNT_NUMBER_TO_PERSON_CARD
+from variables import ACCOUNT_NUMBER_TO_PERSON_CARD, EXPENSE_IDS_TO_EXCLUDE_FROM_AVERAGE
 
 
 class NotionUpdateError(Exception):
@@ -66,6 +66,7 @@ class NotionExpenseService:
         self.expense_json = []
         self.expenses_objects_to_create: List[Expense] = []
         self.existing_expenses_objects: List[Expense] = []
+        self.expense_ids_to_exclude_from_average = EXPENSE_IDS_TO_EXCLUDE_FROM_AVERAGE
 
     def create_expense_objects_from_json(self) -> List[Expense]:
         """Convert JSON data to Expense objects"""
@@ -681,8 +682,12 @@ class NotionExpenseService:
 
         return mapping
 
-    def _update_monthly_pages(self, monthly_pages: List[Dict], month_expenses: List[Expense], month_str) -> Dict[
-        str, float]:
+    def get_expenses_without_ids_to_remove_from_average(self, expenses: List[Expense]) -> List[Expense]:
+        """Filter out expenses with IDs to remove from average"""
+        return [expense for expense in expenses if str(expense.page_id).replace('-', '') not in self.expense_ids_to_exclude_from_average]
+
+    def _update_monthly_pages(self, monthly_pages: List[Dict], month_expenses: List[Expense],
+                              month_str) -> Dict[str, float]:
         """Updates monthly category pages with expenses"""
         try:
             expenses_by_category = group_expenses_by_category(month_expenses)
@@ -692,12 +697,18 @@ class NotionExpenseService:
                 try:
                     category_page = find_matching_category_page(category, monthly_pages)
                     if category_page:
-                        # Update expenses without recalculating averages
-                        expense_ids = [exp.page_id for exp in expenses if exp.page_id]
-                        self._update_category_page_expenses(category, expense_ids, category_page['id'])
+                        # Filter out expenses to exclude from average
+                        filtered_expenses = self.get_expenses_without_ids_to_remove_from_average(expenses)
 
-                        # Calculate total
-                        total = sum(exp.charged_amount for exp in expenses)
+                        if month_str == "March 2025" and "income" in category.lower():
+                            print(f"Filtered expenses for {category} and month {month_str} are {filtered_expenses}")
+
+                        expense_ids = [exp.page_id for exp in filtered_expenses if exp.page_id]
+                        self._update_category_page_expenses(category, expense_ids,
+                                                            category_page['id'])
+
+                        # Calculate total using only non-excluded expenses
+                        total = sum(exp.charged_amount for exp in filtered_expenses)
                         category_totals[category] = total
 
                         logger.debug(

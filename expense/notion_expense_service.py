@@ -79,7 +79,10 @@ class NotionExpenseService:
             try:
                 # Extract basic information
                 original_name = expense_data['description']
-                expense_name = get_name(expense_data['description'], abs(expense_data['chargedAmount']))
+                if "מאסטרקרד" in original_name:
+                    original_name = str(expense_data.get('identifier', '')) + " - " + original_name
+
+                expense_name = get_name(original_name, abs(expense_data['chargedAmount']))
                 category = get_category_name(expense_name, expense_data.get('category', ''),
                                              expense_data['chargedAmount'])
 

@@ -356,7 +356,8 @@ def create_recurring_tasks_summary(should_track=False):
     return response
 
 
-def unset_done_recurring_tasks():
+@track_operation(NotionAPIOperation.CREATE_DAILY_PAGES)
+def unset_done_recurring_tasks(should_track=False):
     logger.info("Starting to unset 'Done' for recurring tasks")
     one_month_ago = (today - relativedelta(months=1)).strftime("%Y-%m-%d")
     unset_recurring_filter = {
@@ -635,9 +636,14 @@ def main(selected_tasks):
         else:
             # Manually call the functions here
 
-            crossfit_manager = CrossfitManager(crossfit_exercises_db_id=Keys.crossfit_exercises_db_id,
-                                               crossfit_workout_db_id=Keys.crossfit_workouts_db_id)
-            crossfit_manager.update_exercises_from_json(NEW_EXERCISES)
+            expense_service = NotionExpenseService(
+                expense_tracker_db_id=expense_tracker_db_id,
+                monthly_category_expense_db_id=monthly_category_expense_db
+            )
+
+            # Update last 2 months (current and previous)
+            monthly_summaries = expense_service.backfill_monthly_expenses(months_back=2)
+
             # get_expenses_to_notion()
             # run_scheduled_tasks()
             # ariel = get_db_pages(Keys.crossfit_exercises_db_id)

@@ -7,6 +7,9 @@ class ScriptPath:
     TRAVELCARD_FRONTEND = f"{TRAVELCARD}/frontend"
     BACKUP = "/Users/ariel/Desktop/tmp/backup"
     PERSONAL = "/Users/ariel/PycharmProjects/personal"
+    EXPENSES = "/Users/ariel/PycharmProjects/personal/expense"
+    DEMISTO = "/Users/ariel/PycharmProjects/wiz-in-demisto-2024/Packs/Wiz/Integrations/Wiz"
+    DEMISTO_DEFEND = "/Users/ariel/PycharmProjects/wiz-in-demisto-2024/Packs/Wiz/Integrations/WizDefend"
 
 
 def copy_files(src, dest, exclude_dirs, exclude_files):
@@ -19,7 +22,7 @@ def copy_files(src, dest, exclude_dirs, exclude_files):
    :param exclude_files: List of specific files to exclude
    """
     # Define excluded file types and directory names
-    excluded_extensions = {'.ini', '.config', '.cfg'}
+    excluded_extensions = {'.ini', '.config', '.cfg', '.png'}
     excluded_directories = {'.idea', '__pycache__', 'node_modules', '.next', 'cache'}
     excluded_directories.update(exclude_dirs)
 
@@ -51,12 +54,13 @@ def copy_files(src, dest, exclude_dirs, exclude_files):
 
 if __name__ == "__main__":
     # Define variables
-    src_path = "/Users/ariel/Downloads/israeli-bank-scrapers-master/src"
+    src_path = ScriptPath.DEMISTO_DEFEND
     dst_path = ScriptPath.BACKUP
     exclude_dirs = ["images", "migrations", ".git", "crossfit", "shifts",
-                    "caspion-decrypt", "node-modules"]  # Replace with your list of excluded directories
+                    "caspion-decrypt", "node-modules", "ReleaseNotes"]  # Replace with your list of excluded directories
     exclude_files = ["package-lock.json", "yarn.lock", ".env.local", ".DS_Store", "variables.py",
-                     "tsconfig.tsbuildinfo", ".env.development", ".env.production"]  # Replace with your list of excluded files
+                     "tsconfig.tsbuildinfo", ".env.development", ".env.production",
+                     "CommonServerPython.py", "Pipfile", "demistomock.py"]  # Replace with your list of excluded files
 
     # Run the copy function
     copy_files(src_path, dst_path, set(exclude_dirs), exclude_files)

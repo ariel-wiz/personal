@@ -946,7 +946,7 @@ def _get_activity_info(api, date) -> dict:
     for activity in activities:
         total_duration += activity['duration']
         total_calories += activity['calories']
-        if activity['activityName'] not in activity_names and activity['activityName'] not in ["Strength"]:
+        if activity['activityName'] not in activity_names:
             activity_names.append(activity['activityName'])
 
     return {

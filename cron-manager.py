@@ -17,7 +17,7 @@ from logger import logger
 # Configure logging
 LOG_DIR = '/Users/ariel/Documents/cron-files'
 LOG_FILE = os.path.join(LOG_DIR, 'cron-manager.log')
-ERROR_LOG_FILE = os.path.join(LOG_DIR, 'cron-manager-error.log')
+ERROR_LOG_FILE = os.path.join(LOG_DIR, 'cron-manager.err')
 EXECUTION_LOG_FILE = os.path.join(LOG_DIR, 'execution.log')
 
 

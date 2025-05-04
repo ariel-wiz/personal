@@ -70,7 +70,7 @@ def get_credit_card_name(name: str, description: str, price: float) -> str:
     """Determine credit card name based on transaction details"""
     if "הרשאה כאל" in description:
         account_number = CHEN_CAL
-    elif "אשראי" in description:
+    elif "אשראי" in description or "מאסטרקרד" in description:
         account_number = description.split(" ")[0]
     else:
         account_number = ARIEL_MAX if price >= 3000 else CHEN_MAX

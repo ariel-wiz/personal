@@ -1,11 +1,12 @@
 from datetime import timedelta, datetime
 from time import strptime
 
-from common import DateOffset, today, yesterday, day_before_yesterday
+from common import DateOffset, today, yesterday, day_before_yesterday, get_date_offset
 from garmin.garmin_api import get_garmin_info
 from logger import logger
-from notion_py.helpers.notion_common import generate_icon_url, get_db_pages, get_pages_by_date_offset, \
-    update_page_with_relation, create_page_with_db_dict
+from notion_py.helpers.notion_common import generate_icon_url, get_db_pages, \
+    get_pages_by_date_offset, \
+    update_page_with_relation, create_page_with_db_dict, get_day_summary_by_date_str
 from notion_py.notion_globals import DaySummaryCheckbox, IconType, IconColor
 
 WAKE_UP_HOUR_GOAL = '06:00'
@@ -73,9 +74,15 @@ class GarminManager:
 
     def _update_daily_tasks(self, garmin_page_id, garmin_dict, target_date):
         """Updates daily tasks with Garmin data"""
+        # Format the date properly as a string
+        date_str = target_date.isoformat()
+
+        # Get the daily tasks for the same date as the Garmin data
         daily_tasks = get_pages_by_date_offset(self.day_summary_db_id,
-                                               DateOffset.YESTERDAY)
+                                               get_date_offset(date_str))
+
         if not daily_tasks:
+            logger.info(f"No daily task found for {date_str}")
             return
 
         daily_task_id = daily_tasks[0]["id"]
@@ -96,6 +103,10 @@ class GarminManager:
 
     def process_single_date(self, target_date, update_daily_tasks=True):
         """Process Garmin data for a single date"""
+        # Ensure target_date is a proper date object
+        if isinstance(target_date, str):
+            target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
+
         formatted_date = target_date.strftime('%A %d/%m')
         logger.info(f"Processing Garmin data for {formatted_date}")
 
@@ -114,10 +125,13 @@ class GarminManager:
             response = create_page_with_db_dict(self.garmin_db_id, formatted_data)
             logger.info(f"Created Garmin info for {formatted_date}")
 
-            if update_daily_tasks and target_date == yesterday:
-                self._update_daily_tasks(response['id'], garmin_dict, target_date)
+            if update_daily_tasks and garmin_dict:
+                try:
+                    self._update_daily_tasks(response['id'], garmin_dict, target_date)
+                except Exception as e:
+                    logger.error(f"Error updating daily tasks: {str(e)}")
 
-        return True
+            return True
 
     def update_garmin_info(self, update_daily_tasks=True, fill_history=False):
         """

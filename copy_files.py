@@ -8,7 +8,8 @@ class ScriptPath:
     BACKUP = "/Users/ariel/Desktop/tmp/backup"
     PERSONAL = "/Users/ariel/PycharmProjects/personal"
     EXPENSES = "/Users/ariel/PycharmProjects/personal/expense"
-    DEMISTO = "/Users/ariel/PycharmProjects/wiz-in-demisto-2024/Packs/Wiz/Integrations/Wiz"
+    DEMISTO = "/Users/ariel/PycharmProjects/wiz-in-demisto-2024/Packs/Wiz/"
+    DEMISTO_WIZ = "/Users/ariel/PycharmProjects/wiz-in-demisto-2024/Packs/Wiz/Integrations/Wiz"
     DEMISTO_DEFEND = "/Users/ariel/PycharmProjects/wiz-in-demisto-2024/Packs/Wiz/Integrations/WizDefend"
 
 
@@ -54,7 +55,7 @@ def copy_files(src, dest, exclude_dirs, exclude_files):
 
 if __name__ == "__main__":
     # Define variables
-    src_path = ScriptPath.DEMISTO_DEFEND
+    src_path = ScriptPath.DEMISTO
     dst_path = ScriptPath.BACKUP
     exclude_dirs = ["images", "migrations", ".git", "crossfit", "shifts",
                     "caspion-decrypt", "node-modules", "ReleaseNotes"]  # Replace with your list of excluded directories

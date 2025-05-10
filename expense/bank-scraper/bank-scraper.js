@@ -236,7 +236,7 @@ async function scrapeBank(decryptedCreds) {
             hasCardLast6: !!decryptedCreds.card6Digits
         });
 
-        logger.debug(`Decrypted credentials for company ${decryptedCreds.companyId} - username: "${decryptedCreds.username}", password: "${decryptedCreds.password}", card last 6 digits: "${decryptedCreds.card6Digits?.trim() || 'N/A'}"`);
+//        logger.debug(`Decrypted credentials for company ${decryptedCreds.companyId} - username: "${decryptedCreds.username}", password: "${decryptedCreds.password}", card last 6 digits: "${decryptedCreds.card6Digits?.trim() || 'N/A'}"`);
 
         // Validate credentials format
         if (!decryptedCreds.companyId || !decryptedCreds.username || !decryptedCreds.password) {
@@ -246,6 +246,18 @@ async function scrapeBank(decryptedCreds) {
                     .join(', ')
             }`);
         }
+
+////         Check if the bank is Beinleumi
+//        if (decryptedCreds.companyId !== 'max') {
+//            logger.info(`Skipping ${decryptedCreds.companyId} as it's not Beinleumi bank`);
+//            return {
+//                success: true,
+//                errorType: 'SKIP',
+//                errorMessage: 'Not a Beinleumi bank account - skipping',
+//                companyId: decryptedCreds.companyId,
+//                username: decryptedCreds.username
+//            };
+//        }
 
         const startDate = moment().subtract(30, 'days').startOf('day').toDate();
 

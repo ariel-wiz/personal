@@ -53,7 +53,7 @@ ENGLISH_CATEGORY: Dict[str, List[str]] = {
     "Insurance & Monthly Fees 🔄": [
         "גן", "צהרון", "ביטוח", "לאומי", "ועד", "הפקדות", "מים",
         "מי חדרה", "חשמל", "סלולר", "סלקום", "פרטנר", "עיריית",
-        "פזגז", "פז גז", "משכנתא", "מי חדרה"
+        "פזגז", "פז גז", "משכנתא", "מי חדרה", "איי.אי.ג"
     ],
     "Food 🍽️": [
         "מזון", "צריכה", "משקאות", "מסעדות", "קפה", "מסעדה", "ברים",
@@ -83,7 +83,7 @@ ENGLISH_CATEGORY: Dict[str, List[str]] = {
     "Vacation 🍹": ["חופשה", "air", "trip"],
     "Health & Wellness 🏥": [
         "טיפוח", "יופי", "רפואה", "פארם", "בריאות", "קופת חולים",
-        "תרופות", "טיפולים", "קרוספיט", "פיט", "מרפקה", "UPAPP", "סופר פארם"
+        "תרופות", "טיפולים", "קרוספיט", "פיט", "מרפקה", "UPAPP", "סופר פארם", "טבע בריא"
     ],
     "Education & Learning 📚": [
         "חינוך", "קורסים", "לימודים", "ספרים", "הכשרה", "סטימצקי", "לאבלאפ", "CLAUDE.AI", "CHATGPT"
@@ -99,7 +99,7 @@ EXPENSES_TO_ADJUST_DATE = ["משכנתא", "משכורת אריאל", "אור פ
 # Modified names mapping
 MODIFIED_NAMES = {
     "ועד בית": [{
-        "Expense": "העברה מהחשבון",
+        "Expense": "הוראת קבע",
         "Charged Amount": PRICE_VAAD_BAIT  # Using actual numeric value
     }],
     "גן תמר": [{
@@ -113,7 +113,7 @@ MODIFIED_NAMES = {
         "math_operation": "approx(10%)"
     }],
     "צהרון נויה": [{
-        "Expense": "משיכת שיק",
+        "Expense": "שיק",
         "Charged Amount": PRICE_TSEHARON_NOYA,  # Using actual numeric value
         "math_operation": "approx(5%)"
     }],

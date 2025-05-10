@@ -55,7 +55,7 @@ def copy_files(src, dest, exclude_dirs, exclude_files):
 
 if __name__ == "__main__":
     # Define variables
-    src_path = ScriptPath.DEMISTO
+    src_path = ScriptPath.EXPENSES
     dst_path = ScriptPath.BACKUP
     exclude_dirs = ["images", "migrations", ".git", "crossfit", "shifts",
                     "caspion-decrypt", "node-modules", "ReleaseNotes"]  # Replace with your list of excluded directories

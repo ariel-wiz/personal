@@ -370,7 +370,7 @@ class NotionExpenseService:
 
         try:
             # Run bank scraper with improved timeout handling
-            scraper_success = self._run_bank_scraper_with_retry()
+            scraper_success = self._run_bank_scrapper()
             if not scraper_success:
                 logger.warning("Bank scraper did not complete successfully, but attempting to use available data")
         except Exception as e:
@@ -395,66 +395,6 @@ class NotionExpenseService:
         logger.info(f"{expenses_count} expense{'s' if expenses_count > 1 else ''} can be added to Notion")
 
         return expenses_to_add
-
-    def _run_bank_scraper_with_retry(self):
-        """
-        Run bank scraper with retries based on return code.
-
-        Return codes from _run_bank_scrapper:
-        0 - Success: All accounts were successfully scraped
-        1 - Partial success: Script completed but not all accounts were scraped
-        2+ - Error: Script encountered an error during execution
-
-        Returns:
-            bool: True if at least some accounts were successfully scraped, False otherwise
-        """
-        try:
-            iter_num = 0
-            best_return_code = None
-
-            while iter_num < BANK_SCRAPER_RETRIES:
-                # Run the scraper and get status code
-                return_code = self._run_bank_scrapper()
-                logger.debug(f"Bank scraper attempt {iter_num + 1} returned code: {return_code}")
-
-                # Track the best result we've seen (lower is better)
-                if best_return_code is None or return_code < best_return_code:
-                    best_return_code = return_code
-                    logger.debug(f"New best return code: {best_return_code}")
-
-                # Full success - all accounts scraped successfully
-                if return_code == 0:
-                    logger.info("All accounts were successfully scraped")
-                    return True
-
-                # Partial success or complete failure - retry needed
-                iter_num += 1
-
-                if iter_num < BANK_SCRAPER_RETRIES:
-                    error_type = "partial success" if return_code == 1 else "complete failure"
-                    logger.info(f"Retrying after {error_type}, iteration {iter_num}/{BANK_SCRAPER_RETRIES}")
-                    time.sleep(iter_num * 3)  # Exponential backoff
-                else:
-                    logger.warning(
-                        f"Max retries reached with return code {return_code}, proceeding with available data")
-                    break
-
-            # After all retries, decide what to do
-            logger.debug(f"Best return code after all attempts: {best_return_code}")
-
-            if best_return_code == 0:
-                logger.info("Using complete data after retries")
-                return True
-            elif best_return_code == 1:
-                logger.info("Using partial data after exhausting all retries")
-                return True  # Return true to use partial data after max retries
-            else:
-                logger.warning("No usable data found after all retries")
-                return False
-
-        except Exception as e:
-            logger.error(f"Bank scraper run failed: {str(e)}")
-            raise
 
     def _run_bank_scrapper(self, print_output=True):
         """

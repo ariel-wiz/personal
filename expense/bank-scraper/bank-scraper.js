@@ -236,28 +236,29 @@ async function scrapeBank(decryptedCreds) {
             hasCardLast6: !!decryptedCreds.card6Digits
         });
 
-//        logger.debug(`Decrypted credentials for company ${decryptedCreds.companyId} - username: "${decryptedCreds.username}", password: "${decryptedCreds.password}", card last 6 digits: "${decryptedCreds.card6Digits?.trim() || 'N/A'}"`);
-
         // Validate credentials format
         if (!decryptedCreds.companyId || !decryptedCreds.username || !decryptedCreds.password) {
-            throw new Error(`Invalid credential format. Required fields missing: ${
-                ['companyId', 'username', 'password']
-                    .filter(field => !decryptedCreds[field])
-                    .join(', ')
-            }`);
-        }
+            const missingFields = ['companyId', 'username', 'password']
+                .filter(field => !decryptedCreds[field])
+                .join(', ');
 
-////         Check if the bank is Beinleumi
-//        if (decryptedCreds.companyId !== 'max') {
-//            logger.info(`Skipping ${decryptedCreds.companyId} as it's not Beinleumi bank`);
-//            return {
-//                success: true,
-//                errorType: 'SKIP',
-//                errorMessage: 'Not a Beinleumi bank account - skipping',
-//                companyId: decryptedCreds.companyId,
-//                username: decryptedCreds.username
-//            };
-//        }
+            // Create structured error object
+            const errorObj = {
+                success: false,
+                errorType: 'VALIDATION_ERROR',
+                errorMessage: `Invalid credential format. Required fields missing: ${missingFields}`,
+                companyId: decryptedCreds.companyId || 'unknown',
+                username: decryptedCreds.username || '',
+                accountId: decryptedCreds.username ?
+                    `${decryptedCreds.companyId || 'unknown'}-${decryptedCreds.username}` :
+                    (decryptedCreds.companyId || 'unknown')
+            };
+
+            // Log the structured error for better debugging
+            console.error(JSON.stringify(errorObj));
+
+            throw new Error(`Invalid credential format. Required fields missing: ${missingFields}`);
+        }
 
         const startDate = moment().subtract(30, 'days').startOf('day').toDate();
 
@@ -276,12 +277,25 @@ async function scrapeBank(decryptedCreds) {
         logger.debug(`Scrape result: ${JSON.stringify(scrapeResult)}`);
 
         if (!scrapeResult.success) {
-            return {
+            // Create a consistent account identifier for error reporting
+            const accountId = decryptedCreds.username
+                ? `${decryptedCreds.companyId}-${decryptedCreds.username}`
+                : decryptedCreds.companyId;
+
+            // Create detailed error object with consistent fields
+            const errorObj = {
                 success: false,
-                errorType: scrapeResult.errorType,
-                errorMessage: scrapeResult.errorMessage,
-                companyId: decryptedCreds.companyId
+                errorType: scrapeResult.errorType || 'SCRAPING_ERROR',
+                errorMessage: scrapeResult.errorMessage || 'Unknown scraping error',
+                companyId: decryptedCreds.companyId,
+                username: decryptedCreds.username || '',
+                accountId: accountId
             };
+
+            // Log structured error for better debugging and parsing
+            console.error(JSON.stringify(errorObj));
+
+            return errorObj;
         }
 
         const processedTransactions = await postProcessTransactions(
@@ -293,19 +307,33 @@ async function scrapeBank(decryptedCreds) {
         return processedTransactions;
     } catch (error) {
         logger.error(`Error scraping ${decryptedCreds.companyId}`, error);
-        return {
+
+        // Create a consistent account identifier for error reporting
+        const accountId = decryptedCreds.username
+            ? `${decryptedCreds.companyId}-${decryptedCreds.username}`
+            : decryptedCreds.companyId;
+
+        // Create detailed error object with consistent fields
+        const errorObj = {
             success: false,
             errorType: error.name || 'GENERIC',
-            errorMessage: error.message,
-            companyId: decryptedCreds.companyId
+            errorMessage: error.message || 'Unknown error',
+            companyId: decryptedCreds.companyId,
+            username: decryptedCreds.username || '',
+            accountId: accountId
         };
+
+        // Log structured error for better debugging and parsing
+        console.error(JSON.stringify(errorObj));
+
+        return errorObj;
     }
 }
 
 async function main() {
     try {
         const scriptStartTime = Date.now();
-        const [,, outputPath] = process.argv;
+        const [,, outputPath, ...targetAccounts] = process.argv;
 
         if (!outputPath) {
             logger.error('Missing required outputPath argument');
@@ -322,7 +350,7 @@ async function main() {
 
         // Get credentials
         logger.debug('Retrieving credentials from keychain');
-        const credentials = await getAllCredentials();
+        let credentials = await getAllCredentials();
         logger.debug('Retrieved credentials', {
             count: credentials.length,
             companies: credentials.map(c => c.companyId)
@@ -330,6 +358,40 @@ async function main() {
 
         if (credentials.length === 0) {
             throw new Error('No credentials found');
+        }
+
+        // Filter credentials based on command-line arguments if provided
+        if (targetAccounts && targetAccounts.length > 0) {
+            const filteredCredentials = [];
+
+            for (const targetAccount of targetAccounts) {
+                // Check if the target is a companyId
+                const companyMatches = credentials.filter(cred =>
+                    cred.companyId.toLowerCase() === targetAccount.toLowerCase()
+                );
+
+                // Check if the target is a username
+                const usernameMatches = credentials.filter(cred =>
+                    cred.username.toLowerCase() === targetAccount.toLowerCase()
+                );
+
+                // Check if target is in format "companyId-username"
+                const combinedMatches = credentials.filter(cred =>
+                    `${cred.companyId}-${cred.username}`.toLowerCase() === targetAccount.toLowerCase()
+                );
+
+                filteredCredentials.push(...companyMatches, ...usernameMatches, ...combinedMatches);
+            }
+
+            // Remove duplicates
+            credentials = Array.from(new Set(filteredCredentials.map(JSON.stringify))).map(JSON.parse);
+
+            logger.info(`Filtering to ${credentials.length} accounts based on command-line arguments: ${targetAccounts.join(', ')}`);
+
+            if (credentials.length === 0) {
+                logger.error(`No accounts found matching the specified arguments: ${targetAccounts.join(', ')}`);
+                return EXIT_CODES.CONFIG_ERROR;
+            }
         }
 
         const totalAccounts = credentials.length;
@@ -365,7 +427,7 @@ async function main() {
                     logger.info(`${i + 1}/${totalAccounts} - Failed scraping ${cred.companyId} - Error details: ${transactions.errorMessage} (Time: ${timeTaken}s)`);
                     failedAccounts.push({ companyId: cred.companyId, error: transactions.errorMessage });
                 } else {
-                    logger.info(`${i + 1}/${totalAccounts} - Failed scraping ${cred.companyId} - Error details: No transactions found (Time: ${timeTaken}s)`);
+                    logger.info(`${i + 1}/${totalAccounts} - Failed scraping ${transactions.accountId} - Error details: ${transactions.errorMessage} (Time: ${timeTaken}s)`);
                     failedAccounts.push({ companyId: cred.companyId, error: 'No transactions found' });
                 }
                 scrapeResults.push({ company: cred.companyId, success: Array.isArray(transactions), timeTaken });

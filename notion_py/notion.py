@@ -23,6 +23,7 @@ from notion_py.helpers.notion_common import create_page_with_db_dict_and_childre
     get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url, manage_daily_summary_pages, \
     get_recurring_tasks, create_page_with_db_dict, get_today_recurring_tasks, create_recurring_combined_task_name
 from notion_py.summary.summary import create_monthly_summary_page
+from notion_py.summary.weekly_summary import create_weekly_summary_and_task, create_weekly_summary
 from variables import Paths
 
 
@@ -43,6 +44,9 @@ class SchedulingManager:
 
         try:
             # Run end of month tasks
+            if self._is_tuesday():
+                self._run_weekly_tasks()
+
             if self._is_end_of_month_window():
                 self._run_end_of_month_tasks()
 
@@ -75,6 +79,21 @@ class SchedulingManager:
 
         days_until_next_month = (next_month.date() - current_date.date()).days
         return days_until_next_month <= days_before
+
+    def _is_tuesday(self) -> bool:
+        """Check if today is Tuesday"""
+        return datetime.now().weekday() == 1  # 1 = Tuesday
+
+    def _run_weekly_tasks(self):
+        """Run tasks that should execute on Tuesdays"""
+        try:
+            # Create weekly summary
+            create_weekly_summary_and_task()
+            self.tasks_run.append("Created weekly summary")
+
+        except Exception as e:
+            logger.error(f"Error in weekly tasks: {e}")
+            raise
 
     def _run_end_of_month_tasks(self):
         """Run tasks that should execute at month end"""
@@ -136,6 +155,20 @@ def run_scheduled_tasks(should_track=False):
         return scheduler.run_scheduled_tasks(should_track=should_track)
     except Exception as e:
         logger.error(f"Error running scheduled tasks: {e}")
+        raise
+
+
+def create_weekly_summary_standalone():
+    """Creates the weekly summary page (for command line usage)"""
+    try:
+        result = create_weekly_summary()
+        if result is None:
+            logger.info("Weekly summary already exists - no action taken")
+        else:
+            logger.info("Successfully created weekly summary")
+        return result
+    except Exception as e:
+        logger.error(f"Error creating weekly summary: {e}")
         raise
 
 
@@ -587,7 +620,8 @@ def create_daily_pages():
         create_parashat_hashavua,
         copy_recurring_tasks,
         copy_normal_tasks,
-        manage_daily_summary_pages
+        manage_daily_summary_pages,
+        create_weekly_summary_standalone
     ]
     run_functions(functions)
 
@@ -642,7 +676,7 @@ def main(selected_tasks):
             )
 
             # Update last 2 months (current and previous)
-            monthly_summaries = expense_service.backfill_monthly_expenses(months_back=2)
+            create_weekly_summary_standalone()
 
             # get_expenses_to_notion()
             # run_scheduled_tasks()
@@ -681,6 +715,7 @@ if __name__ == '__main__':
         'copy_book_summary': copy_book_summary,
         'unset_done_recurring_tasks': unset_done_recurring_tasks,
         'create_recurring_tasks_summary': create_recurring_tasks_summary,
+        'create_weekly_summary': create_weekly_summary_standalone,
     }
 
     # Set up command-line argument parsing

@@ -5,6 +5,7 @@ import logging
 import sys
 import os
 import re
+import time
 from collections import defaultdict
 from pathlib import Path
 from datetime import datetime, date
@@ -280,7 +281,7 @@ def get_failed_credentials(stdout: str, stderr: str) -> List[Dict[str, str]]:
     return failed_accounts
 
 
-def run_scraper_for_specific_accounts(accounts: List[str], output_path: str, timeout: int = 300) -> \
+def run_scraper_for_specific_accounts(accounts: List[str], output_path: str, timeout: int = 0) -> \
 Tuple[bool, List[Dict[str, str]]]:
     """
     Run the bank scraper for a specific list of accounts only.
@@ -314,15 +315,13 @@ Tuple[bool, List[Dict[str, str]]]:
     ]
     command.extend(accounts)
 
-    logger.debug(f"Executing command with {timeout}s timeout: {' '.join(command)}")
-
     try:
         # Run with timeout
+        time.sleep(timeout)
         completed_process = subprocess.run(
             command,
             capture_output=True,
             text=True,
-            timeout=timeout
         )
 
         # Parse output for failed accounts - use the new simpler function

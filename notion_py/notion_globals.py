@@ -65,6 +65,7 @@ class NotionAPIOperation:
     UNCHECK_DONE = "Uncheck Done"
     GET_EXPENSES = "Get Expenses"
     SCHEDULED_TASKS = "Scheduled Tasks"
+    CREATE_WEEKLY_SUMMARY = "Create Weekly Summary"
 
 
 class DaySummaryCheckbox:

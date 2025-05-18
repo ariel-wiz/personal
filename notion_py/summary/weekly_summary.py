@@ -263,3 +263,31 @@ def create_weekly_summary():
     except Exception as e:
         logger.error(f"Error in create_weekly_summary: {str(e)}")
         raise
+
+
+def is_weekly_summary_exists(target_date: date = None) -> bool:
+    """
+    Check if weekly summary exists for the given date (or current week if None).
+
+    Args:
+        target_date: Date to check weekly summary for (defaults to today)
+
+    Returns:
+        bool: True if weekly summary exists, False otherwise
+    """
+    try:
+        # Get week dates for the target date
+        week_start, week_end, week_number = get_week_dates(target_date)
+
+        # Check if there's already an entry for these week dates
+        existing_entry = check_existing_week_entry(week_start, week_end)
+
+        if existing_entry:
+            logger.info(f"Weekly summary exists for {week_number}")
+            return True
+
+        return False
+
+    except Exception as e:
+        logger.error(f"Error checking if weekly summary exists: {str(e)}")
+        return False

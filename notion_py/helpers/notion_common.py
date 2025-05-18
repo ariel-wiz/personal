@@ -273,44 +273,101 @@ def get_pages_by_date_offset(database_id, offset: int, date_name="Date", filter_
 
 
 # Daily and tasks functions
-def create_daily_summary_pages():
-    logger.info('Creating daily summary pages')
-    create_daily_pages_for_db_id(day_summary_db_id, icon=generate_icon_url(IconType.SUN, IconColor.YELLOW))
+def create_daily_summary_pages(days_to_create=50):
+    logger.info(f'Creating daily summary pages for next {days_to_create} days')
+    create_daily_pages_for_db_id(day_summary_db_id,
+                                 icon=generate_icon_url(IconType.SUN, IconColor.YELLOW),
+                                 days_range_to_create=days_to_create)
 
 
-def create_daily_api_pages():
-    logger.info('Creating daily API pages')
-    create_daily_pages_for_db_id(api_db_id, icon=generate_icon_url(IconType.SERVER, IconColor.BLUE),
-                                 link_to_day_summary_tasks=True, name='daily API page')
+def create_daily_api_pages(days_to_create=50):
+    logger.info(f'Creating daily API pages for next {days_to_create} days')
+    create_daily_pages_for_db_id(api_db_id,
+                                 icon=generate_icon_url(IconType.SERVER, IconColor.BLUE),
+                                 link_to_day_summary_tasks=True,
+                                 days_range_to_create=days_to_create,
+                                 name='daily API page')
 
 
-def create_daily_pages_for_db_id(db_id, icon=None, link_to_day_summary_tasks=False, days_range_to_create=10, name=""):
+def create_daily_pages_for_db_id(db_id, icon=None, link_to_day_summary_tasks=False,
+                                 days_range_to_create=50, name=""):
+    """
+    Create daily pages for a database, ensuring coverage for the next days_range_to_create days.
+    Only creates pages that don't already exist.
+    """
+    # Get existing pages sorted by date descending to find the last existing date
     day_summary_payload = generate_payload(on_or_after_today_filter, date_descending_sort)
-    response = get_db_pages(db_id, day_summary_payload)
+    existing_pages = get_db_pages(db_id, day_summary_payload)
 
-    if not response:
+    if not existing_pages:
         logger.info(f"No daily tasks found for the future")
         last_date = str(yesterday.isoformat())
     else:
-        last_date = response[0]['properties']['Date']['date']['start']
+        last_date = existing_pages[0]['properties']['Date']['date']['start']
+        logger.info(f"Found existing pages, last date: {last_date}")
 
-    days_to_create = create_date_range(last_date, days_range_to_create + 1)
+    # Calculate target end date (days_range_to_create days from today)
+    target_end_date = today + timedelta(days=days_range_to_create)
+    last_date_obj = datetime.strptime(last_date, '%Y-%m-%d').date()
+
+    # Check if we already have enough coverage
+    if last_date_obj >= target_end_date:
+        logger.info(
+            f"Already have pages until {last_date_obj}, target is {target_end_date}. No new pages needed.")
+        return
+
+    # Calculate how many days we actually need to create
+    start_date = last_date_obj + timedelta(days=1)
+    days_needed = (target_end_date - start_date).days + 1
+
+    logger.info(f"Creating {days_needed} pages from {start_date} to {target_end_date}")
+
+    # Create the date range starting from the day after the last existing date
+    days_to_create = create_date_range(start_date.isoformat(), days_needed)
+
+    created_count = 0
+    skipped_count = 0
 
     for day_to_create in days_to_create:
+        # Safety check: verify this date doesn't already exist
+        existing_check = get_pages_by_date_offset(db_id,
+                                                  get_date_offset(day_to_create),
+                                                  date_name="Date")
+        if existing_check:
+            logger.debug(f"Page for {day_to_create} already exists, skipping")
+            skipped_count += 1
+            continue
+
         day_summary_name = create_day_summary_name(day_to_create)
-        payload_content = {"Date": day_to_create, "Day": day_summary_name} if not icon else {"Date": day_to_create,
-                                                                                             "Day": day_summary_name,
-                                                                                             "Icon": icon}
-        response = create_page_with_db_dict(db_id, payload_content)
+        payload_content = {"Date": day_to_create, "Day": day_summary_name}
 
-        if link_to_day_summary_tasks:
-            day_summary_pages = get_day_summary_by_date_str(day_to_create)
-            if day_summary_pages:
-                daily_summary_page_id = day_summary_pages[0]['id']
-                created_page_id = response['id']
-                update_page_with_relation(daily_summary_page_id, created_page_id, "API Status Page")
+        # Add icon if provided
+        if icon:
+            payload_content["Icon"] = icon
 
-        logger.info(f"Created {name if name else 'daily summary'} for {day_summary_name} with ID {response['id']}")
+        try:
+            response = create_page_with_db_dict(db_id, payload_content)
+
+            # Link to day summary if needed
+            if link_to_day_summary_tasks:
+                day_summary_pages = get_day_summary_by_date_str(day_to_create)
+                if day_summary_pages:
+                    daily_summary_page_id = day_summary_pages[0]['id']
+                    created_page_id = response['id']
+                    update_page_with_relation(daily_summary_page_id, created_page_id,
+                                              "API Status Page")
+
+            created_count += 1
+            page_type = name if name else 'daily summary'
+            logger.debug(f"Created {page_type} for {day_summary_name} with ID {response['id']}")
+
+        except Exception as e:
+            logger.error(f"Error creating page for {day_to_create}: {str(e)}")
+            continue
+
+    logger.info(
+        f"Page creation summary: {created_count} created, {skipped_count} skipped (already existed). "
+        f"Total coverage now extends to {target_end_date}")
 
 
 def get_tasks(tasks_filter=None, tasks_sort=None, is_daily=False, print_response=False):
@@ -331,7 +388,9 @@ def get_daily_tasks(daily_filter=None, daily_sorts=None, print_response=False, g
     return tasks
 
 
-def get_daily_tasks_by_date_str(date_str, filter_to_add=None):
+def get_daily_tasks_by_date_str(date_str=None, filter_to_add=None):
+    if not date_str:
+        date_str = today.isoformat()
     date_offset = get_date_offset(date_str)
     return get_pages_by_date_offset(daily_tasks_db_id, date_offset, date_name="Due", filter_to_add=filter_to_add)
 
@@ -1069,3 +1128,23 @@ def truncate_log_messages(messages, max_length=1900, max_chunks=15):
             f"... {len(messages) - (total_chunks - 1)} more messages truncated due to size limits")
 
     return truncated_messages
+
+def get_recurring_tasks_summary_prefix():
+    """
+    Returns the prefix for the recurring tasks summary task name.
+    """
+    return "*** Daily Recurring Tasks ***\n"
+
+
+def is_recurring_tasks_summary_exists():
+    """
+    Creates a single daily task containing all recurring tasks due today,
+    sorted by priority (highest first).
+    """
+    today_tasks = get_daily_tasks_by_date_str()
+    for task in today_tasks:
+        task_name = task['properties']['Task']['title'][0]['plain_text']
+        if get_recurring_tasks_summary_prefix() in task_name:
+            logger.debug(f"Task name {task_name} already exists for today")
+            return True
+    return False

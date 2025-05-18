@@ -173,3 +173,17 @@ def check_monthly_summary_exists_for_date(target_date: datetime = None) -> bool:
     pages = get_db_pages(Keys.monthly_summaries_db_id,
                          generate_payload(filter_payload))
     return len(pages) > 0
+
+
+def is_monthly_summary_exists() -> bool:
+    """Check if monthly summary exists for the previous month"""
+    from datetime import date
+
+    # Calculate previous month
+    today = date.today()
+    if today.month == 1:
+        previous_month = date(today.year - 1, 12, 1)
+    else:
+        previous_month = date(today.year, today.month - 1, 1)
+
+    return check_monthly_summary_exists_for_date(previous_month)

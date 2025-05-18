@@ -21,141 +21,12 @@ from notion_py.helpers.notion_common import create_page_with_db_dict_and_childre
     get_db_pages, track_operation, create_daily_summary_pages, create_daily_api_pages, \
     update_page, create_page, copy_pages_to_daily, get_daily_tasks, \
     get_daily_tasks_by_date_str, get_tasks, get_page, generate_icon_url, manage_daily_summary_pages, \
-    get_recurring_tasks, create_page_with_db_dict, get_today_recurring_tasks, create_recurring_combined_task_name
+    get_recurring_tasks, create_page_with_db_dict, get_today_recurring_tasks, \
+    create_recurring_combined_task_name, get_recurring_tasks_summary_prefix, \
+    is_recurring_tasks_summary_exists
 from notion_py.summary.summary import create_monthly_summary_page
 from notion_py.summary.weekly_summary import create_weekly_summary_and_task, create_weekly_summary
 from variables import Paths
-
-
-class SchedulingManager:
-    def __init__(self):
-        self.expense_service = NotionExpenseService(
-            expense_tracker_db_id=expense_tracker_db_id,
-            monthly_category_expense_db_id=monthly_category_expense_db
-        )
-        self.tasks_run = []
-
-    @track_operation(NotionAPIOperation.SCHEDULED_TASKS)
-    def run_scheduled_tasks(self, should_track=False):
-        """
-        Run all scheduled tasks based on their timing requirements.
-        Returns True if any tasks were run, False otherwise.
-        """
-
-        try:
-            # Run end of month tasks
-            if self._is_tuesday():
-                self._run_weekly_tasks()
-
-            if self._is_end_of_month_window():
-                self._run_end_of_month_tasks()
-
-            # Run monthly summary tasks with retry capability
-            if self.expense_service.should_create_monthly_summary():
-                logger.info("Running monthly summary task:")
-                self._update_monthly_categories()
-                self.create_monthly_summary_and_daily_task()
-
-            if self.tasks_run:
-                logger.info("Completed scheduled tasks:")
-                for task in self.tasks_run:
-                    logger.info(f"- {task}")
-                return True  # Tasks were run
-            else:
-                logger.debug("No scheduled tasks needed to run")
-                return False  # No tasks were run
-
-        except Exception as e:
-            logger.error(f"Error running scheduled tasks: {e}")
-            raise
-
-    def _is_end_of_month_window(self, days_before=7) -> bool:
-        """Check if we're in the end-of-month window"""
-        current_date = datetime.now()
-        if current_date.month == 12:
-            next_month = datetime(current_date.year + 1, 1, 1)
-        else:
-            next_month = datetime(current_date.year, current_date.month + 1, 1)
-
-        days_until_next_month = (next_month.date() - current_date.date()).days
-        return days_until_next_month <= days_before
-
-    def _is_tuesday(self) -> bool:
-        """Check if today is Tuesday"""
-        return datetime.now().weekday() == 1  # 1 = Tuesday
-
-    def _run_weekly_tasks(self):
-        """Run tasks that should execute on Tuesdays"""
-        try:
-            # Create weekly summary
-            create_weekly_summary_and_task()
-            self.tasks_run.append("Created weekly summary")
-
-        except Exception as e:
-            logger.error(f"Error in weekly tasks: {e}")
-            raise
-
-    def _run_end_of_month_tasks(self):
-        """Run tasks that should execute at month end"""
-        try:
-            # Update goals recap page
-            update_page(goals_recap_page_id, uncheck_done_set_today_payload)
-            self.tasks_run.append("Updated goals recap page (end of month)")
-
-        except Exception as e:
-            logger.error(f"Error in end of month tasks: {e}")
-            raise
-
-    def create_monthly_summary_and_daily_task(self):
-        """Creates monthly summary page and adds a daily task for review"""
-        try:
-            # Create monthly summary
-            summary_response = create_monthly_summary_page()
-            summary_page_id = summary_response['id']
-
-            # Create daily task for review
-            task_dict = {
-                "Task": "Review Monthly Summary",
-                "Project": Projects.notion,
-                "Due": today.isoformat(),
-                "Icon": generate_icon_url(IconType.CHECKLIST, IconColor.BLUE)
-            }
-
-            # Create daily task with link to summary
-            children_block = generate_page_content_page_notion_link(summary_page_id)
-            response = create_page_with_db_dict_and_children_block(
-                daily_tasks_db_id,
-                task_dict,
-                children_block
-            )
-
-            logger.info(f"Created monthly summary review task with ID {response['id']}")
-            self.tasks_run.append("Created monthly summary")
-            return summary_page_id, response['id']
-
-        except Exception as e:
-            logger.error(f"Error creating monthly summary and daily task: {str(e)}")
-            raise
-
-    def _update_monthly_categories(self):
-        """Run monthly summary and expense tasks"""
-        try:
-            self.expense_service.backfill_monthly_expenses(months_back=4)
-            self.tasks_run.append("Updated monthly categories")
-
-        except Exception as e:
-            logger.error(f"Error in monthly summary tasks: {e}")
-            raise
-
-
-def run_scheduled_tasks(should_track=False):
-    """Run time-sensitive scheduled tasks"""
-    try:
-        scheduler = SchedulingManager()
-        return scheduler.run_scheduled_tasks(should_track=should_track)
-    except Exception as e:
-        logger.error(f"Error running scheduled tasks: {e}")
-        raise
 
 
 def create_weekly_summary_standalone():
@@ -262,7 +133,7 @@ def get_insurances():
 
 
 @track_operation(NotionAPIOperation.COPY_PAGES)
-def copy_book_summary():
+def copy_book_summary(should_track=False):
     book_summaries = get_book_summaries(get_books_not_copied=True)
     if not book_summaries:
         logger.info("All the books were copied - Resetting 'Copied to Daily' property to False")
@@ -350,26 +221,20 @@ def create_recurring_tasks_summary(should_track=False):
     Creates a single daily task containing all recurring tasks due today,
     sorted by priority (highest first).
     """
-    task_name_prefix = "*** Daily Recurring Tasks ***\n"
-
-    today_tasks = get_daily_tasks_by_date_str(today.isoformat())
-    for task in today_tasks:
-        task_name = task['properties']['Task']['title'][0]['plain_text']
-        if task_name_prefix in task_name:
-            logger.debug(f"Task name {task_name} already exists for today")
-            return
+    if is_recurring_tasks_summary_exists():
+        logger.info("Recurring tasks summary already exists")
+        return
 
     recurring_tasks = get_today_recurring_tasks()
     if not recurring_tasks:
         logger.debug("No recurring tasks due today")
-        return
 
     # Create combined task name
-    combined_name = create_recurring_combined_task_name(recurring_tasks, task_name_prefix)
+    combined_name = create_recurring_combined_task_name(recurring_tasks,
+                                                        get_recurring_tasks_summary_prefix())
 
     if not combined_name:
         logger.error("No valid task names found")
-        return
 
     task_dict = {
         "Task": combined_name,
@@ -385,7 +250,7 @@ def create_recurring_tasks_summary(should_track=False):
     )
 
     logger.info(f"Created recurring tasks summary with {len(recurring_tasks)} "
-                f"tasks: {combined_name.split(task_name_prefix)[0]}")
+                f"tasks: {combined_name.split(get_recurring_tasks_summary_prefix())[0]}")
     return response
 
 
@@ -437,7 +302,6 @@ def unset_done_recurring_tasks(should_track=False):
                     }
                 }
             }
-            recurring_tasks_view_link = Keys.recurring_tasks_view_link
             update_page(task_id, unset_done_payload)
             updated_tasks.append(task_name)
             logger.debug(f"Unset 'Done' for recurring task: {task_name}")
@@ -539,7 +403,7 @@ def create_parashat_hashavua():
 
 
 @track_operation(NotionAPIOperation.HANDLE_DONE_TASKS)
-def copy_done_from_daily_to_copied_tasks():
+def copy_done_from_daily_to_copied_tasks(should_track=False):
     daily_tasks = get_daily_tasks(daily_filter=daily_notion_category_filter_with_done_last_week)
     success_count = 0
     tasks_processed = []
@@ -600,34 +464,33 @@ def check_copied_to_daily_book_summaries(book_summary_page_id):
 
 
 @track_operation(NotionAPIOperation.GARMIN)
-def update_garmin_info(update_daily_tasks=True):
+def update_garmin_info(should_track=False, update_daily_tasks=True):
     garmin_manager = GarminManager(garmin_db_id, day_summary_db_id)
     garmin_manager.update_garmin_info(update_daily_tasks, fill_history=True)
 
 
 @track_operation(NotionAPIOperation.UNCHECK_DONE)
-def uncheck_done_weekly_task_id():
+def uncheck_done_weekly_task_id(should_track=False):
     update_page_payload = uncheck_done_set_today_payload
     update_page(weekly_task_page_id, update_page_payload)
     update_page(weight_page_id, update_page_payload)
 
 
 @track_operation(NotionAPIOperation.CREATE_DAILY_PAGES)
-def create_daily_pages():
+def create_daily_pages(should_track=False):
     functions = [
-        create_daily_summary_pages,
-        create_daily_api_pages,
+        lambda: create_daily_summary_pages(days_to_create=50),
+        lambda: create_daily_api_pages(days_to_create=50),
         create_parashat_hashavua,
         copy_recurring_tasks,
         copy_normal_tasks,
         manage_daily_summary_pages,
-        create_weekly_summary_standalone
     ]
     run_functions(functions)
 
 
 @track_operation(NotionAPIOperation.COPY_PAGES)
-def copy_pages_from_other_db_if_needed():
+def copy_pages_from_other_db_if_needed(should_track=False):
     functions = [
         copy_birthdays,
         copy_expenses_and_warranty,
@@ -637,7 +500,7 @@ def copy_pages_from_other_db_if_needed():
 
 
 @track_operation(NotionAPIOperation.GET_EXPENSES)
-def get_expenses_to_notion():
+def get_expenses_to_notion(should_track=False):
     expense_service = NotionExpenseService(expense_tracker_db_id, monthly_category_expense_db)
     expense_service.add_all_expenses_to_notion()
 
@@ -669,7 +532,6 @@ def main(selected_tasks):
                 task_function(should_track=True)
         else:
             # Manually call the functions here
-
             expense_service = NotionExpenseService(
                 expense_tracker_db_id=expense_tracker_db_id,
                 monthly_category_expense_db_id=monthly_category_expense_db
@@ -677,11 +539,6 @@ def main(selected_tasks):
 
             # Update last 2 months (current and previous)
             create_weekly_summary_standalone()
-
-            # get_expenses_to_notion()
-            # run_scheduled_tasks()
-            # ariel = get_db_pages(Keys.crossfit_exercises_db_id)
-            # print(ariel)
 
             logger.info("End of manual run")
 
@@ -711,7 +568,6 @@ if __name__ == '__main__':
         'create_daily_pages': create_daily_pages,
         'copy_pages': copy_pages_from_other_db_if_needed,
         'get_expenses': get_expenses_to_notion,
-        'scheduled_tasks': run_scheduled_tasks,
         'copy_book_summary': copy_book_summary,
         'unset_done_recurring_tasks': unset_done_recurring_tasks,
         'create_recurring_tasks_summary': create_recurring_tasks_summary,
@@ -727,7 +583,6 @@ if __name__ == '__main__':
 
     # Gather selected tasks based on command-line arguments
     selected_tasks = [task for task in task_map.keys() if getattr(args, task)]
-    # selected_tasks = ['copy_birthdays']
 
     # Call the main logic with the selected tasks
     main(selected_tasks)

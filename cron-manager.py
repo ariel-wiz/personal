@@ -612,9 +612,9 @@ if IMPORTS_AVAILABLE:
         TaskConfig(
             name="Create Weekly Summary",
             function_to_run=create_weekly_summary_standalone,
-            frequency=Frequency.WEEKLY_TUESDAY,
+            frequency=Frequency.WEEKLY_SUNDAY,
             priority=TaskPriority.HIGH,
-            retry_count=1,
+            retry_count=2,
             deferred_checks=[
                 DeferredCheck(
                     check_func=is_weekly_summary_exists,

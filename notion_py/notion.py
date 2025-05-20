@@ -228,6 +228,7 @@ def create_recurring_tasks_summary(should_track=False):
     recurring_tasks = get_today_recurring_tasks()
     if not recurring_tasks:
         logger.debug("No recurring tasks due today")
+        return
 
     # Create combined task name
     combined_name = create_recurring_combined_task_name(recurring_tasks,

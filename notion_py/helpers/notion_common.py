@@ -413,7 +413,8 @@ def get_recurring_tasks(custom_filter=None):
 
 def get_day_summary_by_date_str(date_str, filter_to_add=None):
     date_offset = get_date_offset(date_str)
-    return get_pages_by_date_offset(day_summary_db_id, date_offset, date_name="Date", filter_to_add=filter_to_add)
+    return get_pages_by_date_offset(day_summary_db_id, date_offset, date_name="Date",
+                                    filter_to_add=filter_to_add)
 
 
 # Notion API Status operations
